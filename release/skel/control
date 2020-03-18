@@ -1,0 +1,9 @@
+Package: channelz
+Version: VERSION
+Section: base
+Priority: optional
+Architecture: amd64
+Maintainer: Blobfolio LLC <hello@blobfolio.com>
+Homepage: https://github.com/Blobfolio/channelz
+Installed-Size: SIZE
+Description: Generate static Brotli and Gzip encodings of a file or directory.
