@@ -135,8 +135,7 @@ fn encode(path: PathBuf, params: &BrotliEncoderParams) -> Result<(), String> {
 	let mut input = File::open(path.to_path_buf()).map_err(|e| e.to_string())?;
 
 	// Brotli business.
-	let path_out: PathBuf = path.channelz_append_ext("br".to_string(), true);
-	let mut output = File::create(path_out).map_err(|e| e.to_string())?;
+	let mut output = path.channelz_create("br".to_string());
 	brotli::BrotliCompress(&mut input, &mut output, &params).map_err(|e| e.to_string())?;
 
 	// Rewind.
@@ -144,8 +143,7 @@ fn encode(path: PathBuf, params: &BrotliEncoderParams) -> Result<(), String> {
 	let mut input = BufReader::new(&input);
 
 	// Gzip business.
-	let path_out: PathBuf = path.channelz_append_ext("gz".to_string(), true);
-	let output = File::create(path_out.to_path_buf()).map_err(|e| e.to_string())?;
+	let output = path.channelz_create("gz".to_string());
     let mut encoder = GzEncoder::new(output, Compression::new(9));
     copy(&mut input, &mut encoder).map_err(|e| e.to_string())?;
     encoder.finish().map_err(|e| e.to_string())?;
@@ -246,6 +244,9 @@ pub trait PathFuckery {
 	/// Append extension (correctly).
 	fn channelz_append_ext(&self, ext: String, clean: bool) -> PathBuf;
 
+	/// Create file.
+	fn channelz_create(&self, ext: String) -> File;
+
 	/// Has One Of Exts.
 	fn channelz_ext_one_of(&self, exts: &Regex) -> bool;
 
@@ -260,11 +261,17 @@ impl PathFuckery for Path {
 		let out = format!("{}.{}", src, ext);
 		let out = PathBuf::from(out);
 
-		if true == clean {
+		if true == clean && out.is_file() {
 			out.channelz_unlink();
 		}
 
 		return out;
+	}
+
+	/// Create file.
+	fn channelz_create(&self, ext: String) -> File {
+		let out = self.channelz_append_ext(ext, true);
+		File::create(out).expect("That didn't work!")
 	}
 
 	/// Has One Of Exts.
