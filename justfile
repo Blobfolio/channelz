@@ -69,14 +69,14 @@ build_ver     := "1"
 
 	# Fix a few formatting quirks.
 	sed -i -e ':a' -e 'N' -e '$!ba' -Ee \
-		"s#Bitmascara [0-9\.]+[\n]Blobfolio, LLC. <hello@blobfolio.com>[\n]##g" \
+		"s#ChannelZ [0-9\.]+[\n]Blobfolio, LLC. <hello@blobfolio.com>[\n]##g" \
 		"{{ debian_dir }}/usr/share/man/man1/channelz.1"
 
 	# Wrap up by gzipping to save some space.
 	gzip -9 "{{ debian_dir }}/usr/share/man/man1/channelz.1"
 
 
-# Get/Set Bitmascara version.
+# Get/Set ChannelZ version.
 version:
 	#!/usr/bin/env bash
 
@@ -87,7 +87,7 @@ version:
 		sed 's/[^0-9\.]//g' )"
 
 	# Find out if we want to bump it.
-	_ver2="$( whiptail --inputbox "Set Bitmascara version:" --title "Release Version" 0 0 "$_ver1" 3>&1 1>&2 2>&3 )"
+	_ver2="$( whiptail --inputbox "Set ChannelZ version:" --title "Release Version" 0 0 "$_ver1" 3>&1 1>&2 2>&3 )"
 
 	exitstatus=$?
 	if [ $exitstatus != 0 ] || [ "$_ver1" = "$_ver2" ]; then
