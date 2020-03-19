@@ -6,4 +6,7 @@ Architecture: amd64
 Maintainer: Blobfolio LLC <hello@blobfolio.com>
 Homepage: https://github.com/Blobfolio/channelz
 Installed-Size: SIZE
-Description: Generate static Brotli and Gzip encodings of a file or directory.
+Description: Nothing but static...
+ .
+ Use ChannelZ to generate maximally-compressed Gzip- and Brotli-encoded copies
+ of a file or recurse a directory to do it for many files at once.
