@@ -169,9 +169,6 @@ pub trait PathFuckery {
 
 	/// Find files.
 	fn channelz_find(&self, exts: &Regex) -> Result<Vec<PathBuf>, String>;
-
-	/// Unlink.
-	fn channelz_unlink(&self) -> bool;
 }
 
 impl PathFuckery for Path {
@@ -182,7 +179,7 @@ impl PathFuckery for Path {
 	fn channelz_clean(&self, exts: &Regex) {
 		if let Ok(paths) = self.channelz_find(&exts) {
 			paths.into_par_iter().for_each(|ref x| {
-				x.channelz_unlink();
+				let _noop = std::fs::remove_file(&x).is_ok();
 			});
 		}
 	}
@@ -194,10 +191,6 @@ impl PathFuckery for Path {
 			self.to_str().expect("Unable to create path"),
 			&ext
 		));
-
-		if out.is_file() {
-			out.channelz_unlink();
-		}
 
 		File::create(out).expect("That didn't work!")
 	}
@@ -253,10 +246,5 @@ impl PathFuckery for Path {
 			false => Ok(paths),
 			true => Err("Invalid path.".into())
 		}
-	}
-
-	/// Unlink.
-	fn channelz_unlink(&self) -> bool {
-		std::fs::remove_file(&self).is_ok()
 	}
 }
