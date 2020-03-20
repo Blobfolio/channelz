@@ -84,8 +84,8 @@ fn main() -> Result<(), String> {
 /// Initialize extension patterns.
 fn init_exts(opts: &clap::ArgMatches) -> (Regex, Regex) {
 	// Default patterns.
-	let mut exts: Regex = Regex::new(r"(?i)\.(css|html|ico|js|json|mjs|svg|xml)$").unwrap();
-	let mut exts_clean: Regex = Regex::new(r"(?i)\.(css|html|ico|js|json|mjs|svg|xml)\.(br|gz)$").unwrap();
+	let mut exts: Regex = Regex::new(r"(?i)\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$").unwrap();
+	let mut exts_clean: Regex = Regex::new(r"(?i)\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)\.(br|gz)$").unwrap();
 
 	// User-supplied patterns.
 	if let Some(x) = opts.values_of("ext") {
