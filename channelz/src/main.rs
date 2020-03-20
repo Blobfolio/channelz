@@ -186,9 +186,12 @@ impl PathFuckery for Path {
 
 	/// Create file.
 	fn channelz_create(&self, ext: String) -> File {
-		let out: PathBuf = PathBuf::from(format!(
+		let out: PathBuf = self.with_file_name(format!(
 			"{}.{}",
-			self.to_str().expect("Unable to create path"),
+			self.file_name()
+				.expect("Missing file name")
+				.to_str()
+				.unwrap_or(""),
 			&ext
 		));
 
