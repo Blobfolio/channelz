@@ -22,7 +22,6 @@ extern crate rayon;
 extern crate regex;
 extern crate walkdir;
 
-use brotli::enc::backward_references::BrotliEncoderParams;
 use clap::Shell;
 use flate2::Compression;
 use flate2::write::GzEncoder;
@@ -207,10 +206,11 @@ impl PathFuckery for Path {
 
 		// Brotli business.
 		let mut output = self.channelz_create("br".to_string());
-		let mut encoder = brotli::CompressorWriter::with_params(
+		let mut encoder = brotli::CompressorWriter::new(
 			&mut output,
 			4096,
-			&BrotliEncoderParams::default()
+			11,
+			22
 		);
 		encoder.write_all(&data).unwrap();
 		encoder.flush().unwrap();
