@@ -1,9 +1,9 @@
 [package]
 name = "channelz"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
-description = "Generate maximally-compressed Gzip- and Brotli-encoded copies of a file or recurse a directory to do it for many files at once."
+description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 
 [dependencies]
 rayon = "1.3.*"

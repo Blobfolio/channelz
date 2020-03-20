@@ -53,7 +53,9 @@ fn main() -> Result<(), String> {
 
 	// Recurse a directory.
 	if path.is_dir() {
-		let (exts, exts_clean) = init_exts(&opts);
+		// Default patterns.
+		let exts: Regex = Regex::new(r"(?i)\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$").unwrap();
+		let exts_clean: Regex = Regex::new(r"(?i)\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)\.(br|gz)$").unwrap();
 
 		// Go ahead and clean.
 		if opts.is_present("clean") {
@@ -63,8 +65,14 @@ fn main() -> Result<(), String> {
 		// Loop and compress!
 		if let Ok(paths) = path.channelz_find(&exts) {
 			paths.into_par_iter().for_each(|ref x| {
-				if let Err(_) = x.channelz_encode() {}
+				// If there are errors, print them, but keep going.
+				if let Err(e) = x.channelz_encode() {
+					eprintln!("{:?}", e);
+				}
 			});
+		}
+		else {
+			return Err("No files were compressed.".to_string());
 		}
 	}
 	// Just hit one file.
@@ -79,42 +87,6 @@ fn main() -> Result<(), String> {
 	}
 
 	Ok(())
-}
-
-/// Initialize extension patterns.
-fn init_exts(opts: &clap::ArgMatches) -> (Regex, Regex) {
-	// Default patterns.
-	let mut exts: Regex = Regex::new(r"(?i)\.(css|html|ico|js|json|mjs|svg|xml)$").unwrap();
-	let mut exts_clean: Regex = Regex::new(r"(?i)\.(css|html|ico|js|json|mjs|svg|xml)\.(br|gz)$").unwrap();
-
-	// User-supplied patterns.
-	if let Some(x) = opts.values_of("ext") {
-		let ext: Regex = Regex::new(r"^[A-Za-z]+$").unwrap();
-
-		let mut raw: Vec<String> = x.filter_map(|y| {
-			match ext.is_match(y) {
-				true => Some(y.to_string().to_lowercase()),
-				false => None,
-			}
-		}).collect();
-
-		if false == raw.is_empty() {
-			let inner: String = if 1 < raw.len() {
-				raw.par_sort();
-				raw.dedup();
-
-				raw.join("|")
-			}
-			else {
-				raw[0].clone()
-			};
-
-			exts = Regex::new(&format!("(?i)\\.({})$", inner)).unwrap();
-			exts_clean = Regex::new(&format!("(?i)\\.({})\\.(br|gz)$", inner)).unwrap();
-		}
-	}
-
-	return (exts, exts_clean);
 }
 
 /// CLI Menu.
@@ -133,15 +105,6 @@ fn menu() -> clap::App<'static, 'static> {
 			.takes_value(false)
 			.help("Delete any existing *.br/gz files before starting. (Directory mode only.)")
 		)
-		.arg(clap::Arg::with_name("ext")
-			.short("e")
-			.long("ext")
-			.alias("extensions")
-			.takes_value(true)
-			.multiple(true)
-			.use_delimiter(true)
-			.help("Only compress files with these comma-separated extensions. (Directory mode only.)")
-		)
 		.arg(clap::Arg::with_name("path")
 			.index(1)
 			.help("File or directory to compress.")
@@ -150,6 +113,8 @@ fn menu() -> clap::App<'static, 'static> {
 			.value_name("PATH")
 			.use_delimiter(false)
 		)
+		.after_help("Note: In directory mode, static copies will only be generated for files with these extensions:
+css; htm(l); ico; js; json; mjs; svg; txt; xhtm(l); xml; xsl")
 }
 
 /// Path Helpers
@@ -182,32 +147,34 @@ impl PathFuckery for Path {
 	/// Generate Brotli and Gzip versions of a given file.
 	fn channelz_encode(&self) -> Result<(), String> {
 		// Load the full file contents as we'll need to reference it twice.
-		let data = std::fs::read(&self).expect("Unable to read file.");
+		let data = std::fs::read(&self).map_err(|e| e.to_string())?;
 
 		// The base name won't be changing, so let's grab that too.
 		let base = self.to_str().unwrap_or("");
 
 		// Brotli business.
 		let mut output = File::create(PathBuf::from(format!("{}.br", &base)))
-			.expect("That didn't work!");
+			.map_err(|e| e.to_string())?;
 
 		let mut encoder = compu::compressor::write::Compressor::new(
 			BrotliEncoder::default(),
 			&mut output
 		);
 
-		encoder.push(&data, EncoderOp::Finish).expect("Successful compression");
+		encoder.push(&data, EncoderOp::Finish)
+			.map_err(|e| e.to_string())?;
 
 		// Gzip business.
 		let mut output = File::create(PathBuf::from(format!("{}.gz", &base)))
-			.expect("That didn't work!");
+			.map_err(|e| e.to_string())?;
 
 		let mut encoder = compu::compressor::write::Compressor::new(
 			ZlibEncoder::default(),
 			&mut output
 		);
 
-		encoder.push(&data, EncoderOp::Finish).expect("Successful compression");
+		encoder.push(&data, EncoderOp::Finish)
+			.map_err(|e| e.to_string())?;
 
 		Ok(())
 	}

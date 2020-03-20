@@ -6,7 +6,12 @@ Architecture: amd64
 Maintainer: Blobfolio LLC <hello@blobfolio.com>
 Homepage: https://github.com/Blobfolio/channelz
 Installed-Size: SIZE
-Description: Nothing but static...
+Description: ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli
+ encoding tool for the CLI.
  .
- Use ChannelZ to generate maximally-compressed Gzip- and Brotli-encoded copies
- of a file or recurse a directory to do it for many files at once.
+ Point it toward a single file to generate maximally-compressed Brotli- and
+ Gzip-encoded copies, or point it toward a directory to recursively handle many
+ files en masse.
+ .
+ In directory mode, only files with the following extensions will be looked at:
+ css; htm(l); ico; js; json; mjs; svg; txt; xhtm(l); xml; xsl
