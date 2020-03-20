@@ -14,6 +14,58 @@ release_dir   := justfile_directory() + "/release"
 build_ver     := "1"
 
 
+# Benchmark Directory Comparisons.
+bench PATH:
+	#!/usr/bin/env bash
+
+	[ -d "{{ PATH }}" ] || just _die "Path must be a valid directory."
+	[ -f "{{ cargo_dir }}/release/channelz" ] || just build
+	clear
+
+	just _info "(Find + Xargs + Brotli) + (Find + Xargs + Gzip)"
+	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
+	time just _bench-fx "{{ PATH }}"
+	echo ""
+
+	just _info "(Find + Parallel + Brotli) + (Find + Parallel + Gzip)"
+	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
+	time just _bench-fp "{{ PATH }}"
+	echo ""
+
+	just _info "ChannelZ"
+	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
+	time "{{ cargo_dir }}/release/channelz" "{{ PATH }}"
+
+
+# Benchmark Find + Xargs
+@_bench-fx PATH:
+	find "{{ PATH }}" \
+		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
+		-type f \
+		-print0 | \
+		xargs -0 brotli -q 11
+
+	find "{{ PATH }}" \
+		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
+		-type f \
+		-print0 | \
+		xargs -0 gzip -k -9
+
+
+# Benchmark Find + Parallel
+@_bench-fp PATH:
+	find "{{ PATH }}" \
+		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
+		-type f \
+		-print0 | \
+		parallel -0 brotli -q 11
+
+	find "{{ PATH }}" \
+		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
+		-type f \
+		-print0 | \
+		parallel -0 gzip -k -9
+
 
 # Build Release!
 @build:
@@ -133,7 +185,6 @@ _version TOML VER:
 # Init dependencies.
 @_init:
 	echo ""
-
 
 
 ##             ##
