@@ -1,22 +1,21 @@
 [package]
 name = "channelz"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "Generate maximally-compressed Gzip- and Brotli-encoded copies of a file or recurse a directory to do it for many files at once."
 
 [dependencies]
-brotli = "3.3.*"
 rayon = "1.3.*"
 regex = "1.3.*"
 walkdir = "2.3.*"
 
-[dependencies.flate2]
-version = "1.0"
+[dependencies.compu]
+version = "0.5.1"
 default-features = false
-features = ["cloudflare_zlib"]
+features = ["brotli-c", "zlib-opt"]
 
 [dependencies.clap]
 version = "2.33.*"
 default-features = false
-features = [ "color" ]
+features = [ "color", "suggestions", "vec_map", "wrap_help" ]

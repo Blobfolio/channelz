@@ -15,20 +15,17 @@ of a file or recurse a directory to do it for many files at once.
 #![deny(missing_copy_implementations)]
 #![deny(missing_debug_implementations)]
 
-extern crate brotli;
+extern crate compu;
 extern crate clap;
-extern crate flate2;
 extern crate rayon;
 extern crate regex;
 extern crate walkdir;
 
 use clap::Shell;
-use flate2::Compression;
-use flate2::write::GzEncoder;
+use compu::encoder::{Encoder, EncoderOp, BrotliEncoder, ZlibEncoder};
 use rayon::prelude::*;
 use regex::Regex;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::stdout;
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -134,7 +131,7 @@ fn menu() -> clap::App<'static, 'static> {
 		.arg(clap::Arg::with_name("clean")
 			.long("clean")
 			.takes_value(false)
-			.help("Delete any existing .br/.gz files before starting. (Directory mode only.)")
+			.help("Delete any existing *.br/gz files before starting. (Directory mode only.)")
 		)
 		.arg(clap::Arg::with_name("ext")
 			.short("e")
@@ -143,7 +140,7 @@ fn menu() -> clap::App<'static, 'static> {
 			.takes_value(true)
 			.multiple(true)
 			.use_delimiter(true)
-			.help("Only compress files with these extensions. (Directory mode only.)")
+			.help("Only compress files with these comma-separated extensions. (Directory mode only.)")
 		)
 		.arg(clap::Arg::with_name("path")
 			.index(1)
@@ -159,9 +156,6 @@ fn menu() -> clap::App<'static, 'static> {
 pub trait PathFuckery {
 	/// Clean directory.
 	fn channelz_clean(&self, exts: &Regex);
-
-	/// Create file.
-	fn channelz_create(&self, ext: String) -> File;
 
 	/// Encode file!
 	fn channelz_encode(&self) -> Result<(), String>;
@@ -183,20 +177,6 @@ impl PathFuckery for Path {
 		}
 	}
 
-	/// Create file.
-	fn channelz_create(&self, ext: String) -> File {
-		let out: PathBuf = self.with_file_name(format!(
-			"{}.{}",
-			self.file_name()
-				.expect("Missing file name")
-				.to_str()
-				.unwrap_or(""),
-			&ext
-		));
-
-		File::create(out).expect("That didn't work!")
-	}
-
 	/// Encode file!
 	///
 	/// Generate Brotli and Gzip versions of a given file.
@@ -204,22 +184,30 @@ impl PathFuckery for Path {
 		// Load the full file contents as we'll need to reference it twice.
 		let data = std::fs::read(&self).expect("Unable to read file.");
 
+		// The base name won't be changing, so let's grab that too.
+		let base = self.to_str().unwrap_or("");
+
 		// Brotli business.
-		let mut output = self.channelz_create("br".to_string());
-		let mut encoder = brotli::CompressorWriter::new(
-			&mut output,
-			4096,
-			11,
-			22
+		let mut output = File::create(PathBuf::from(format!("{}.br", &base)))
+			.expect("That didn't work!");
+
+		let mut encoder = compu::compressor::write::Compressor::new(
+			BrotliEncoder::default(),
+			&mut output
 		);
-		encoder.write_all(&data).unwrap();
-		encoder.flush().unwrap();
+
+		encoder.push(&data, EncoderOp::Finish).expect("Successful compression");
 
 		// Gzip business.
-		let output = self.channelz_create("gz".to_string());
-		let mut encoder = GzEncoder::new(output, Compression::new(9));
-		encoder.write_all(&data).unwrap();
-		encoder.finish().unwrap();
+		let mut output = File::create(PathBuf::from(format!("{}.gz", &base)))
+			.expect("That didn't work!");
+
+		let mut encoder = compu::compressor::write::Compressor::new(
+			ZlibEncoder::default(),
+			&mut output
+		);
+
+		encoder.push(&data, EncoderOp::Finish).expect("Successful compression");
 
 		Ok(())
 	}
