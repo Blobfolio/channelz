@@ -36,6 +36,8 @@ channelz /path/to
 
 | Method | Time (s) | Difference |
 | ---- | ---- | ---- |
-| (Find + Xargs + Brotli) + (Find + Xargs + Gzip) | 45.342 | <span style="color: red">+151%</span> |
-| (Find + Parallel + Brotli) + (Find + Parallel + Gzip) | 23.006 | <span style="color: orange">+27%</span> |
+| Find/Xargs + Gzip/Brotli | 45.342 | <span style="color: red">+151.2%</span> |
+| Find/Parallel + Gzip/Brotli | 23.006 | <span style="color: orange">+27.4%</span> |
 | ChannelZ | 18.049 | 🏄 |
+
+Not only does ChannelZ spare you the awful BASH spaghetti, it finishes the job about 2.5× faster.
