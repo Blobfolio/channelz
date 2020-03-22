@@ -22,17 +22,17 @@ bench PATH:
 	[ -f "{{ cargo_dir }}/release/channelz" ] || just build
 	clear
 
-	just _info "(Find + Xargs + Brotli) + (Find + Xargs + Gzip)"
+	fyi print -p Method "(Find + Xargs + Brotli) + (Find + Xargs + Gzip)"
 	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 	time just _bench-fx "{{ PATH }}"
 	echo ""
 
-	just _info "(Find + Parallel + Brotli) + (Find + Parallel + Gzip)"
+	fyi print -p Method "(Find + Parallel + Brotli) + (Find + Parallel + Gzip)"
 	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 	time just _bench-fp "{{ PATH }}"
 	echo ""
 
-	just _info "ChannelZ"
+	fyi print -p Method "ChannelZ"
 	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 	time "{{ cargo_dir }}/release/channelz" "{{ PATH }}"
 
@@ -146,7 +146,7 @@ version:
 		exit 0
 	fi
 
-	just _info "Setting plugin version to $_ver2."
+	fyi success "Setting plugin version to $_ver2."
 
 	# Set the release version!
 	just _version "{{ justfile_directory() }}/channelz/Cargo.toml" "$_ver2" >/dev/null 2>&1
@@ -185,12 +185,3 @@ _version TOML VER:
 # Init dependencies.
 @_init:
 	echo ""
-
-
-##             ##
-# NOTIFICATIONS #
-##             ##
-
-# Echo an informational comment.
-@_info COMMENT:
-	echo "\e[95;1m[Info] \e[0;1m{{ COMMENT }}\e[0m"
