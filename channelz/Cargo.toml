@@ -1,9 +1,13 @@
 [package]
 name = "channelz"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
+build = "build.rs"
+
+[build-dependencies]
+clap = "2.33.*"
 
 [dependencies]
 rayon = "1.3.*"
