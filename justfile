@@ -92,7 +92,7 @@ bench PATH:
 	strip "{{ debian_dir }}/usr/bin/channelz"
 
 	# Generate completions.
-	"{{ debian_dir }}/usr/bin/channelz" --completions > "{{ debian_dir }}/etc/bash_completion.d/channelz.bash"
+	cp -a "{{ cargo_dir }}/channelz.bash" "{{ debian_dir }}/etc/bash_completion.d"
 	chmod 644 "{{ debian_dir }}/etc/bash_completion.d/channelz.bash"
 
 	# Set up the control file.
