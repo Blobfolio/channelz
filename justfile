@@ -8,6 +8,7 @@
 ##
 
 cargo_dir     := "/tmp/channelz-cargo"
+data_dir      := "/tmp/bench-data"
 debian_dir    := "/tmp/channelz-release/channelz"
 release_dir   := justfile_directory() + "/release"
 
@@ -15,37 +16,85 @@ build_ver     := "1"
 
 
 # Benchmark Directory Comparisons.
-bench PATH:
+bench: _bench_init
 	#!/usr/bin/env bash
 
-	[ -d "{{ PATH }}" ] || just _die "Path must be a valid directory."
 	[ -f "{{ cargo_dir }}/release/channelz" ] || just build
 	clear
 
 	fyi print -p Method "(Find + Xargs + Brotli) + (Find + Xargs + Gzip)"
-	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-	time just _bench-fx "{{ PATH }}"
+	just _bench_reset
+	time just _bench-fx
 	echo ""
 
 	fyi print -p Method "(Find + Parallel + Brotli) + (Find + Parallel + Gzip)"
-	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-	time just _bench-fp "{{ PATH }}"
+	just _bench_reset
+	time just _bench-fp
 	echo ""
 
 	fyi print -p Method "ChannelZ"
-	find "{{ PATH }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-	time "{{ cargo_dir }}/release/channelz" "{{ PATH }}"
+	just _bench_reset
+	time "{{ cargo_dir }}/release/channelz" "{{ data_dir }}/test"
+	echo ""
+
+	fyi print -p Method "ChannelZ w/ Progress"
+	just _bench_reset
+	"{{ cargo_dir }}/release/channelz" -p "{{ data_dir }}/test"
+
+
+
+# Benchmark data.
+_bench_init:
+	#!/usr/bin/env bash
+
+	[ -d "{{ data_dir }}" ] || mkdir "{{ data_dir }}"
+	if [ ! -f "{{ data_dir }}/list.csv" ]; then
+		wget -O "{{ data_dir }}/list.csv" "https://moz.com/top-500/download/?table=top500Domains"
+		sed -i 1d "{{ data_dir }}/list.csv"
+	fi
+
+	if [ ! -d "{{ data_dir }}/raw" ]; then
+		fyi info "Gathering Top 500 Sites."
+		mkdir "{{ data_dir }}/raw"
+		echo "" > "{{ data_dir }}/raw.txt"
+
+		while IFS=, read -r field1 field2 field3
+		do
+			dom="$( echo "$field2" | sd -s '"' '' )"
+			[ -z "$dom" ] || echo "https://$dom" >> "{{ data_dir }}/raw.txt"
+		done < "{{ data_dir }}/list.csv"
+
+		_user="\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36\""
+
+		cd "{{ data_dir }}/raw"
+		parallel --gnu --jobs 50 -a "{{ data_dir }}/raw.txt" wget -q -T5 -t1 -E html -U "$_user"
+
+		fyi info "Grabbing some other data."
+
+		git clone https://github.com/hjnilsson/country-flags.git "{{ data_dir }}/raw/flags"
+		git clone https://github.com/lodash/lodash.git "{{ data_dir }}/raw/lodash"
+
+		find "{{ data_dir }}/raw" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
+	fi
+
+	exit 0
+
+
+# Reset benchmarks.
+@_bench_reset: _bench_init
+	[ ! -d "{{ data_dir }}/test" ] || rm -rf "{{ data_dir }}/test"
+	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test"
 
 
 # Benchmark Find + Xargs
-@_bench-fx PATH:
-	find "{{ PATH }}" \
+@_bench-fx:
+	find "{{ data_dir }}/test" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
 		xargs -0 brotli -q 11
 
-	find "{{ PATH }}" \
+	find "{{ data_dir }}/test" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
@@ -53,14 +102,14 @@ bench PATH:
 
 
 # Benchmark Find + Parallel
-@_bench-fp PATH:
-	find "{{ PATH }}" \
+@_bench-fp:
+	find "{{ data_dir }}/test" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
 		parallel -0 brotli -q 11
 
-	find "{{ PATH }}" \
+	find "{{ data_dir }}/test" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
