@@ -16,7 +16,7 @@ build_ver     := "1"
 
 
 # Benchmark Directory Comparisons.
-bench: _bench_init
+bench: _bench-init
 	#!/usr/bin/env bash
 
 	[ -f "{{ cargo_dir }}/release/channelz" ] || just build
@@ -44,7 +44,7 @@ bench: _bench_init
 
 
 # Benchmark data.
-_bench_init:
+_bench-init:
 	#!/usr/bin/env bash
 
 	[ -d "{{ data_dir }}" ] || mkdir "{{ data_dir }}"
@@ -81,7 +81,7 @@ _bench_init:
 
 
 # Reset benchmarks.
-@_bench_reset: _bench_init
+@_bench_reset: _bench-init
 	[ ! -d "{{ data_dir }}/test" ] || rm -rf "{{ data_dir }}/test"
 	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test"
 
