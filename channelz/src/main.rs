@@ -25,15 +25,18 @@ mod menu;
 use clap::ArgMatches;
 use compu::encoder::{Encoder, EncoderOp, BrotliEncoder, ZlibEncoder};
 use fyi_core::{
+	Msg,
 	Progress,
 	progress_arc,
-	witcher
+	witcher,
+	PROGRESS_NO_ELAPSED
 };
 use fyi_core::witcher::mass::FYIMassOps;
 use fyi_core::witcher::ops::FYIOps;
 use rayon::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
+use std::time::Instant;
 
 
 
@@ -42,34 +45,46 @@ fn main() -> Result<(), String> {
 	let opts: ArgMatches = menu::menu()
 		.get_matches();
 
-	// What path are we dealing with?
-	let mut paths: Vec<PathBuf> = opts.values_of("path").unwrap()
-		.into_iter()
-		.filter_map(|x| Some(PathBuf::from(x)))
-		.collect();
-
 	let pattern = witcher::pattern_to_regex(r"(?i)\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$");
-	paths.fyi_walk_filtered_mut(&pattern);
+
+	// What path are we dealing with?
+	let paths: Vec<PathBuf> = match opts.is_present("list") {
+		false => {
+			let tmp: Vec<PathBuf> = opts.values_of("path").unwrap()
+				.into_iter()
+				.filter_map(|x| Some(PathBuf::from(x)))
+				.collect();
+
+			tmp.fyi_walk_filtered(&pattern)
+		},
+		true => PathBuf::from(opts.value_of("list").unwrap_or(""))
+			.fyi_walk_file_lines(Some(pattern)),
+	};
 
 	if paths.is_empty() {
-		return Err("No HTML files were found.".to_string());
+		return Err("No encodable files were found.".to_string());
 	}
 
-	// Do it with progress.
+	// With progress.
 	if opts.is_present("progress") {
-		let bar = Progress::new("", paths.len() as u64, 0);
+		let found: u64 = paths.len() as u64;
+		let bar = Progress::new("", found, PROGRESS_NO_ELAPSED);
+		let time = Instant::now();
 
 		paths.into_par_iter().for_each(|ref x| {
 			let _ = x.encode().is_ok();
+
 			progress_arc::set_path(bar.clone(), &x);
 			progress_arc::increment(bar.clone(), 1);
 			progress_arc::tick(bar.clone());
 		});
 
-		// Finish progress bar if applicable.
 		progress_arc::finish(bar.clone());
+
+		Msg::msg_crunched_in(found, time, None)
+			.print();
 	}
-	// Do it without.
+	// Without progress.
 	else {
 		paths.into_par_iter().for_each(|ref x| {
 			let _ = x.encode().is_ok();
