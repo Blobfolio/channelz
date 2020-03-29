@@ -5,6 +5,7 @@ authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 build = "build.rs"
+publish = false
 
 [build-dependencies]
 clap = "2.33.*"
