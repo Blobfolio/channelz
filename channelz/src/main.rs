@@ -111,9 +111,10 @@ impl ChannelZEncode for PathBuf {
 		let base = self.to_str().unwrap_or("");
 
 		// MORE PARALLEL!
-		let br = || encode_br(&data, &base);
-		let gz = || encode_gz(&data, &base);
-		let (_, _) = rayon::join(br, gz);
+		let _ = rayon::join(
+			|| encode_br(&data, &base),
+			|| encode_gz(&data, &base),
+		);
 
 		Ok(())
 	}
