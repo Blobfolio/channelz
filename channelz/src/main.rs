@@ -18,6 +18,7 @@ of a file or recurse a directory to do it for many files at once.
 extern crate clap;
 extern crate compu;
 extern crate fyi_core;
+extern crate num_cpus;
 extern crate rayon;
 
 mod menu;
@@ -46,6 +47,11 @@ fn main() -> Result<(), String> {
 		.get_matches();
 
 	let pattern = witcher::pattern_to_regex(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$");
+
+	// Set the thread pool to the number of CPUs.
+	let _ = rayon::ThreadPoolBuilder::new()
+		.num_threads(num_cpus::get())
+		.build_global();
 
 	// What path are we dealing with?
 	let paths: Vec<PathBuf> = match opts.is_present("list") {
