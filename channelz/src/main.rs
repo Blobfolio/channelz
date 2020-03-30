@@ -106,15 +106,16 @@ impl ChannelZEncode for PathBuf {
 	fn encode(&self) -> Result<(), String> {
 		// Load the full file contents as we'll need to reference it twice.
 		let data = self.fyi_read()?;
+		if false == data.is_empty() {
+			// The base name won't be changing, so let's grab that too.
+			let base = self.to_str().unwrap_or("");
 
-		// The base name won't be changing, so let's grab that too.
-		let base = self.to_str().unwrap_or("");
-
-		// MORE PARALLEL!
-		let _ = rayon::join(
-			|| encode_br(&data, &base),
-			|| encode_gz(&data, &base),
-		);
+			// MORE PARALLEL!
+			let _ = rayon::join(
+				|| encode_br(&data, &base),
+				|| encode_gz(&data, &base),
+			);
+		}
 
 		Ok(())
 	}
