@@ -67,19 +67,20 @@ fn main() -> Result<(), String> {
 
 	// With progress.
 	if opts.is_present("progress") {
-		let found: u64 = paths.len() as u64;
-		let bar = Progress::new("", found, PROGRESS_NO_ELAPSED);
 		let time = Instant::now();
+		let found: u64 = paths.len() as u64;
 
-		paths.into_par_iter().for_each(|ref x| {
-			let _ = x.encode().is_ok();
+		{
+			let bar = Progress::new("", found, PROGRESS_NO_ELAPSED);
+			paths.into_par_iter().for_each(|ref x| {
+				let _ = x.encode().is_ok();
 
-			progress_arc::set_path(bar.clone(), &x);
-			progress_arc::increment(bar.clone(), 1);
-			progress_arc::tick(bar.clone());
-		});
-
-		progress_arc::finish(bar.clone());
+				progress_arc::set_path(bar.clone(), &x);
+				progress_arc::increment(bar.clone(), 1);
+				progress_arc::tick(bar.clone());
+			});
+			progress_arc::finish(bar.clone());
+		}
 
 		Msg::msg_crunched_in(found, time, None)
 			.print();
