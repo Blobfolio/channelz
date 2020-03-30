@@ -110,34 +110,43 @@ impl ChannelZEncode for PathBuf {
 		// The base name won't be changing, so let's grab that too.
 		let base = self.to_str().unwrap_or("");
 
-		{
-			// Brotli business.
-			let mut output = File::create(PathBuf::from(format!("{}.br", &base)))
-				.map_err(|e| e.to_string())?;
-
-			let mut encoder = compu::compressor::write::Compressor::new(
-				BrotliEncoder::default(),
-				&mut output
-			);
-
-			encoder.push(&data, EncoderOp::Finish)
-				.map_err(|e| e.to_string())?;
-		}
-
-		{
-			// Gzip business.
-			let mut output = File::create(PathBuf::from(format!("{}.gz", &base)))
-				.map_err(|e| e.to_string())?;
-
-			let mut encoder = compu::compressor::write::Compressor::new(
-				ZlibEncoder::default(),
-				&mut output
-			);
-
-			encoder.push(&data, EncoderOp::Finish)
-				.map_err(|e| e.to_string())?;
-		}
+		// MORE PARALLEL!
+		let br = || encode_br(&data, &base);
+		let gz = || encode_gz(&data, &base);
+		let (_, _) = rayon::join(br, gz);
 
 		Ok(())
 	}
+}
+
+/// Brotli business.
+fn encode_br(data: &[u8], base: &str) -> Result<(), String> {
+	let mut output = File::create(PathBuf::from(format!("{}.br", &base)))
+		.map_err(|e| e.to_string())?;
+
+	let mut encoder = compu::compressor::write::Compressor::new(
+		BrotliEncoder::default(),
+		&mut output
+	);
+
+	encoder.push(&data, EncoderOp::Finish)
+		.map_err(|e| e.to_string())?;
+
+	Ok(())
+}
+
+/// Gzip business.
+fn encode_gz(data: &[u8], base: &str) -> Result<(), String> {
+	let mut output = File::create(PathBuf::from(format!("{}.gz", &base)))
+		.map_err(|e| e.to_string())?;
+
+	let mut encoder = compu::compressor::write::Compressor::new(
+		ZlibEncoder::default(),
+		&mut output
+	);
+
+	encoder.push(&data, EncoderOp::Finish)
+		.map_err(|e| e.to_string())?;
+
+	Ok(())
 }
