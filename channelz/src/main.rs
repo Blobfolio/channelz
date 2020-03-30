@@ -45,7 +45,7 @@ fn main() -> Result<(), String> {
 	let opts: ArgMatches = menu::menu()
 		.get_matches();
 
-	let pattern = witcher::pattern_to_regex(r"(?i)\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$");
+	let pattern = witcher::pattern_to_regex(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$");
 
 	// What path are we dealing with?
 	let paths: Vec<PathBuf> = match opts.is_present("list") {
