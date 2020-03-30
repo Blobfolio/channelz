@@ -94,21 +94,6 @@ _bench-init:
 	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test"
 
 
-# Benchmark Find + Xargs
-@_bench-fx:
-	find "{{ data_dir }}/test" \
-		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
-		-type f \
-		-print0 | \
-		xargs -0 brotli -q 11
-
-	find "{{ data_dir }}/test" \
-		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
-		-type f \
-		-print0 | \
-		xargs -0 gzip -k -9
-
-
 # Benchmark Find + Parallel
 @_bench-fp:
 	find "{{ data_dir }}/test" \
