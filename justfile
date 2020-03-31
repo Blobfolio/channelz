@@ -22,7 +22,7 @@ bench: _bench-init build
 	clear
 
 	fyi notice "Pausing 5s before next run."
-	just _bench_reset
+	just _bench-reset
 	sleep 5s
 
 	fyi print -p Method "(Find + Parallel + Brotli) + (Find + Parallel + Gzip)"
@@ -30,7 +30,7 @@ bench: _bench-init build
 	echo ""
 
 	fyi notice "Pausing 5s before next run."
-	just _bench_reset
+	just _bench-reset
 	sleep 5s
 
 	fyi print -p Method "ChannelZ"
@@ -43,7 +43,7 @@ bench-self: _bench-init build
 
 	clear
 
-	just _bench_reset
+	just _bench-reset
 	fyi notice "Pausing 5s before running."
 	sleep 5s
 
@@ -89,7 +89,7 @@ _bench-init:
 
 
 # Reset benchmarks.
-@_bench_reset: _bench-init
+@_bench-reset: _bench-init
 	[ ! -d "{{ data_dir }}/test" ] || rm -rf "{{ data_dir }}/test"
 	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test"
 
