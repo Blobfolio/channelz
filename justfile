@@ -16,31 +16,39 @@ build_ver     := "1"
 
 
 # Benchmark Directory Comparisons.
-bench: _bench-init
+bench: _bench-init build
 	#!/usr/bin/env bash
 
-	[ -f "{{ cargo_dir }}/release/channelz" ] || just build
 	clear
 
-	fyi print -p Method "(Find + Xargs + Brotli) + (Find + Xargs + Gzip)"
+	fyi notice "Pausing 5s before next run."
 	just _bench_reset
-	time just _bench-fx
-	echo ""
+	sleep 5s
 
 	fyi print -p Method "(Find + Parallel + Brotli) + (Find + Parallel + Gzip)"
-	just _bench_reset
 	time just _bench-fp
 	echo ""
 
-	fyi print -p Method "ChannelZ"
+	fyi notice "Pausing 5s before next run."
 	just _bench_reset
+	sleep 5s
+
+	fyi print -p Method "ChannelZ"
 	time "{{ cargo_dir }}/release/channelz" "{{ data_dir }}/test"
-	echo ""
+
+
+# Benchmark Self.
+bench-self: _bench-init build
+	#!/usr/bin/env bash
+
+	clear
+
+	just _bench_reset
+	fyi notice "Pausing 5s before running."
+	sleep 5s
 
 	fyi print -p Method "ChannelZ w/ Progress"
-	just _bench_reset
 	"{{ cargo_dir }}/release/channelz" -p "{{ data_dir }}/test"
-
 
 
 # Benchmark data.
@@ -48,8 +56,9 @@ _bench-init:
 	#!/usr/bin/env bash
 
 	[ -d "{{ data_dir }}" ] || mkdir "{{ data_dir }}"
+
 	if [ ! -f "{{ data_dir }}/list.csv" ]; then
-		wget -O "{{ data_dir }}/list.csv" "https://moz.com/top-500/download/?table=top500Domains"
+		wget -q -O "{{ data_dir }}/list.csv" "https://moz.com/top-500/download/?table=top500Domains"
 		sed -i 1d "{{ data_dir }}/list.csv"
 	fi
 
@@ -58,21 +67,20 @@ _bench-init:
 		mkdir "{{ data_dir }}/raw"
 		echo "" > "{{ data_dir }}/raw.txt"
 
-		while IFS=, read -r field1 field2 field3
-		do
-			dom="$( echo "$field2" | sd -s '"' '' )"
-			[ -z "$dom" ] || echo "https://$dom" >> "{{ data_dir }}/raw.txt"
-		done < "{{ data_dir }}/list.csv"
-
+		# Fake a user agent.
 		_user="\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36\""
 
-		cd "{{ data_dir }}/raw"
-		parallel --gnu --jobs 50 -a "{{ data_dir }}/raw.txt" wget -q -T5 -t1 -E html -U "$_user"
+		# Download everything.
+		cat "{{ data_dir }}/list.csv" | rargs \
+			-p '^"(?P<id>\d+)","(?P<url>[^"]+)"' \
+			-j 50 \
+			wget -q -T5 -t1 -U "$_user" -O "{{ data_dir }}/raw/{url}.html" "https://{url}"
 
-		fyi info "Grabbing some other data."
+		fyi info "Grabbing SVG samples."
+		git clone -q https://github.com/hjnilsson/country-flags.git "{{ data_dir }}/raw/flags"
 
-		git clone https://github.com/hjnilsson/country-flags.git "{{ data_dir }}/raw/flags"
-		git clone https://github.com/lodash/lodash.git "{{ data_dir }}/raw/lodash"
+		fyi info "Grabbing JS samples."
+		git clone -q https://github.com/lodash/lodash.git "{{ data_dir }}/raw/lodash"
 
 		find "{{ data_dir }}/raw" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 	fi
@@ -84,21 +92,6 @@ _bench-init:
 @_bench_reset: _bench-init
 	[ ! -d "{{ data_dir }}/test" ] || rm -rf "{{ data_dir }}/test"
 	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test"
-
-
-# Benchmark Find + Xargs
-@_bench-fx:
-	find "{{ data_dir }}/test" \
-		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
-		-type f \
-		-print0 | \
-		xargs -0 brotli -q 11
-
-	find "{{ data_dir }}/test" \
-		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
-		-type f \
-		-print0 | \
-		xargs -0 gzip -k -9
 
 
 # Benchmark Find + Parallel
