@@ -38,7 +38,7 @@ bench: _bench-init build
 
 
 # Benchmark Self.
-just bench-self: _bench-init build
+bench-self: _bench-init build
 	#!/usr/bin/env bash
 
 	clear
