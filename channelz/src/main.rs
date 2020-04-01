@@ -23,16 +23,23 @@ extern crate rayon;
 mod menu;
 
 use clap::ArgMatches;
-use compu::encoder::{Encoder, EncoderOp, BrotliEncoder, ZlibEncoder};
+use compu::encoder::{
+	Encoder,
+	EncoderOp,
+	BrotliEncoder,
+	ZlibEncoder,
+};
 use fyi_core::{
 	Msg,
 	Progress,
 	progress_arc,
-	witcher,
 	PROGRESS_NO_ELAPSED
 };
-use fyi_core::witcher::mass::FYIMassOps;
-use fyi_core::witcher::ops::FYIOps;
+use fyi_core::witcher::{
+	self,
+	mass::FYIMassOps,
+	ops::FYIOps,
+};
 use rayon::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
