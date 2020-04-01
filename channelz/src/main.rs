@@ -33,7 +33,7 @@ use fyi_core::{
 	Msg,
 	Progress,
 	progress_arc,
-	PROGRESS_NO_ELAPSED
+	PROGRESS_CLEAR_ON_FINISH,
 };
 use fyi_core::witcher::{
 	self,
@@ -75,13 +75,13 @@ fn main() -> Result<(), String> {
 		let found: u64 = paths.len() as u64;
 
 		{
-			let bar = Progress::new("", found, PROGRESS_NO_ELAPSED);
-			let looper = progress_arc::looper(&bar, 100);
+			let bar = Progress::new("", found, PROGRESS_CLEAR_ON_FINISH);
+			let looper = progress_arc::looper(&bar, 60);
 			paths.par_iter().for_each(|ref x| {
+				progress_arc::open_threads(&bar, 1);
 				let _ = x.encode().is_ok();
-
 				progress_arc::set_path(&bar, &x);
-				progress_arc::increment(&bar, 1);
+				progress_arc::increment_and_close_threads(&bar, 1, 1);
 			});
 			progress_arc::finish(&bar);
 			looper.join().unwrap();
