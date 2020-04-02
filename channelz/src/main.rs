@@ -35,17 +35,20 @@ use fyi_core::{
 	Progress,
 	progress_arc,
 	PROGRESS_CLEAR_ON_FINISH,
-};
-use fyi_core::witcher::{
-	self,
-	mass::FYIMassOps,
-	ops::FYIOps,
+	witcher::{
+		self,
+		mass::FYIMassOps,
+		ops::FYIOps,
+		walk::FYIWalk,
+	},
 };
 use rayon::prelude::*;
-use std::fs::File;
-use std::path::PathBuf;
-use std::time::Instant;
-use std::collections::HashSet;
+use std::{
+	collections::HashSet,
+	fs::File,
+	path::PathBuf,
+	time::Instant,
+};
 
 
 
