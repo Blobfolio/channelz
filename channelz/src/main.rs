@@ -31,6 +31,7 @@ use compu::encoder::{
 };
 use fyi_core::{
 	Msg,
+	Prefix,
 	Progress,
 	progress_arc,
 	PROGRESS_CLEAR_ON_FINISH,
@@ -44,6 +45,7 @@ use rayon::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
 use std::time::Instant;
+use std::collections::HashSet;
 
 
 
@@ -55,14 +57,16 @@ fn main() -> Result<(), String> {
 	let pattern = witcher::pattern_to_regex(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$");
 
 	// What path are we dealing with?
-	let paths: Vec<PathBuf> = match opts.is_present("list") {
+	let paths: HashSet<PathBuf> = match opts.is_present("list") {
 		false => opts.values_of("path").unwrap()
 			.into_iter()
 			.filter_map(|x| Some(PathBuf::from(x)))
-			.collect::<Vec<PathBuf>>()
+			.collect::<HashSet<PathBuf>>()
 			.fyi_walk_filtered(&pattern),
 		true => PathBuf::from(opts.value_of("list").unwrap_or(""))
-			.fyi_walk_file_lines(Some(pattern)),
+			.fyi_walk_file_lines(Some(pattern))
+			.into_iter()
+			.collect::<HashSet<PathBuf>>(),
 	};
 
 	if paths.is_empty() {
@@ -75,13 +79,18 @@ fn main() -> Result<(), String> {
 		let found: u64 = paths.len() as u64;
 
 		{
-			let bar = Progress::new("", found, PROGRESS_CLEAR_ON_FINISH);
+			let bar = Progress::new(
+				Msg::new("Reticulating splines…")
+					.with_prefix(Prefix::Custom("ChannelZ", 199))
+					.to_string(),
+				found,
+				PROGRESS_CLEAR_ON_FINISH
+			);
 			let looper = progress_arc::looper(&bar, 60);
 			paths.par_iter().for_each(|ref x| {
-				progress_arc::open_threads(&bar, 1);
+				progress_arc::add_working(&bar, &x);
 				let _ = x.encode().is_ok();
-				progress_arc::set_path(&bar, &x);
-				progress_arc::increment_and_close_threads(&bar, 1, 1);
+				progress_arc::update(&bar, 1, None, Some(x.to_path_buf()));
 			});
 			progress_arc::finish(&bar);
 			looper.join().unwrap();
