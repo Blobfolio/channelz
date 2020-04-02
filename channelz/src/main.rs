@@ -35,17 +35,20 @@ use fyi_core::{
 	Progress,
 	progress_arc,
 	PROGRESS_CLEAR_ON_FINISH,
-};
-use fyi_core::witcher::{
-	self,
-	mass::FYIMassOps,
-	ops::FYIOps,
+	witcher::{
+		self,
+		mass::FYIMassOps,
+		ops::FYIOps,
+		walk::FYIWalk,
+	},
 };
 use rayon::prelude::*;
-use std::fs::File;
-use std::path::PathBuf;
-use std::time::Instant;
-use std::collections::HashSet;
+use std::{
+	collections::HashSet,
+	fs::File,
+	path::PathBuf,
+	time::Instant,
+};
 
 
 
@@ -64,9 +67,7 @@ fn main() -> Result<(), String> {
 			.collect::<HashSet<PathBuf>>()
 			.fyi_walk_filtered(&pattern),
 		true => PathBuf::from(opts.value_of("list").unwrap_or(""))
-			.fyi_walk_file_lines(Some(pattern))
-			.into_iter()
-			.collect::<HashSet<PathBuf>>(),
+			.fyi_walk_file_lines_hs(Some(pattern)),
 	};
 
 	if paths.is_empty() {
