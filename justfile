@@ -47,7 +47,6 @@ bench-self: _bench-init build
 	fyi notice "Pausing 5s before running."
 	sleep 5s
 
-	fyi print -p Method "ChannelZ w/ Progress"
 	"{{ cargo_dir }}/release/channelz" -p "{{ data_dir }}/test"
 
 
