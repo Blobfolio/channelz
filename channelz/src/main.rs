@@ -138,7 +138,7 @@ impl ChannelZEncode for PathBuf {
 
 /// Brotli business.
 fn encode_br(data: &[u8], base: &str) -> Result<(), String> {
-	let mut output = File::create(PathBuf::from(format!("{}.br", &base)))
+	let mut output = File::create(PathBuf::from([base, ".br"].concat()))
 		.map_err(|e| e.to_string())?;
 
 	let mut encoder = compu::compressor::write::Compressor::new(
@@ -154,7 +154,7 @@ fn encode_br(data: &[u8], base: &str) -> Result<(), String> {
 
 /// Gzip business.
 fn encode_gz(data: &[u8], base: &str) -> Result<(), String> {
-	let mut output = File::create(PathBuf::from(format!("{}.gz", &base)))
+	let mut output = File::create(PathBuf::from([base, ".gz"].concat()))
 		.map_err(|e| e.to_string())?;
 
 	let mut encoder = compu::compressor::write::Compressor::new(
