@@ -35,11 +35,11 @@ use fyi_core::{
 	Progress,
 	progress_arc,
 	PROGRESS_CLEAR_ON_FINISH,
-	witcher::{
-		self,
-		mass::FYIMassOps,
-		ops::FYIOps,
-		walk::FYIWalk,
+	witcher,
+	traits::{
+		FYIPathIO,
+		FYIPathMIO,
+		FYIPathWalk,
 	},
 };
 use rayon::prelude::*;
