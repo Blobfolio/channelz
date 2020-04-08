@@ -30,19 +30,12 @@ use compu::encoder::{
 	ZlibEncoder,
 };
 use fyi_core::{
-	arc::progress as parc,
-	Msg,
-	Prefix,
-	Progress,
-	PROGRESS_CLEAR_ON_FINISH,
 	traits::path::FYIPathIO,
 	Witch,
 };
-use rayon::prelude::*;
 use std::{
 	fs::File,
 	path::PathBuf,
-	time::Instant,
 };
 
 
@@ -80,33 +73,13 @@ fn main() -> Result<(), String> {
 
 	// With progress.
 	if opts.is_present("progress") {
-		let time = Instant::now();
-		let found: u64 = walk.len() as u64;
-
-		{
-			let bar = Progress::new(
-				Msg::new("Reticulating splines…")
-					.with_prefix(Prefix::Custom("ChannelZ", 199))
-					.to_string(),
-				found,
-				PROGRESS_CLEAR_ON_FINISH
-			);
-			let looper = parc::looper(&bar, 60);
-			walk.files().as_ref().par_iter().for_each(|x| {
-				parc::add_working(&bar, &x);
-				let _ = x.encode().is_ok();
-				parc::update(&bar, 1, None, Some(x.to_path_buf()));
-			});
-			parc::finish(&bar);
-			looper.join().unwrap();
-		}
-
-		Msg::msg_crunched_in(found, time, None)
-			.print();
+		walk.progress("ChannelZ", |x| {
+			let _ = x.encode().is_ok();
+		});
 	}
 	// Without progress.
 	else {
-		walk.files().as_ref().par_iter().for_each(|ref x| {
+		walk.process(|ref x| {
 			let _ = x.encode().is_ok();
 		});
 	}
