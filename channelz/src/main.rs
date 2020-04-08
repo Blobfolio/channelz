@@ -50,7 +50,7 @@ fn main() -> Result<(), String> {
 		false => {
 			let paths: Vec<PathBuf> = opts.values_of("path").unwrap()
 				.into_iter()
-				.filter_map(|x| Some(PathBuf::from(x)))
+				.map(|x| PathBuf::from(x))
 				.collect();
 
 			Witch::new(
