@@ -1,14 +1,34 @@
 [package]
 name = "channelz"
-version = "0.1.1"
+version = "0.1.2"
+license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 build = "build.rs"
 publish = false
 
+[package.metadata.deb]
+maintainer = "Josh Stoik <hello@blobfolio.com>"
+copyright = "2020, Blobfolio, LLC <hello@blobfolio.com>"
+license-file = ["../LICENSE", "0"]
+revision = "1"
+depends = "$auto"
+section = "utility"
+extended-description = """\
+.\n\
+Point it toward a single file to generate maximally-compressed Brotli- and Gzip-encoded copies, or point it toward a directory to recursively handle many files en masse.\n \
+.\n\
+In directory mode, only files with the following extensions will be looked at:\n\
+css; htm(l); ico; js; json; mjs; svg; txt; xhtm(l); xml; xsl"""
+assets = [
+    ["target/release/channelz", "usr/bin/", "755"],
+    ["../release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
+    ["../release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
+]
+
 [build-dependencies]
-clap = "2.33.*"
+clap = { version = "2.33.*", default-features = false }
 
 [dependencies]
 rayon = "1.3.*"
