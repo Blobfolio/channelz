@@ -30,6 +30,8 @@ use compu::encoder::{
 	ZlibEncoder,
 };
 use fyi_core::{
+	Error,
+	Result,
 	traits::path::FYIPathIO,
 	Witch,
 };
@@ -40,7 +42,7 @@ use std::{
 
 
 
-fn main() -> Result<(), String> {
+fn main() -> Result<()> {
 	// Command line arguments.
 	let opts: ArgMatches = menu::menu()
 		.get_matches();
@@ -68,7 +70,7 @@ fn main() -> Result<(), String> {
 	};
 
 	if walk.is_empty() {
-		return Err("No encodable files were found.".to_string());
+		return Err(Error::Other("No encodable files were found.".to_string()));
 	}
 
 	// With progress.
@@ -90,12 +92,12 @@ fn main() -> Result<(), String> {
 /// Encoding!
 pub trait ChannelZEncode {
 	/// Encode.
-	fn encode(&self) -> Result<(), String>;
+	fn encode(&self) -> Result<()>;
 }
 
 impl ChannelZEncode for PathBuf {
 	/// Encode.
-	fn encode(&self) -> Result<(), String> {
+	fn encode(&self) -> Result<()> {
 		// Load the full file contents as we'll need to reference it twice.
 		let data = self.fyi_read()?;
 		if false == data.is_empty() {
@@ -114,33 +116,29 @@ impl ChannelZEncode for PathBuf {
 }
 
 /// Brotli business.
-fn encode_br(data: &[u8], base: &str) -> Result<(), String> {
-	let mut output = File::create(PathBuf::from([base, ".br"].concat()))
-		.map_err(|e| e.to_string())?;
+fn encode_br(data: &[u8], base: &str) -> Result<()> {
+	let mut output = File::create(PathBuf::from([base, ".br"].concat()))?;
 
 	let mut encoder = compu::compressor::write::Compressor::new(
 		BrotliEncoder::default(),
 		&mut output
 	);
 
-	encoder.push(&data, EncoderOp::Finish)
-		.map_err(|e| e.to_string())?;
+	encoder.push(&data, EncoderOp::Finish)?;
 
 	Ok(())
 }
 
 /// Gzip business.
-fn encode_gz(data: &[u8], base: &str) -> Result<(), String> {
-	let mut output = File::create(PathBuf::from([base, ".gz"].concat()))
-		.map_err(|e| e.to_string())?;
+fn encode_gz(data: &[u8], base: &str) -> Result<()> {
+	let mut output = File::create(PathBuf::from([base, ".gz"].concat()))?;
 
 	let mut encoder = compu::compressor::write::Compressor::new(
 		ZlibEncoder::default(),
 		&mut output
 	);
 
-	encoder.push(&data, EncoderOp::Finish)
-		.map_err(|e| e.to_string())?;
+	encoder.push(&data, EncoderOp::Finish)?;
 
 	Ok(())
 }
