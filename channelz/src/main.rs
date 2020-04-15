@@ -70,7 +70,7 @@ fn main() -> Result<()> {
 	};
 
 	if walk.is_empty() {
-		return Err(Error::Other("No encodable files were found.".to_string()));
+		return Err(Error::NoPaths("encodable files".into()));
 	}
 
 	// With progress.
