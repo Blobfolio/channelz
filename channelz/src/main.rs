@@ -32,11 +32,13 @@ use compu::encoder::{
 use fyi_core::{
 	Error,
 	Result,
-	traits::path::FYIPathIO,
 	Witch,
 };
 use std::{
-	fs::File,
+	fs::{
+		self,
+		File,
+	},
 	path::PathBuf,
 };
 
@@ -99,46 +101,51 @@ impl ChannelZEncode for PathBuf {
 	/// Encode.
 	fn encode(&self) -> Result<()> {
 		// Load the full file contents as we'll need to reference it twice.
-		let data = self.fyi_read()?;
+		let data = fs::read(&self)?;
 		if false == data.is_empty() {
 			// The base name won't be changing, so let's grab that too.
 			let base = self.to_str().unwrap_or("");
+			let base_len: usize = base.len() + 3;
 
 			// MORE PARALLEL!
-			let _ = rayon::join(
-				|| encode_br(&data, &base),
-				|| encode_gz(&data, &base),
+			let _: (Result<()>, Result<()>) = rayon::join(
+				|| {
+					let mut output = File::create(PathBuf::from({
+						let mut p: String = String::with_capacity(base_len);
+						p.push_str(&base);
+						p.push_str(".br");
+						p
+					}))?;
+
+					let mut encoder = compu::compressor::write::Compressor::new(
+						BrotliEncoder::default(),
+						&mut output
+					);
+
+					encoder.push(&data, EncoderOp::Finish)?;
+
+					Ok(())
+				},
+				|| {
+					let mut output = File::create(PathBuf::from({
+						let mut p: String = String::with_capacity(base_len);
+						p.push_str(&base);
+						p.push_str(".gz");
+						p
+					}))?;
+
+					let mut encoder = compu::compressor::write::Compressor::new(
+						ZlibEncoder::default(),
+						&mut output
+					);
+
+					encoder.push(&data, EncoderOp::Finish)?;
+
+					Ok(())
+				},
 			);
 		}
 
 		Ok(())
 	}
-}
-
-/// Brotli business.
-fn encode_br(data: &[u8], base: &str) -> Result<()> {
-	let mut output = File::create(PathBuf::from([base, ".br"].concat()))?;
-
-	let mut encoder = compu::compressor::write::Compressor::new(
-		BrotliEncoder::default(),
-		&mut output
-	);
-
-	encoder.push(&data, EncoderOp::Finish)?;
-
-	Ok(())
-}
-
-/// Gzip business.
-fn encode_gz(data: &[u8], base: &str) -> Result<()> {
-	let mut output = File::create(PathBuf::from([base, ".gz"].concat()))?;
-
-	let mut encoder = compu::compressor::write::Compressor::new(
-		ZlibEncoder::default(),
-		&mut output
-	);
-
-	encoder.push(&data, EncoderOp::Finish)?;
-
-	Ok(())
 }
