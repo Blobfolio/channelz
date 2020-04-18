@@ -35,6 +35,7 @@ use fyi_core::{
 	Witch,
 };
 use std::{
+	borrow::Cow,
 	fs::{
 		self,
 		File,
@@ -51,24 +52,16 @@ fn main() -> Result<()> {
 
 	// What path are we dealing with?
 	let walk: Witch = match opts.is_present("list") {
-		false => {
-			let paths: Vec<PathBuf> = opts.values_of("path").unwrap()
-				.into_iter()
-				.map(|x| PathBuf::from(x))
-				.collect();
-
-			Witch::new(
-				&paths,
-				Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string())
-			)
-		},
-		true => {
-			let path = PathBuf::from(opts.value_of("list").unwrap_or(""));
-			Witch::from_file(
-				&path,
-				Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string())
-			)
-		},
+		false => Witch::new(
+			&opts.values_of("path")
+				.unwrap()
+				.collect::<Vec<&str>>(),
+			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
+		),
+		true => Witch::from_file(
+			opts.value_of("list").unwrap_or(""),
+			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
+		),
 	};
 
 	if walk.is_empty() {
@@ -77,75 +70,70 @@ fn main() -> Result<()> {
 
 	// With progress.
 	if opts.is_present("progress") {
-		walk.progress("ChannelZ", |x| {
-			let _ = x.encode().is_ok();
+		walk.progress("ChannelZ", |ref x| {
+			let _ = encode(x).is_ok();
 		});
 	}
 	// Without progress.
 	else {
 		walk.process(|ref x| {
-			let _ = x.encode().is_ok();
+			let _ = encode(x).is_ok();
 		});
 	}
 
 	Ok(())
 }
 
-/// Encoding!
-pub trait ChannelZEncode {
-	/// Encode.
-	fn encode(&self) -> Result<()>;
+/// Encode.
+fn encode(path: &PathBuf) -> Result<()> {
+	// Load the full file contents as we'll need to reference it twice.
+	let data: Cow<[u8]> = Cow::Owned(fs::read(&path)?);
+	if false == data.is_empty() {
+		// The base name won't be changing, so let's grab that too.
+		let stub: Cow<str> = Cow::Borrowed(path.to_str().unwrap_or(""));
+
+		// Handle Brotli and Gzip in their own threads.
+		let _ = rayon::join(
+			|| encode_br(&stub, &data),
+			|| encode_gz(&stub, &data),
+		);
+	}
+
+	Ok(())
 }
 
-impl ChannelZEncode for PathBuf {
-	/// Encode.
-	fn encode(&self) -> Result<()> {
-		// Load the full file contents as we'll need to reference it twice.
-		let data = fs::read(&self)?;
-		if false == data.is_empty() {
-			// The base name won't be changing, so let's grab that too.
-			let base = self.to_str().unwrap_or("");
-			let base_len: usize = base.len() + 3;
+/// Encode.
+fn encode_br(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
+	let mut output = File::create({
+		let mut p: String = String::with_capacity(stub.len() + 3);
+		p.push_str(&stub);
+		p.push_str(".br");
+		p
+	})?;
 
-			// MORE PARALLEL!
-			let _: (Result<()>, Result<()>) = rayon::join(
-				|| {
-					let mut output = File::create(PathBuf::from({
-						let mut p: String = String::with_capacity(base_len);
-						p.push_str(&base);
-						p.push_str(".br");
-						p
-					}))?;
+	let mut encoder = compu::compressor::write::Compressor::new(
+		BrotliEncoder::default(),
+		&mut output
+	);
 
-					let mut encoder = compu::compressor::write::Compressor::new(
-						BrotliEncoder::default(),
-						&mut output
-					);
+	encoder.push(&data, EncoderOp::Finish)?;
+	Ok(())
+}
 
-					encoder.push(&data, EncoderOp::Finish)?;
+/// Encode.
+fn encode_gz(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
+	let mut output = File::create({
+		let mut p: String = String::with_capacity(stub.len() + 3);
+		p.push_str(&stub);
+		p.push_str(".gz");
+		p
+	})?;
 
-					Ok(())
-				},
-				|| {
-					let mut output = File::create(PathBuf::from({
-						let mut p: String = String::with_capacity(base_len);
-						p.push_str(&base);
-						p.push_str(".gz");
-						p
-					}))?;
+	let mut encoder = compu::compressor::write::Compressor::new(
+		ZlibEncoder::default(),
+		&mut output
+	);
 
-					let mut encoder = compu::compressor::write::Compressor::new(
-						ZlibEncoder::default(),
-						&mut output
-					);
-
-					encoder.push(&data, EncoderOp::Finish)?;
-
-					Ok(())
-				},
-			);
-		}
-
-		Ok(())
-	}
+	encoder.push(&data, EncoderOp::Finish)?;
+	Ok(())
 }
