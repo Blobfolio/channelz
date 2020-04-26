@@ -36,7 +36,7 @@ bench: _bench-init build
 	sleep 5s
 
 	fyi print -p Method "ChannelZ"
-	time "{{ cargo_dir }}/release/channelz" "{{ data_dir }}/test"
+	time "{{ cargo_dir }}/release/channelz" "{{ data_dir }}/test/flags"
 
 
 # Self benchmark.
@@ -133,13 +133,13 @@ version:
 
 # Benchmark Find + Parallel
 @_bench-fp:
-	find "{{ data_dir }}/test" \
+	find "{{ data_dir }}/test/flags" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
 		parallel -0 brotli -q 11
 
-	find "{{ data_dir }}/test" \
+	find "{{ data_dir }}/test/flags" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
