@@ -32,8 +32,8 @@ use compu::encoder::{
 use fyi_core::{
 	Error,
 	Result,
-	Witch,
 };
+use fyi_witch::Witch;
 use std::{
 	borrow::Cow,
 	fs::{
@@ -65,7 +65,7 @@ fn main() -> Result<()> {
 	};
 
 	if walk.is_empty() {
-		return Err(Error::NoPaths("encodable files".into()));
+		return Err(Error::new("No encodable files found."));
 	}
 
 	// With progress.
