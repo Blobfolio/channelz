@@ -70,6 +70,7 @@ bench-self: _bench-init build
 
 	# First let's build the Rust bit.
 	RUSTFLAGS="-C link-arg=-s" cargo-deb \
+		--no-build \
 		-p {{ pkg_id }} \
 		-o "{{ justfile_directory() }}/release"
 
