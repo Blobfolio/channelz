@@ -32,11 +32,14 @@ use compu::encoder::{
 use fyi_core::{
 	Error,
 	Result,
-	traits::path::FYIPathIO,
-	Witch,
 };
+use fyi_witch::Witch;
 use std::{
-	fs::File,
+	borrow::Cow,
+	fs::{
+		self,
+		File,
+	},
 	path::PathBuf,
 };
 
@@ -49,75 +52,64 @@ fn main() -> Result<()> {
 
 	// What path are we dealing with?
 	let walk: Witch = match opts.is_present("list") {
-		false => {
-			let paths: Vec<PathBuf> = opts.values_of("path").unwrap()
-				.into_iter()
-				.map(|x| PathBuf::from(x))
-				.collect();
-
-			Witch::new(
-				&paths,
-				Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string())
-			)
-		},
-		true => {
-			let path = PathBuf::from(opts.value_of("list").unwrap_or(""));
-			Witch::from_file(
-				&path,
-				Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string())
-			)
-		},
+		false => Witch::new(
+			&opts.values_of("path")
+				.unwrap()
+				.collect::<Vec<&str>>(),
+			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
+		),
+		true => Witch::from_file(
+			opts.value_of("list").unwrap_or(""),
+			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
+		),
 	};
 
 	if walk.is_empty() {
-		return Err(Error::NoPaths("encodable files".into()));
+		return Err(Error::new("No encodable files found."));
 	}
 
 	// With progress.
 	if opts.is_present("progress") {
-		walk.progress("ChannelZ", |x| {
-			let _ = x.encode().is_ok();
+		walk.progress("ChannelZ", |ref x| {
+			let _ = encode(x).is_ok();
 		});
 	}
 	// Without progress.
 	else {
 		walk.process(|ref x| {
-			let _ = x.encode().is_ok();
+			let _ = encode(x).is_ok();
 		});
 	}
 
 	Ok(())
 }
 
-/// Encoding!
-pub trait ChannelZEncode {
-	/// Encode.
-	fn encode(&self) -> Result<()>;
-}
+/// Encode.
+fn encode(path: &PathBuf) -> Result<()> {
+	// Load the full file contents as we'll need to reference it twice.
+	let data: Cow<[u8]> = Cow::Owned(fs::read(&path)?);
+	if false == data.is_empty() {
+		// The base name won't be changing, so let's grab that too.
+		let stub: Cow<str> = Cow::Borrowed(path.to_str().unwrap_or(""));
 
-impl ChannelZEncode for PathBuf {
-	/// Encode.
-	fn encode(&self) -> Result<()> {
-		// Load the full file contents as we'll need to reference it twice.
-		let data = self.fyi_read()?;
-		if false == data.is_empty() {
-			// The base name won't be changing, so let's grab that too.
-			let base = self.to_str().unwrap_or("");
-
-			// MORE PARALLEL!
-			let _ = rayon::join(
-				|| encode_br(&data, &base),
-				|| encode_gz(&data, &base),
-			);
-		}
-
-		Ok(())
+		// Handle Brotli and Gzip in their own threads.
+		let _ = rayon::join(
+			|| encode_br(&stub, &data),
+			|| encode_gz(&stub, &data),
+		);
 	}
+
+	Ok(())
 }
 
-/// Brotli business.
-fn encode_br(data: &[u8], base: &str) -> Result<()> {
-	let mut output = File::create(PathBuf::from([base, ".br"].concat()))?;
+/// Encode.
+fn encode_br(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
+	let mut output = File::create({
+		let mut p: String = String::with_capacity(stub.len() + 3);
+		p.push_str(&stub);
+		p.push_str(".br");
+		p
+	})?;
 
 	let mut encoder = compu::compressor::write::Compressor::new(
 		BrotliEncoder::default(),
@@ -125,13 +117,17 @@ fn encode_br(data: &[u8], base: &str) -> Result<()> {
 	);
 
 	encoder.push(&data, EncoderOp::Finish)?;
-
 	Ok(())
 }
 
-/// Gzip business.
-fn encode_gz(data: &[u8], base: &str) -> Result<()> {
-	let mut output = File::create(PathBuf::from([base, ".gz"].concat()))?;
+/// Encode.
+fn encode_gz(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
+	let mut output = File::create({
+		let mut p: String = String::with_capacity(stub.len() + 3);
+		p.push_str(&stub);
+		p.push_str(".gz");
+		p
+	})?;
 
 	let mut encoder = compu::compressor::write::Compressor::new(
 		ZlibEncoder::default(),
@@ -139,6 +135,5 @@ fn encode_gz(data: &[u8], base: &str) -> Result<()> {
 	);
 
 	encoder.push(&data, EncoderOp::Finish)?;
-
 	Ok(())
 }
