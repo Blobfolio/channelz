@@ -56,6 +56,7 @@ bench-self: _bench-init build
 @build:
 	# First let's build the Rust bit.
 	RUSTFLAGS="-C link-arg=-s" cargo build \
+		--bin "{{ pkg_id }}" \
 		--release \
 		--target-dir "{{ cargo_dir }}"
 
