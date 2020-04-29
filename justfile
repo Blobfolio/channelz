@@ -101,8 +101,6 @@ bench-self: _bench-init build
 
 # Build PGO.
 @build-pgo: clean
-	just info "Building with PGO."
-
 	# First let's build the Rust bit.
 	RUSTFLAGS="-C link-arg=-s -C profile-generate={{ pgo_dir }}" \
 		cargo build \
@@ -110,7 +108,7 @@ bench-self: _bench-init build
 			--release \
 			--target-dir "{{ cargo_dir }}"
 
-	fyi notice "Running instrumentation tests. Be patient!"
+	clear
 
 	# Instrument a few tests.
 	just _bench-reset
@@ -134,14 +132,12 @@ bench-self: _bench-init build
 	"{{ cargo_dir }}/release/channelz" -V
 	"{{ cargo_dir }}/release/channelz" -h
 
-	fyi notice "Merging profile data."
+	clear
 
 	# OK, let's build it. Also, Rustup, what the fuck is with your
 	# buried paths?!
 	/usr/local/rustup/toolchains/1.43.0-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata \
 		merge -o "{{ pgo_dir }}/merged.profdata" "{{ pgo_dir }}"
-
-	fyi notice "Building optimized release!"
 
 	RUSTFLAGS="-C link-arg=-s -C profile-use={{ pgo_dir }}/merged.profdata" \
 		cargo build \
@@ -171,7 +167,7 @@ bench-self: _bench-init build
 
 # Clippy.
 @clippy:
-	# First let's build the Rust bit.
+	clear
 	RUSTFLAGS="-C link-arg=-s" cargo clippy \
 		--release \
 		--all-features \
