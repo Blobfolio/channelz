@@ -159,7 +159,7 @@ _bench-init:
 
 	if [ ! -d "{{ data_dir }}/raw" ]; then
 		fyi info "Gathering Top 500 Sites."
-		mkdir "{{ data_dir }}/raw"
+		mkdir -p "{{ data_dir }}/raw/html"
 		echo "" > "{{ data_dir }}/raw.txt"
 
 		# Fake a user agent.
@@ -169,7 +169,7 @@ _bench-init:
 		cat "{{ data_dir }}/list.csv" | rargs \
 			-p '^"(?P<id>\d+)","(?P<url>[^"]+)"' \
 			-j 50 \
-			wget -q -T5 -t1 -U "$_user" -O "{{ data_dir }}/raw/{url}.html" "https://{url}"
+			wget -q -T5 -t1 -U "$_user" -O "{{ data_dir }}/raw/html/{url}.html" "https://{url}"
 
 		fyi info "Grabbing SVG samples."
 		git clone -q https://github.com/hjnilsson/country-flags.git "{{ data_dir }}/raw/flags"
