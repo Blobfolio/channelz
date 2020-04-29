@@ -1,9 +1,9 @@
 /*!
-# ChannelZ
+# `ChannelZ`
 
 Nothing but static…
 
-Use ChannelZ to generate maximally-compressed Gzip- and Brotli-encoded copies
+Use `ChannelZ` to generate maximally-compressed Gzip- and Brotli-encoded copies
 of a file or recurse a directory to do it for many files at once.
 */
 
@@ -14,6 +14,19 @@ of a file or recurse a directory to do it for many files at once.
 
 #![deny(missing_copy_implementations)]
 #![deny(missing_debug_implementations)]
+
+#![warn(clippy::filetype_is_file)]
+#![warn(clippy::integer_division)]
+#![warn(clippy::needless_borrow)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::suboptimal_flops)]
+#![warn(clippy::unneeded_field_pattern)]
+
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::missing_errors_doc)]
 
 extern crate clap;
 extern crate compu;
@@ -51,17 +64,19 @@ fn main() -> Result<()> {
 		.get_matches();
 
 	// What path are we dealing with?
-	let walk: Witch = match opts.is_present("list") {
-		false => Witch::new(
+	let walk: Witch = if opts.is_present("list") {
+		Witch::from_file(
+			opts.value_of("list").unwrap_or(""),
+			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
+		)
+	}
+	else {
+		Witch::new(
 			&opts.values_of("path")
 				.unwrap()
 				.collect::<Vec<&str>>(),
 			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
-		),
-		true => Witch::from_file(
-			opts.value_of("list").unwrap_or(""),
-			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
-		),
+		)
 	};
 
 	if walk.is_empty() {
@@ -70,13 +85,13 @@ fn main() -> Result<()> {
 
 	// With progress.
 	if opts.is_present("progress") {
-		walk.progress("ChannelZ", |ref x| {
+		walk.progress("ChannelZ", |x| {
 			let _ = encode(x).is_ok();
 		});
 	}
 	// Without progress.
 	else {
-		walk.process(|ref x| {
+		walk.process(|x| {
 			let _ = encode(x).is_ok();
 		});
 	}
@@ -88,14 +103,14 @@ fn main() -> Result<()> {
 fn encode(path: &PathBuf) -> Result<()> {
 	// Load the full file contents as we'll need to reference it twice.
 	let data: Cow<[u8]> = Cow::Owned(fs::read(&path)?);
-	if false == data.is_empty() {
+	if ! data.is_empty() {
 		// The base name won't be changing, so let's grab that too.
-		let stub: Cow<str> = Cow::Borrowed(path.to_str().unwrap_or(""));
+		let stub: &str = path.to_str().unwrap_or("");
 
 		// Handle Brotli and Gzip in their own threads.
 		let _ = rayon::join(
-			|| encode_br(&stub, &data),
-			|| encode_gz(&stub, &data),
+			|| encode_br(stub, &data),
+			|| encode_gz(stub, &data),
 		);
 	}
 
@@ -103,10 +118,10 @@ fn encode(path: &PathBuf) -> Result<()> {
 }
 
 /// Encode.
-fn encode_br(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
+fn encode_br(stub: &str, data: &[u8]) -> Result<()> {
 	let mut output = File::create({
 		let mut p: String = String::with_capacity(stub.len() + 3);
-		p.push_str(&stub);
+		p.push_str(stub);
 		p.push_str(".br");
 		p
 	})?;
@@ -116,15 +131,15 @@ fn encode_br(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
 		&mut output
 	);
 
-	encoder.push(&data, EncoderOp::Finish)?;
+	encoder.push(data, EncoderOp::Finish)?;
 	Ok(())
 }
 
 /// Encode.
-fn encode_gz(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
+fn encode_gz(stub: &str, data: &[u8]) -> Result<()> {
 	let mut output = File::create({
 		let mut p: String = String::with_capacity(stub.len() + 3);
-		p.push_str(&stub);
+		p.push_str(stub);
 		p.push_str(".gz");
 		p
 	})?;
@@ -134,6 +149,6 @@ fn encode_gz(stub: &Cow<str>, data: &Cow<[u8]>) -> Result<()> {
 		&mut output
 	);
 
-	encoder.push(&data, EncoderOp::Finish)?;
+	encoder.push(data, EncoderOp::Finish)?;
 	Ok(())
 }

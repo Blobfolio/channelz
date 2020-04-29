@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.1.4"
+version = "0.1.5"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -22,7 +22,7 @@ Point it toward a single file to generate maximally-compressed Brotli- and Gzip-
 In directory mode, only files with the following extensions will be looked at:\n\
 css; htm(l); ico; js; json; mjs; svg; txt; xhtm(l); xml; xsl"""
 assets = [
-    ["target/release/channelz", "usr/bin/", "755"],
+    ["../target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
     ["../release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
     ["../release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
