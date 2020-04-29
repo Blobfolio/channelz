@@ -13,6 +13,7 @@ pkg_dir1    := justfile_directory() + "/channelz"
 
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 data_dir    := "/tmp/bench-data"
+pgo_dir     := "/tmp/pgo-data"
 release_dir := justfile_directory() + "/release"
 
 
@@ -80,7 +81,7 @@ bench-self: _bench-init build
 
 
 # Build Man.
-@build-man: build
+@build-man: build-pgo
 	# Pre-clean.
 	rm "{{ release_dir }}/man"/*
 
@@ -96,6 +97,56 @@ bench-self: _bench-init build
 	# Gzip it and reset ownership.
 	gzip -k -f -9 "{{ release_dir }}/man/{{ pkg_id }}.1"
 	just _fix-chown "{{ release_dir }}/man"
+
+
+# Build PGO.
+@build-pgo: clean
+	just info "Building with PGO."
+
+	# First let's build the Rust bit.
+	RUSTFLAGS="-C link-arg=-s -C profile-generate={{ pgo_dir }}" \
+		cargo build \
+			--bin "{{ pkg_id }}" \
+			--release \
+			--target-dir "{{ cargo_dir }}"
+
+	fyi notice "Running instrumentation tests. Be patient!"
+
+	# Instrument a few tests.
+	just _bench-reset
+	"{{ cargo_dir }}/release/channelz" "{{ data_dir }}/test"
+
+	# Do them again with the UI.
+	just _bench-reset
+	"{{ cargo_dir }}/release/channelz" -p "{{ data_dir }}/test/flags"
+
+	# Do a file.
+	echo "{{ data_dir }}/test/lodash" > "/tmp/pgo-list.txt"
+	echo "{{ data_dir }}/test/flags" >> "/tmp/pgo-list.txt"
+	echo "" >> "/tmp/pgo-list.txt"
+	"{{ cargo_dir }}/release/channelz" -l "/tmp/pgo-list.txt"
+	rm "/tmp/pgo-list.txt"
+
+	# A bunk path.
+	"{{ cargo_dir }}/release/channelz" "/nowhere/blankety" || true
+
+	# And some CLI screens.
+	"{{ cargo_dir }}/release/channelz" -V
+	"{{ cargo_dir }}/release/channelz" -h
+
+	fyi notice "Merging profile data."
+
+	# OK, let's build it. Also, Rustup, what the fuck is with your
+	# buried paths?!
+	/usr/local/rustup/toolchains/1.43.0-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata \
+		merge -o "{{ pgo_dir }}/merged.profdata" "{{ pgo_dir }}"
+
+	fyi notice "Building optimized release!"
+
+	RUSTFLAGS="-C link-arg=-s -C profile-use={{ pgo_dir }}/merged.profdata" \
+		cargo build \
+			--release \
+			--target-dir "{{ cargo_dir }}"
 
 
 # Check Release!
