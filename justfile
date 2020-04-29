@@ -104,7 +104,7 @@ bench-self: _bench-init build
 
 
 # Build PGO.
-@build-pgo: clean
+@build-pgo: clean _bench-init
 	# First let's build the Rust bit.
 	RUSTFLAGS="{{ rustflags }} -Cprofile-generate={{ pgo_dir }}" \
 		cargo build \
@@ -122,7 +122,6 @@ bench-self: _bench-init build
 	# Do them again with the UI.
 	just _bench-reset
 	"{{ cargo_bin }}" -p "{{ data_dir }}/test"
-	"{{ cargo_bin }}" -p "{{ data_dir }}/test"
 
 	# Do a file.
 	just _bench-reset
@@ -130,7 +129,7 @@ bench-self: _bench-init build
 	echo "{{ data_dir }}/test/js" >> "/tmp/pgo-list.txt"
 	echo "{{ data_dir }}/test/page" >> "/tmp/pgo-list.txt"
 	echo "" >> "/tmp/pgo-list.txt"
-	"{{ cargo_bin }}" -l "/tmp/pgo-list.txt"
+	"{{ cargo_bin }}" -p -l "/tmp/pgo-list.txt"
 	rm "/tmp/pgo-list.txt"
 
 	# A bunk path.
