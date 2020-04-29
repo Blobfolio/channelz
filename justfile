@@ -148,7 +148,7 @@ bench-self: _bench-init build
 
 	RUSTFLAGS="{{ rustflags }} -Cprofile-use={{ pgo_dir }}/merged.profdata" \
 		cargo build \
-			--verbose \
+			--bin "{{ pkg_id }}" \
 			--release \
 			--target x86_64-unknown-linux-gnu \
 			--target-dir "{{ cargo_dir }}"
