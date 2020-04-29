@@ -37,7 +37,7 @@ bench: _bench-init build
 	sleep 5s
 
 	fyi print -p Method "ChannelZ"
-	time "{{ cargo_dir }}/release/channelz" "{{ data_dir }}/test/flags"
+	time "{{ cargo_dir }}/release/channelz" "{{ data_dir }}/test"
 
 
 # Self benchmark.
@@ -116,11 +116,14 @@ bench-self: _bench-init build
 
 	# Do them again with the UI.
 	just _bench-reset
-	"{{ cargo_dir }}/release/channelz" -p "{{ data_dir }}/test/flags"
+	"{{ cargo_dir }}/release/channelz" -p "{{ data_dir }}/test"
+	"{{ cargo_dir }}/release/channelz" -p "{{ data_dir }}/test"
 
 	# Do a file.
-	echo "{{ data_dir }}/test/lodash" > "/tmp/pgo-list.txt"
-	echo "{{ data_dir }}/test/flags" >> "/tmp/pgo-list.txt"
+	just _bench-reset
+	echo "{{ data_dir }}/test/css" > "/tmp/pgo-list.txt"
+	echo "{{ data_dir }}/test/js" >> "/tmp/pgo-list.txt"
+	echo "{{ data_dir }}/test/page" >> "/tmp/pgo-list.txt"
 	echo "" >> "/tmp/pgo-list.txt"
 	"{{ cargo_dir }}/release/channelz" -l "/tmp/pgo-list.txt"
 	rm "/tmp/pgo-list.txt"
@@ -208,13 +211,13 @@ version:
 
 # Benchmark Find + Parallel
 @_bench-fp:
-	find "{{ data_dir }}/test/flags" \
+	find "{{ data_dir }}/test" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
 		parallel -0 brotli -q 11
 
-	find "{{ data_dir }}/test/flags" \
+	find "{{ data_dir }}/test" \
 		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
 		-type f \
 		-print0 | \
@@ -227,41 +230,24 @@ _bench-init:
 
 	[ -d "{{ data_dir }}" ] || mkdir "{{ data_dir }}"
 
-	if [ ! -f "{{ data_dir }}/list.csv" ]; then
-		wget -q -O "{{ data_dir }}/list.csv" "https://moz.com/top-500/download/?table=top500Domains"
-		sed -i 1d "{{ data_dir }}/list.csv"
-	fi
-
+	# The Vue web site has a nice mixture of encodable assets.
 	if [ ! -d "{{ data_dir }}/raw" ]; then
-		fyi info "Gathering Top 500 Sites."
-		mkdir -p "{{ data_dir }}/raw/html"
-		echo "" > "{{ data_dir }}/raw.txt"
+		git clone \
+			--single-branch \
+			-b master \
+			https://github.com/vuejs/vuejs.org.git \
+			"{{ data_dir }}/raw"
 
-		# Fake a user agent.
-		_user="\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36\""
-
-		# Download everything.
-		cat "{{ data_dir }}/list.csv" | rargs \
-			-p '^"(?P<id>\d+)","(?P<url>[^"]+)"' \
-			-j 50 \
-			wget -q -T5 -t1 -U "$_user" -O "{{ data_dir }}/raw/html/{url}.html" "https://{url}"
-
-		fyi info "Grabbing SVG samples."
-		git clone -q https://github.com/hjnilsson/country-flags.git "{{ data_dir }}/raw/flags"
-
-		fyi info "Grabbing JS samples."
-		git clone -q https://github.com/lodash/lodash.git "{{ data_dir }}/raw/lodash"
-
-		find "{{ data_dir }}/raw" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
+		cd "{{ data_dir }}/raw"
+		npm i
+		npm run -s build
 	fi
-
-	exit 0
 
 
 # Reset benchmarks.
 @_bench-reset: _bench-init
 	[ ! -d "{{ data_dir }}/test" ] || rm -rf "{{ data_dir }}/test"
-	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test"
+	cp -aR "{{ data_dir }}/raw/public" "{{ data_dir }}/test"
 
 
 # Init dependencies.
