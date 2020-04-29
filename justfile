@@ -124,11 +124,17 @@ version:
 	fyi success "Setting version to $_ver2."
 
 	# Set the release version!
-	toml set "{{ pkg_dir1 }}/Cargo.toml" \
-		package.version \
-		"$_ver2" > /tmp/Cargo.toml
-	mv "/tmp/Cargo.toml" "{{ pkg_dir1 }}/Cargo.toml"
-	just _fix-chown "{{ pkg_dir1 }}/Cargo.toml"
+	just _version "{{ pkg_dir1 }}" "$_ver2"
+
+
+# Set version for real.
+@_version DIR VER:
+	[ -f "{{ DIR }}/Cargo.toml" ] || exit 1
+
+	# Set the release version!
+	toml set "{{ DIR }}/Cargo.toml" package.version "{{ VER }}" > /tmp/Cargo.toml
+	just _fix-chown "/tmp/Cargo.toml"
+	mv "/tmp/Cargo.toml" "{{ DIR }}/Cargo.toml"
 
 
 # Benchmark Find + Parallel
