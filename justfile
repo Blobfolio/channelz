@@ -101,7 +101,28 @@ bench-self: _bench-init build
 @check:
 	# First let's build the Rust bit.
 	RUSTFLAGS="-C link-arg=-s" cargo check \
+		--bin "{{ pkg_id }}" \
 		--release \
+		--target-dir "{{ cargo_dir }}"
+
+
+@clean:
+	# Most things go here.
+	[ ! -d "{{ cargo_dir }}" ] || rm -rf "{{ cargo_dir }}"
+	[ ! -d "{{ pgo_dir }}" ] || rm -rf "{{ pgo_dir }}"
+
+	# But some Cargo apps place shit in subdirectories even if
+	# they place *other* shit in the designated target dir. Haha.
+	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
+	[ ! -d "{{ pkg_dir1 }}/target" ] || rm -rf "{{ pkg_dir1 }}/target"
+
+
+# Clippy.
+@clippy:
+	# First let's build the Rust bit.
+	RUSTFLAGS="-C link-arg=-s" cargo clippy \
+		--release \
+		--all-features \
 		--target-dir "{{ cargo_dir }}"
 
 
