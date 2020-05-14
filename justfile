@@ -21,26 +21,34 @@ rustflags   := "-Clinker-plugin-lto -Clinker=clang-9 -Clink-args=-fuse-ld=lld-9 
 
 
 
-# Compare performance with native gzip/brotli.
-bench: _bench-init build
+# Benchmark Rust functions.
+bench BENCH="" FILTER="":
 	#!/usr/bin/env bash
 
 	clear
 
-	fyi notice "Pausing 5s before next run."
-	just _bench-reset
-	sleep 5s
+	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 
-	fyi print -p Method "(Find + Parallel + Brotli) + (Find + Parallel + Gzip)"
-	time just _bench-fp
-	echo ""
+	if [ -z "{{ BENCH }}" ]; then
+		cargo bench \
+			-q \
+			--workspace \
+			--all-features \
+			--target x86_64-unknown-linux-gnu \
+			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
+	else
+		cargo bench \
+			-q \
+			--bench "{{ BENCH }}" \
+			--workspace \
+			--all-features \
+			--target x86_64-unknown-linux-gnu \
+			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
+	fi
 
-	fyi notice "Pausing 5s before next run."
-	just _bench-reset
-	sleep 5s
+	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 
-	fyi print -p Method "ChannelZ"
-	time "{{ cargo_bin }}" "{{ data_dir }}/test"
+	exit 0
 
 
 # Self benchmark.
@@ -157,7 +165,7 @@ bench-self: _bench-init build
 @check:
 	# First let's build the Rust bit.
 	RUSTFLAGS="{{ rustflags }}" cargo check \
-		--bin "{{ pkg_id }}" \
+		--workspace \
 		--release \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
@@ -178,6 +186,7 @@ bench-self: _bench-init build
 @clippy:
 	clear
 	RUSTFLAGS="{{ rustflags }}" cargo clippy \
+		--workspace \
 		--release \
 		--all-features \
 		--target x86_64-unknown-linux-gnu \
