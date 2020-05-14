@@ -28,32 +28,13 @@ of a file or recurse a directory to do it for many files at once.
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::missing_errors_doc)]
 
-extern crate clap;
-extern crate compu;
-extern crate fyi_core;
-extern crate rayon;
-
+mod encode;
 mod menu;
 
 use clap::ArgMatches;
-use compu::encoder::{
-	Encoder,
-	EncoderOp,
-	BrotliEncoder,
-	ZlibEncoder,
-};
-use fyi_core::{
-	Error,
+use fyi_witcher::{
 	Result,
-};
-use fyi_witch::Witch;
-use std::{
-	borrow::Cow,
-	fs::{
-		self,
-		File,
-	},
-	path::PathBuf,
+	Witcher,
 };
 
 
@@ -64,91 +45,37 @@ fn main() -> Result<()> {
 		.get_matches();
 
 	// What path are we dealing with?
-	let walk: Witch = if opts.is_present("list") {
-		Witch::from_file(
+	let walk = if opts.is_present("list") {
+		Witcher::from_file(
 			opts.value_of("list").unwrap_or(""),
-			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
+			r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
 		)
 	}
 	else {
-		Witch::new(
+		Witcher::new(
 			&opts.values_of("path")
 				.unwrap()
 				.collect::<Vec<&str>>(),
-			Some(r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$".to_string()),
+			r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
 		)
 	};
 
 	if walk.is_empty() {
-		return Err(Error::new("No encodable files found."));
+		return Err("No encodable files were found.".to_string());
 	}
 
 	// With progress.
 	if opts.is_present("progress") {
 		walk.progress("ChannelZ", |x| {
-			let _ = encode(x).is_ok();
+			encode::encode(x);
 		});
 	}
 	// Without progress.
 	else {
 		walk.process(|x| {
-			let _ = encode(x).is_ok();
+			encode::encode(x);
 		});
 	}
 
-	Ok(())
-}
-
-/// Encode.
-fn encode(path: &PathBuf) -> Result<()> {
-	// Load the full file contents as we'll need to reference it twice.
-	let data: Cow<[u8]> = Cow::Owned(fs::read(&path)?);
-	if ! data.is_empty() {
-		// The base name won't be changing, so let's grab that too.
-		let stub: &str = path.to_str().unwrap_or("");
-
-		// Handle Brotli and Gzip in their own threads.
-		let _ = rayon::join(
-			|| encode_br(stub, &data),
-			|| encode_gz(stub, &data),
-		);
-	}
-
-	Ok(())
-}
-
-/// Encode.
-fn encode_br(stub: &str, data: &[u8]) -> Result<()> {
-	let mut output = File::create({
-		let mut p: String = String::with_capacity(stub.len() + 3);
-		p.push_str(stub);
-		p.push_str(".br");
-		p
-	})?;
-
-	let mut encoder = compu::compressor::write::Compressor::new(
-		BrotliEncoder::default(),
-		&mut output
-	);
-
-	encoder.push(data, EncoderOp::Finish)?;
-	Ok(())
-}
-
-/// Encode.
-fn encode_gz(stub: &str, data: &[u8]) -> Result<()> {
-	let mut output = File::create({
-		let mut p: String = String::with_capacity(stub.len() + 3);
-		p.push_str(stub);
-		p.push_str(".gz");
-		p
-	})?;
-
-	let mut encoder = compu::compressor::write::Compressor::new(
-		ZlibEncoder::default(),
-		&mut output
-	);
-
-	encoder.push(data, EncoderOp::Finish)?;
 	Ok(())
 }
