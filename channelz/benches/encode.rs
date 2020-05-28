@@ -40,6 +40,8 @@ fn encode_br(c: &mut Criterion) {
 			}
 		);
 	}
+
+	group.finish();
 }
 
 fn encode_gz(c: &mut Criterion) {
@@ -68,7 +70,11 @@ fn encode_gz(c: &mut Criterion) {
 			}
 		);
 	}
+
+	group.finish();
 }
+
+
 
 criterion_group!(
 	benches,
