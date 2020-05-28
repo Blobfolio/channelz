@@ -45,7 +45,7 @@ features = [ "color", "suggestions", "vec_map", "wrap_help" ]
 
 [dependencies.fyi_witcher]
 git = "https://github.com/Blobfolio/fyi.git"
-branch = "master"
+branch = "feature/next"
 
 [dev-dependencies]
 criterion = "*"
