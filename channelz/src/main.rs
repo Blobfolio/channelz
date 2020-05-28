@@ -18,7 +18,9 @@ of a file or recurse a directory to do it for many files at once.
 #![warn(clippy::filetype_is_file)]
 #![warn(clippy::integer_division)]
 #![warn(clippy::needless_borrow)]
+#![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
+#![warn(clippy::perf)]
 #![warn(clippy::suboptimal_flops)]
 #![warn(clippy::unneeded_field_pattern)]
 
