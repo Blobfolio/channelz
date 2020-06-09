@@ -1,4 +1,5 @@
-/target/
+**.br
+**.gz
+**/target/
 /Cargo.lock
 /release/man/channelz.1.gz
-/channelz/target/
