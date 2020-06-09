@@ -30,10 +30,10 @@ of a file or recurse a directory to do it for many files at once.
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::missing_errors_doc)]
 
-mod encode;
 mod menu;
 
 use clap::ArgMatches;
+use channelz::EncodeFile;
 use fyi_witcher::{
 	Result,
 	Witcher,
@@ -68,15 +68,11 @@ fn main() -> Result<()> {
 
 	// With progress.
 	if opts.is_present("progress") {
-		walk.progress("ChannelZ", |x| {
-			encode::encode(x);
-		});
+		walk.progress("ChannelZ", |x| x.encode_all());
 	}
 	// Without progress.
 	else {
-		walk.process(|x| {
-			encode::encode(x);
-		});
+		walk.process(|x| x.encode_all());
 	}
 
 	Ok(())
