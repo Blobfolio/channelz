@@ -33,7 +33,7 @@ of a file or recurse a directory to do it for many files at once.
 mod menu;
 
 use clap::ArgMatches;
-use channelz::EncodeFile;
+use channelz::encode_path;
 use fyi_witcher::{
 	Result,
 	Witcher,
@@ -68,11 +68,11 @@ fn main() -> Result<()> {
 
 	// With progress.
 	if opts.is_present("progress") {
-		walk.progress("ChannelZ", |x| x.encode_all());
+		walk.progress("ChannelZ", encode_path);
 	}
 	// Without progress.
 	else {
-		walk.process(|x| x.encode_all());
+		walk.process(encode_path);
 	}
 
 	Ok(())

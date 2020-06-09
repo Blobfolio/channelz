@@ -7,20 +7,19 @@ use criterion::{
 	criterion_group,
 	criterion_main,
 };
-use channelz::EncodeFile;
 use std::path::PathBuf;
 
 
 
-fn encode_all(c: &mut Criterion) {
-	let mut group = c.benchmark_group("channelz::EncodeFile");
+fn encode_path(c: &mut Criterion) {
+	let mut group = c.benchmark_group("channelz::encode_path");
 
 	for path in [
 		PathBuf::from("../test/assets/favicon.svg"),
 	].iter() {
 		assert!(path.is_file(), "Invalid file: {:?}", path);
-		group.bench_function(format!("{:?}.encode_all()", path), move |b| {
-			b.iter(|| path.encode_all())
+		group.bench_function(format!("{:?}", path), move |b| {
+			b.iter(|| channelz::encode_path(path))
 		});
 	}
 
@@ -31,6 +30,6 @@ fn encode_all(c: &mut Criterion) {
 
 criterion_group!(
 	benches,
-	encode_all,
+	encode_path,
 );
 criterion_main!(benches);

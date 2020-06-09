@@ -11,65 +11,40 @@ use compu::{
 		ZlibEncoder,
 	},
 };
-use fyi_witcher::Result;
 use std::{
 	fs::{
 		self,
 		File,
 	},
-	path::Path,
+	path::PathBuf,
 };
 
 
 
-/// Encode!
-pub trait EncodeFile {
-	/// Encode File
-	///
-	/// Create a Brotli- and Gzip-encoded copy of `Self`, saving each as
-	/// `Self.br` and `Self.gz` respectively.
-	fn encode_all(&self);
-
-	// Encode To.
-	fn encode_to<E, P> (path: P, enc: E, data: &[u8]) -> Result<()>
-	where E: Encoder,
-	P: AsRef<Path>;
-}
-
-impl EncodeFile for Path {
-	/// Encode File
-	///
-	/// Create a Brotli- and Gzip-encoded copy of `Self`, saving each as
-	/// `Self.br` and `Self.gz` respectively.
-	fn encode_all(&self) {
-		// Gotta have a name.
-		if let Some(stub) = self.to_str() {
-			// Come up with the path names. This is rather terrible because
-			// `Path` is rather terrible. Haha.
-			let brp: String = stub.chars()
-				.chain(".br".chars()) // .br
-				.collect();
-
-			let mut gzp: String = brp.clone();
-			gzp.replace_range(stub.len().., ".gz");
-
-			// Now make sure we have data.
-			if let Ok(data) = fs::read(&self) {
-				let _ = rayon::join(
-					|| Self::encode_to(&brp, BrotliEncoder::default(), &data),
-					|| Self::encode_to(&gzp, ZlibEncoder::default(), &data),
-				);
-			}
+// Do the dirty work!
+pub fn encode_path(path: &PathBuf) {
+	if let Some(stub) = path.to_str() {
+		if let Ok(data) = &fs::read(path) {
+			let _ = rayon::join(
+				|| encode_br(stub, data),
+				|| encode_gz(stub, data),
+			);
 		}
 	}
+}
 
-	// Encode To.
-	fn encode_to<E, P> (path: P, enc: E, data: &[u8]) -> Result<()>
-	where E: Encoder,
-	P: AsRef<Path> {
-		let mut output = File::create(path).map_err(|e| e.to_string())?;
-		let mut writer = Compressor::new(enc, &mut output);
-		writer.push(data, EncoderOp::Finish).map_err(|e| e.to_string())?;
-		Ok(())
+#[allow(unused_must_use)]
+fn encode_br(stub: &str, data: &[u8]) {
+	if let Ok(mut output) = File::create([stub, ".br"].concat()) {
+		let mut writer = Compressor::new(BrotliEncoder::default(), &mut output);
+		writer.push(data, EncoderOp::Finish);
+	}
+}
+
+#[allow(unused_must_use)]
+fn encode_gz(stub: &str, data: &[u8]) {
+	if let Ok(mut output) = File::create([stub, ".gz"].concat()) {
+		let mut writer = Compressor::new(ZlibEncoder::default(), &mut output);
+		writer.push(data, EncoderOp::Finish);
 	}
 }
