@@ -131,6 +131,12 @@ bench-self: _bench-init build
 	just _bench-reset
 	"{{ cargo_bin }}" -p "{{ data_dir }}/test"
 
+	# Lots of paths and files!.
+	just _bench-reset
+	cp -aR "{{ justfile_directory() }}/test/assets" "{{ data_dir }}"
+	"{{ cargo_bin }}" -p "{{ data_dir }}/assets" "{{ data_dir }}/test" "{{ data_dir }}/test2"
+	rm -rf "{{ data_dir }}/assets"
+
 	# Do a file.
 	just _bench-reset
 	echo "{{ data_dir }}/test/css" > "/tmp/pgo-list.txt"
@@ -263,6 +269,9 @@ _bench-init:
 # Reset benchmarks.
 @_bench-reset: _bench-init
 	[ ! -d "{{ data_dir }}/test" ] || rm -rf "{{ data_dir }}/test"
+	[ ! -d "{{ data_dir }}/test2" ] || rm -rf "{{ data_dir }}/test2"
+
+	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test2"
 	cp -aR "{{ data_dir }}/raw/public" "{{ data_dir }}/test"
 
 
