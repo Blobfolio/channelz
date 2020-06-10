@@ -18,7 +18,9 @@ of a file or recurse a directory to do it for many files at once.
 #![warn(clippy::filetype_is_file)]
 #![warn(clippy::integer_division)]
 #![warn(clippy::needless_borrow)]
+#![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
+#![warn(clippy::perf)]
 #![warn(clippy::suboptimal_flops)]
 #![warn(clippy::unneeded_field_pattern)]
 
@@ -28,10 +30,10 @@ of a file or recurse a directory to do it for many files at once.
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::missing_errors_doc)]
 
-mod encode;
 mod menu;
 
 use clap::ArgMatches;
+use channelz::encode_path;
 use fyi_witcher::{
 	Result,
 	Witcher,
@@ -66,15 +68,11 @@ fn main() -> Result<()> {
 
 	// With progress.
 	if opts.is_present("progress") {
-		walk.progress("ChannelZ", |x| {
-			encode::encode(x);
-		});
+		walk.progress("ChannelZ", encode_path);
 	}
 	// Without progress.
 	else {
-		walk.process(|x| {
-			encode::encode(x);
-		});
+		walk.process(encode_path);
 	}
 
 	Ok(())
