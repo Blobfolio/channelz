@@ -34,7 +34,7 @@ pub fn encode_path(path: &PathBuf) {
 }
 
 #[allow(unused_must_use)]
-fn encode_br(stub: &str, data: &[u8]) {
+pub fn encode_br(stub: &str, data: &[u8]) {
 	if let Ok(mut output) = File::create([stub, ".br"].concat()) {
 		let mut writer = Compressor::new(BrotliEncoder::default(), &mut output);
 		writer.push(data, EncoderOp::Finish);
@@ -42,7 +42,7 @@ fn encode_br(stub: &str, data: &[u8]) {
 }
 
 #[allow(unused_must_use)]
-fn encode_gz(stub: &str, data: &[u8]) {
+pub fn encode_gz(stub: &str, data: &[u8]) {
 	if let Ok(mut output) = File::create([stub, ".gz"].concat()) {
 		let mut writer = Compressor::new(ZlibEncoder::default(), &mut output);
 		writer.push(data, EncoderOp::Finish);
