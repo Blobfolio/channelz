@@ -34,12 +34,12 @@ fn encode_br(c: &mut Criterion) {
 	].iter() {
 		assert!(path.is_file(), "Invalid file: {:?}", path);
 
-		let stub = path.to_str().unwrap();
 		let data = std::fs::read(&path).unwrap();
-
 		group.bench_function(format!("{:?}", path), move |b| {
-			b.iter(|| channelz::encode_br(&stub, &data))
+			b.iter(|| channelz::encode_br(path, &data))
 		});
+
+		assert!(PathBuf::from([path.to_str().unwrap(), ".br"].concat()).is_file(), "No BR created!");
 	}
 
 	group.finish();
