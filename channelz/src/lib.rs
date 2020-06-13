@@ -25,10 +25,12 @@ use std::{
 pub fn encode_path(path: &PathBuf) {
 	if let Some(stub) = path.to_str() {
 		if let Ok(data) = &fs::read(path) {
-			let _ = rayon::join(
-				|| encode_br(stub, data),
-				|| encode_gz(stub, data),
-			);
+			if ! data.is_empty() {
+				let _ = rayon::join(
+					|| encode_br(stub, data),
+					|| encode_gz(stub, data),
+				);
+			}
 		}
 	}
 }
