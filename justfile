@@ -45,6 +45,7 @@ bench BENCH="" FILTER="":
 			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
 	fi
 
+	ls -l "{{ justfile_directory() }}/test/assets"
 	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 
 	exit 0
