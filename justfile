@@ -20,6 +20,36 @@ rustflags   := "-C link-arg=-s"
 
 
 
+# A/B Test Two Binaries (second is implied)
+@ab BIN REBUILD="": _bench-init
+	[ -z "{{ REBUILD }}" ] || just build
+	[ -f "{{ cargo_bin }}" ] || just build
+
+	clear
+
+	fyi task -t "WP Trac"
+	just _ab "{{ BIN }}" "{{ data_dir }}/test/wp/trac.wordpress.org/templates/"
+	just _ab "{{ cargo_bin }}" "{{ data_dir }}/test/wp/trac.wordpress.org/templates/"
+
+	fyi task -t "HTML5 Boilerplate"
+	just _ab "{{ BIN }}" "{{ data_dir }}/test/boiler/new-site/"
+	just _ab "{{ cargo_bin }}" "{{ data_dir }}/test/boiler/new-site/"
+
+	fyi task -t "Vue Docs"
+	just _ab "{{ BIN }}" "{{ data_dir }}/test/vue/public/"
+	just _ab "{{ cargo_bin }}" "{{ data_dir }}/test/vue/public/"
+
+
+# A/B Test Inner
+@_ab BIN DIR:
+	fyi notice -t "$( "{{ BIN }}" -V ): Pausing 60 seconds…"
+	sleep 60
+	hyperfine --warmup 2 \
+		--runs 5 \
+		--prepare 'just _bench-reset' \
+		'{{ BIN }} {{ DIR }}'
+
+
 # Benchmark Rust functions.
 bench BENCH="" FILTER="":
 	#!/usr/bin/env bash
