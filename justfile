@@ -27,27 +27,35 @@ rustflags   := "-C link-arg=-s"
 
 	clear
 
+	fyi print -p "{{ BIN }}" -c 209 "$( "{{ BIN }}" -V )"
+	fyi print -p "{{ cargo_bin }}" -c 199 "$( "{{ cargo_bin }}" -V )"
+	fyi blank
+
 	fyi task -t "WP Trac"
 	just _ab "{{ BIN }}" "{{ data_dir }}/test/wp/trac.wordpress.org/templates/"
-	just _ab "{{ cargo_bin }}" "{{ data_dir }}/test/wp/trac.wordpress.org/templates/"
 
 	fyi task -t "HTML5 Boilerplate"
 	just _ab "{{ BIN }}" "{{ data_dir }}/test/boiler/new-site/"
-	just _ab "{{ cargo_bin }}" "{{ data_dir }}/test/boiler/new-site/"
 
 	fyi task -t "Vue Docs"
 	just _ab "{{ BIN }}" "{{ data_dir }}/test/vue/public/"
-	just _ab "{{ cargo_bin }}" "{{ data_dir }}/test/vue/public/"
 
 
 # A/B Test Inner
 @_ab BIN DIR:
-	fyi notice -t "$( "{{ BIN }}" -V ): Pausing 60 seconds…"
 	sleep 60
-	hyperfine --warmup 2 \
-		--runs 5 \
+	hyperfine --warmup 4 \
+		--runs 10 \
 		--prepare 'just _bench-reset' \
 		'{{ BIN }} {{ DIR }}'
+
+	sleep 60
+	hyperfine --warmup 4 \
+		--runs 10 \
+		--prepare 'just _bench-reset' \
+		'{{ cargo_bin }} {{ DIR }}'
+
+	echo "\033[2m-----\033[0m\n"
 
 
 # Benchmark Rust functions.
