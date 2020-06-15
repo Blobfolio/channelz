@@ -7,7 +7,10 @@ use criterion::{
 	criterion_group,
 	criterion_main,
 };
-use std::path::PathBuf;
+use std::{
+	fs,
+	path::PathBuf,
+};
 
 
 
@@ -34,8 +37,9 @@ fn encode_br(c: &mut Criterion) {
 	].iter() {
 		assert!(path.is_file(), "Invalid file: {:?}", path);
 
+		let data: &[u8] = &fs::read(path).expect("Missing file.");
 		group.bench_function(format!("{:?}", path), move |b| {
-			b.iter(|| channelz::encode_br(path))
+			b.iter(|| channelz::encode_br(path, data))
 		});
 	}
 
@@ -50,8 +54,9 @@ fn encode_gz(c: &mut Criterion) {
 	].iter() {
 		assert!(path.is_file(), "Invalid file: {:?}", path);
 
+		let data: &[u8] = &fs::read(path).expect("Missing file.");
 		group.bench_function(format!("{:?}", path), move |b| {
-			b.iter(|| channelz::encode_gz(path))
+			b.iter(|| channelz::encode_gz(path, data))
 		});
 	}
 
