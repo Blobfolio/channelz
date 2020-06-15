@@ -24,18 +24,14 @@ use std::{
 
 // Do the dirty work!
 pub fn encode_path(path: &PathBuf) {
-	if let Ok(data) = fs::read(path).as_ref() {
-		if ! data.is_empty() {
-			let _ = rayon::join(
-				|| encode_br(path, data),
-				|| encode_gz(path, data),
-			);
-		}
-	}
+	let _ = rayon::join(
+		|| encode_br(path),
+		|| encode_gz(path),
+	);
 }
 
 #[allow(unused_must_use)]
-pub fn encode_br(path: &PathBuf, data: &[u8]) {
+pub fn encode_br(path: &PathBuf) {
 	// It is more efficient to calculate the output path from OsString than
 	// Path or PathBuf since every goddamn Path join/concat-type method adds a
 	// separator.
@@ -49,7 +45,7 @@ pub fn encode_br(path: &PathBuf, data: &[u8]) {
 
 		// Write the data! If nothing is written because of failure or general
 		// emptiness, try to delete the file we just created.
-		if 0 == writer.push(data, EncoderOp::Finish).unwrap_or_default() {
+		if 0 == writer.push(&fs::read(path).unwrap_or_default(), EncoderOp::Finish).unwrap_or_default() {
 			drop(output);
 			fs::remove_file(out_path);
 		}
@@ -57,7 +53,7 @@ pub fn encode_br(path: &PathBuf, data: &[u8]) {
 }
 
 #[allow(unused_must_use)]
-pub fn encode_gz(path: &PathBuf, data: &[u8]) {
+pub fn encode_gz(path: &PathBuf) {
 	// It is more efficient to calculate the output path from OsString than
 	// Path or PathBuf since every goddamn Path join/concat-type method adds a
 	// separator.
@@ -71,7 +67,7 @@ pub fn encode_gz(path: &PathBuf, data: &[u8]) {
 
 		// Write the data! If nothing is written because of failure or general
 		// emptiness, try to delete the file we just created.
-		if 0 == writer.push(data, EncoderOp::Finish).unwrap_or_default() {
+		if 0 == writer.push(&fs::read(path).unwrap_or_default(), EncoderOp::Finish).unwrap_or_default() {
 			drop(output);
 			fs::remove_file(out_path);
 		}
