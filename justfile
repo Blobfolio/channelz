@@ -20,6 +20,44 @@ rustflags   := "-C link-arg=-s"
 
 
 
+# A/B Test Two Binaries (second is implied)
+@ab BIN="/usr/bin/channelz" REBUILD="": _bench-init
+	[ -z "{{ REBUILD }}" ] || just build
+	[ -f "{{ cargo_bin }}" ] || just build
+
+	clear
+
+	fyi print -p "{{ BIN }}" -c 209 "$( "{{ BIN }}" -V )"
+	fyi print -p "{{ cargo_bin }}" -c 199 "$( "{{ cargo_bin }}" -V )"
+	fyi blank
+
+	fyi task -t "WP Trac"
+	just _ab "{{ BIN }}" "{{ data_dir }}/test/wp/trac.wordpress.org/templates/" 2>/dev/null
+
+	fyi task -t "HTML5 Boilerplate"
+	just _ab "{{ BIN }}" "{{ data_dir }}/test/boiler/new-site/" 2>/dev/null
+
+	fyi task -t "Vue Docs"
+	just _ab "{{ BIN }}" "{{ data_dir }}/test/vue/public/" 2>/dev/null
+
+
+# A/B Test Inner
+@_ab BIN DIR:
+	hyperfine --warmup 4 \
+		--runs 10 \
+		--prepare 'just _bench-reset' \
+		--style color \
+		'{{ BIN }} {{ DIR }}'
+
+	hyperfine --warmup 4 \
+		--runs 10 \
+		--prepare 'just _bench-reset' \
+		--style color \
+		'{{ cargo_bin }} {{ DIR }}'
+
+	echo "\n\033[2m-----\033[0m\n\n"
+
+
 # Benchmark Rust functions.
 bench BENCH="" FILTER="":
 	#!/usr/bin/env bash
@@ -45,6 +83,7 @@ bench BENCH="" FILTER="":
 			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
 	fi
 
+	ls -l "{{ justfile_directory() }}/test/assets"
 	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 
 	exit 0
@@ -94,20 +133,15 @@ bench-self: _bench-init build
 # Build Man.
 @build-man: build
 	# Pre-clean.
-	find "{{ release_dir }}/man" -type f -delete
+	find "{{ pkg_dir1 }}/misc" -name "channelz.1*" -type f -delete
 
 	# Use help2man to make a crappy MAN page.
-	help2man -o "{{ release_dir }}/man/{{ pkg_id }}.1" \
+	help2man -o "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1" \
 		-N "{{ cargo_bin }}"
 
-	# Strip some ugly out.
-	sd '{{ pkg_name }} [0-9.]+\nBlobfolio, LLC. <hello@blobfolio.com>\n' \
-		'' \
-		"{{ release_dir }}/man/{{ pkg_id }}.1"
-
 	# Gzip it and reset ownership.
-	gzip -k -f -9 "{{ release_dir }}/man/{{ pkg_id }}.1"
-	just _fix-chown "{{ release_dir }}/man"
+	gzip -k -f -9 "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
+	just _fix-chown "{{ pkg_dir1 }}"
 
 
 # Check Release!
@@ -139,6 +173,16 @@ bench-self: _bench-init build
 		--all-features \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
+
+
+# Test Run.
+@run +ARGS:
+	RUSTFLAGS="{{ rustflags }}" cargo run \
+		--bin "{{ pkg_id }}" \
+		--release \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}" \
+		-- {{ ARGS }}
 
 
 # Get/Set version.
