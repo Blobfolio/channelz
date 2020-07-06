@@ -5,7 +5,6 @@ license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
-build = "build.rs"
 publish = false
 
 [package.metadata.deb]
@@ -23,12 +22,9 @@ In directory mode, only files with the following extensions will be looked at:\n
 css; htm(l); ico; js; json; mjs; svg; txt; xhtm(l); xml; xsl"""
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
-    ["../release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
-    ["../release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
+    ["./misc/channelz.bash", "etc/bash_completion.d/", "644"],
+    ["./misc/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
-
-[build-dependencies]
-clap = { version = "2.33.*", default-features = false }
 
 [dependencies]
 rayon = "1.3.*"
@@ -38,10 +34,9 @@ version = "0.5.*"
 default-features = false
 features = ["brotli-c", "zlib-opt"]
 
-[dependencies.clap]
-version = "2.33.*"
-default-features = false
-features = [ "color", "suggestions", "vec_map", "wrap_help" ]
+[dependencies.fyi_menu]
+git = "https://github.com/Blobfolio/fyi.git"
+branch = "master"
 
 [dependencies.fyi_witcher]
 git = "https://github.com/Blobfolio/fyi.git"
