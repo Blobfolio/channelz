@@ -133,7 +133,7 @@ bench-self: _bench-init build
 # Build Man.
 @build-man: build
 	# Pre-clean.
-	find "{{ pkg_dir1 }}/misc" -name "channelz.1*" -type f -delete
+	find "{{ pkg_dir1 }}/misc" -name "{{ pkg_id }}.1*" -type f -delete
 
 	# Use help2man to make a crappy MAN page.
 	help2man -o "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1" \
