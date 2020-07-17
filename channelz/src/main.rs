@@ -142,12 +142,49 @@ fn _flags(args: &mut ArgList) -> u8 {
 	}
 }
 
+#[cfg(not(feature = "man"))]
 #[cold]
 /// Print Help.
 fn _help() {
 	io::stdout().write_all({
 		let mut s = String::with_capacity(1024);
-		s.push_str("ChannelZ ");
+		s.push_str(&format!(
+			r"
+                  ,.
+                 (\(\)
+ ,_              ;  o >
+  (`-.          /  (_)
+  `=(\`-._____/`   |
+   `-( /    -=`\   |
+ .==`=(  -= = _/   /`--.
+(M==M=M==M=M==M==M==M==M)
+ \=N=N==N=N==N=N==N=NN=/   {}{}{}
+  \M==M=M==M=M==M===M=/    Fast, recursive, multi-threaded
+   \N=N==N=N==N=NN=N=/     static Brotli and Gzip encoding.
+    \M==M==M=M==M==M/
+     `-------------'
+
+",
+			"\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v",
+			env!("CARGO_PKG_VERSION"),
+			"\x1b[0m"
+		));
+		s.push_str(include_str!("../misc/help.txt"));
+		s.push('\n');
+		s
+	}.as_bytes()).unwrap();
+}
+
+#[cfg(feature = "man")]
+#[cold]
+/// Print Help.
+///
+/// This is a stripped-down version of the help screen made specifically for
+/// `help2man`, which gets run during the Debian package release build task.
+fn _help() {
+	io::stdout().write_all({
+		let mut s = String::with_capacity(1024);
+		s.push_str("HTMinL ");
 		s.push_str(env!("CARGO_PKG_VERSION"));
 		s.push('\n');
 		s.push_str(env!("CARGO_PKG_DESCRIPTION"));

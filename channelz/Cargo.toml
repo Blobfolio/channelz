@@ -48,3 +48,7 @@ criterion = "*"
 [[bench]]
 name = "encode"
 harness = false
+
+[features]
+default = []
+man = []
