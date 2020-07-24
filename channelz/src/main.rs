@@ -34,10 +34,8 @@ of a file or recurse a directory to do it for many files at once.
 
 use channelz::encode_path;
 use fyi_menu::ArgList;
-use fyi_witcher::{
-	Result,
-	Witcher,
-};
+use fyi_msg::MsgKind;
+use fyi_witcher::Witcher;
 use std::io::{
 	self,
 	Write,
@@ -54,7 +52,7 @@ const FLAG_VERSION: u8  = 0b0100;
 
 
 
-fn main() -> Result<()> {
+fn main() -> Result<(), ()> {
 	let mut args = ArgList::default();
 	args.expect();
 
@@ -82,7 +80,8 @@ fn main() -> Result<()> {
 	};
 
 	if walk.is_empty() {
-		return Err("No encodable files were found.".to_string());
+		MsgKind::Error.as_msg("No encodable files were found.").eprintln();
+		return Err(());
 	}
 
 	// Without progress.
