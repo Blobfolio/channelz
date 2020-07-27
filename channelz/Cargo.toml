@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.2.1"
+version = "0.2.2"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -19,7 +19,7 @@ extended-description = """\
 Point it toward a single file to generate maximally-compressed Brotli- and Gzip-encoded copies, or point it toward a directory to recursively handle many files en masse.\n \
 .\n\
 In directory mode, only files with the following extensions will be looked at:\n\
-css; htm(l); ico; js; json; mjs; svg; txt; xhtm(l); xml; xsl"""
+css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl"""
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
     ["./misc/channelz.bash", "etc/bash_completion.d/", "644"],
@@ -35,6 +35,10 @@ default-features = false
 features = ["brotli-c", "zlib-opt"]
 
 [dependencies.fyi_menu]
+git = "https://github.com/Blobfolio/fyi.git"
+branch = "master"
+
+[dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
 
