@@ -36,9 +36,12 @@ use channelz::encode_path;
 use fyi_menu::ArgList;
 use fyi_msg::MsgKind;
 use fyi_witcher::Witcher;
-use std::io::{
-	self,
-	Write,
+use std::{
+	io::{
+		self,
+		Write,
+	},
+	process,
 };
 
 
@@ -52,94 +55,60 @@ const FLAG_VERSION: u8  = 0b0100;
 
 
 
-fn main() -> Result<(), ()> {
+#[allow(clippy::if_not_else)] // Code is confusing otherwise.
+fn main() {
 	let mut args = ArgList::default();
 	args.expect();
 
-	let flags = _flags(&mut args);
-	// Help or Version?
+	let mut flags: u8 = 0;
+	args.pluck_flags(
+		&mut flags,
+		&[
+			"-h", "--help",
+			"-p", "--progress",
+			"-V", "--version",
+		],
+		&[
+			FLAG_HELP, FLAG_HELP,
+			FLAG_PROGRESS, FLAG_PROGRESS,
+			FLAG_VERSION, FLAG_VERSION,
+		],
+	);
+
+	// Help.
 	if 0 != flags & FLAG_HELP {
 		_help();
-		return Ok(());
 	}
+	// Version.
 	else if 0 != flags & FLAG_VERSION {
 		_version();
-		return Ok(());
 	}
-
-	// What path are we dealing with?
-	let walk = match args.pluck_opt(|x| x == "-l" || x == "--list") {
-		Some(p) => Witcher::from_file(
-			p,
-			r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
-		),
-		None => Witcher::new(
-			&args.expect_args(),
-			r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
-		),
-	};
-
-	if walk.is_empty() {
-		MsgKind::Error.as_msg("No encodable files were found.").eprintln();
-		return Err(());
-	}
-
-	// Without progress.
-	if 0 == flags & FLAG_PROGRESS {
-		walk.process(encode_path);
-	}
-	// With progress.
+	// Actual stuff!
 	else {
-		walk.progress("ChannelZ", encode_path);
-	}
+		// What path are we dealing with?
+		let walk = match args.pluck_opt(|x| x == "-l" || x == "--list") {
+			Some(p) => Witcher::from_file(
+				p,
+				r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
+			),
+			None => Witcher::new(
+				&args.expect_args(),
+				r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
+			),
+		};
 
-	Ok(())
-}
-
-/// Fetch Flags.
-fn _flags(args: &mut ArgList) -> u8 {
-	let len: usize = args.len();
-	if 0 == len { 0 }
-	else {
-		let mut flags: u8 = 0;
-		let mut del = 0;
-		let raw = args.as_mut_vec();
-
-		// This is basically what `Vec.retain()` does, except we're hitting
-		// multiple patterns at once and sending back the results.
-		let ptr = raw.as_mut_ptr();
-		unsafe {
-			let mut idx: usize = 0;
-			while idx < len {
-				match (*ptr.add(idx)).as_str() {
-					"-h" | "--help" => {
-						flags |= FLAG_HELP;
-						del += 1;
-					},
-					"-p" | "--progress" => {
-						flags |= FLAG_PROGRESS;
-						del += 1;
-					},
-					"-V" | "--version" => {
-						flags |= FLAG_VERSION;
-						del += 1;
-					},
-					_ => if del > 0 {
-						ptr.add(idx).swap(ptr.add(idx - del));
-					}
-				}
-
-				idx += 1;
-			}
+		if walk.is_empty() {
+			MsgKind::Error.as_msg("No encodable files were found.").eprintln();
+			process::exit(1);
 		}
-
-		// Did we find anything? If so, run `truncate()` to free the memory
-		// and return the flags.
-		if del > 0 {
-			raw.truncate(len - del);
-			flags
+		// Without progress.
+		else if 0 == flags & FLAG_PROGRESS {
+			walk.process(encode_path);
 		}
-		else { 0 }
+		// With progress.
+		else {
+			walk.progress("ChannelZ", encode_path);
+		}
 	}
 }
 
