@@ -116,10 +116,8 @@ fn main() {
 #[cold]
 /// Print Help.
 fn _help() {
-	io::stdout().write_all({
-		let mut s = String::with_capacity(1024);
-		s.push_str(&format!(
-			r"
+	io::stdout().write_fmt(format_args!(
+		r"
                   ,.
                  (\(\)
  ,_              ;  o >
@@ -134,15 +132,12 @@ fn _help() {
     \M==M==M=M==M==M/
      `-------------'
 
-",
-			"\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v",
-			env!("CARGO_PKG_VERSION"),
-			"\x1b[0m"
-		));
-		s.push_str(include_str!("../misc/help.txt"));
-		s.push('\n');
-		s
-	}.as_bytes()).unwrap();
+{}",
+		"\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v",
+		env!("CARGO_PKG_VERSION"),
+		"\x1b[0m",
+		include_str!("../misc/help.txt")
+	)).unwrap();
 }
 
 #[cfg(feature = "man")]
