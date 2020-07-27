@@ -89,11 +89,11 @@ fn main() {
 		let walk = match args.pluck_opt(|x| x == "-l" || x == "--list") {
 			Some(p) => Witcher::from_file(
 				p,
-				r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
+				r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
 			),
 			None => Witcher::new(
 				&args.expect_args(),
-				r"(?i).+\.(css|x?html?|ico|m?js|json|svg|txt|xml|xsl)$"
+				r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
 			),
 		};
 

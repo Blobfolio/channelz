@@ -13,4 +13,4 @@ ARGS:
     <PATH(S)>...    One or more files or directories to compress.
 
 Note: static copies will only be generated for files with these extensions:
-css; htm(l); ico; js; json; mjs; svg; txt; xhtm(l); xml; xsl
+css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl
