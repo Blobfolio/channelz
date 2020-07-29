@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.2.3"
+version = "0.2.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -35,10 +35,6 @@ default-features = false
 features = ["brotli-c", "zlib-opt"]
 
 [dependencies.fyi_menu]
-git = "https://github.com/Blobfolio/fyi.git"
-branch = "master"
-
-[dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
 

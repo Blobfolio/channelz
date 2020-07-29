@@ -33,82 +33,71 @@ of a file or recurse a directory to do it for many files at once.
 #![allow(clippy::unknown_clippy_lints)]
 
 use channelz::encode_path;
-use fyi_menu::ArgList;
-use fyi_msg::MsgKind;
 use fyi_witcher::Witcher;
 use std::{
 	io::{
 		self,
 		Write,
 	},
-	process,
 };
-
-
-
-/// -h | --help
-const FLAG_HELP: u8     = 0b0001;
-/// -p | --progress
-const FLAG_PROGRESS: u8 = 0b0010;
-/// -V | --version
-const FLAG_VERSION: u8  = 0b0100;
 
 
 
 #[allow(clippy::if_not_else)] // Code is confusing otherwise.
 fn main() {
-	let mut args = ArgList::default();
-	args.expect();
+	let mut args = fyi_menu::parse_env_args(fyi_menu::FLAG_ALL);
+	let mut progress: bool = false;
+	let mut list: Option<String> = None;
 
-	let mut flags: u8 = 0;
-	args.pluck_flags(
-		&mut flags,
-		&[
-			"-h", "--help",
-			"-p", "--progress",
-			"-V", "--version",
-		],
-		&[
-			FLAG_HELP, FLAG_HELP,
-			FLAG_PROGRESS, FLAG_PROGRESS,
-			FLAG_VERSION, FLAG_VERSION,
-		],
-	);
+	// Run through the arguments to see what we've got going on!
+	let mut idx: usize = 0;
+	let mut len: usize = args.len();
+	while idx < len {
+		match args[idx].as_str() {
+			"-h" | "--help" => { return _help(); },
+			"-V" | "--version" => { return _version(); },
+			"-p" | "--progress" => { progress = true; },
+			"-l" | "--list" =>
+				if idx + 1 == len {
+					fyi_menu::die(b"Missing file list.");
+				}
+				else {
+					list.replace(args.remove(idx + 1));
+					len -= 1;
+				},
+			_ => { break; }
+		}
 
-	// Help.
-	if 0 != flags & FLAG_HELP {
-		_help();
+		idx += 1;
 	}
-	// Version.
-	else if 0 != flags & FLAG_VERSION {
-		_version();
+
+	// Clear what we've checked.
+	if idx > 0 {
+		args.drain(0..idx);
 	}
-	// Actual stuff!
+
+	// What path are we dealing with?
+	let walk = match list {
+		Some(p) => Witcher::from_file(
+			p,
+			r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
+		),
+		None => Witcher::new(
+			&args[..],
+			r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
+		),
+	};
+
+	if walk.is_empty() {
+		fyi_menu::die(b"No encodable files were found.");
+	}
+	// With progress.
+	else if progress {
+		walk.progress("ChannelZ", encode_path);
+	}
+	// Without progress.
 	else {
-		// What path are we dealing with?
-		let walk = match args.pluck_opt(|x| x == "-l" || x == "--list") {
-			Some(p) => Witcher::from_file(
-				p,
-				r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
-			),
-			None => Witcher::new(
-				&args.expect_args(),
-				r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
-			),
-		};
-
-		if walk.is_empty() {
-			MsgKind::Error.as_msg("No encodable files were found.").eprintln();
-			process::exit(1);
-		}
-		// Without progress.
-		else if 0 == flags & FLAG_PROGRESS {
-			walk.process(encode_path);
-		}
-		// With progress.
-		else {
-			walk.progress("ChannelZ", encode_path);
-		}
+		walk.process(encode_path);
 	}
 }
 
