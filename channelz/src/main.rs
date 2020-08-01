@@ -33,7 +33,10 @@ of a file or recurse a directory to do it for many files at once.
 #![allow(clippy::unknown_clippy_lints)]
 
 use channelz::encode_path;
-use fyi_witcher::Witcher;
+use fyi_witcher::{
+	self,
+	Witcher,
+};
 use std::{
 	io::{
 		self,
@@ -78,26 +81,20 @@ fn main() {
 
 	// What path are we dealing with?
 	let walk = match list {
-		Some(p) => Witcher::from_file(
-			p,
-			r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
-		),
-		None => Witcher::new(
-			&args[..],
-			r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"
-		),
-	};
+		Some(p) => Witcher::read_paths_from_file(p),
+		None => Witcher::from(args),
+	}.filter_and_collect(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$");
 
 	if walk.is_empty() {
 		fyi_menu::die(b"No encodable files were found.");
 	}
 	// With progress.
 	else if progress {
-		walk.progress("ChannelZ", encode_path);
+		fyi_witcher::progress(&walk, "ChannelZ", encode_path);
 	}
 	// Without progress.
 	else {
-		walk.process(encode_path);
+		fyi_witcher::process(&walk, encode_path);
 	}
 }
 
