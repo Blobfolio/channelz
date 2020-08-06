@@ -38,6 +38,14 @@ features = ["brotli-c", "zlib-opt"]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
 
+[dependencies.fyi_msg]
+git = "https://github.com/Blobfolio/fyi.git"
+branch = "master"
+
+[dependencies.fyi_progress]
+git = "https://github.com/Blobfolio/fyi.git"
+branch = "master"
+
 [dependencies.fyi_witcher]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
