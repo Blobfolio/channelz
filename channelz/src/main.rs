@@ -34,10 +34,7 @@ of a file or recurse a directory to do it for many files at once.
 
 use channelz::encode_path;
 use fyi_msg::MsgKind;
-use fyi_progress::{
-	Progress,
-	ProgressParallelism,
-};
+use fyi_progress::Progress;
 use fyi_witcher::Witcher;
 use std::{
 	io::{
@@ -84,8 +81,7 @@ fn main() {
 		else { Witcher::read_paths_from_file(list) }
 			.filter_and_collect(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"),
 		MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}")
-	)
-		.with_threads(ProgressParallelism::Heavy);
+	);
 
 	// With progress.
 	if progress {
