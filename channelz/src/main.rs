@@ -90,6 +90,7 @@ fn main() {
 	// With progress.
 	if progress {
 		walker.run(encode_path);
+		walker.print_summary("file", "files");
 	}
 	// Without progress.
 	else {
