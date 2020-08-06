@@ -33,68 +33,64 @@ of a file or recurse a directory to do it for many files at once.
 #![allow(clippy::unknown_clippy_lints)]
 
 use channelz::encode_path;
-use fyi_witcher::{
-	self,
-	Witcher,
-};
+use fyi_msg::MsgKind;
+use fyi_progress::Progress;
+use fyi_witcher::Witcher;
 use std::{
 	io::{
 		self,
 		Write,
 	},
+	path::PathBuf,
 };
 
 
 
-#[allow(clippy::if_not_else)] // Code is confusing otherwise.
 fn main() {
-	let mut args = fyi_menu::parse_env_args(fyi_menu::FLAG_ALL);
+	let args = fyi_menu::parse_env_args(fyi_menu::FLAG_ALL);
 	let mut progress: bool = false;
-	let mut list: Option<String> = None;
+	let mut list: &str = "";
 
 	// Run through the arguments to see what we've got going on!
 	let mut idx: usize = 0;
-	let mut len: usize = args.len();
+	let len: usize = args.len();
 	while idx < len {
 		match args[idx].as_str() {
 			"-h" | "--help" => { return _help(); },
 			"-V" | "--version" => { return _version(); },
-			"-p" | "--progress" => { progress = true; },
+			"-p" | "--progress" => {
+				progress = true;
+				idx += 1;
+			},
 			"-l" | "--list" =>
-				if idx + 1 == len {
-					fyi_menu::die(b"Missing file list.");
+				if idx + 1 < len {
+					list = &args[idx + 1];
+					idx += 2;
 				}
-				else {
-					list.replace(args.remove(idx + 1));
-					len -= 1;
-				},
+				else { idx += 1 },
 			_ => { break; }
 		}
-
-		idx += 1;
 	}
 
-	// Clear what we've checked.
-	if idx > 0 {
-		args.drain(0..idx);
-	}
+	// What path(s) are we dealing with?
+	let walker = Progress::<PathBuf>::new(
+		if list.is_empty() {
+			if idx < args.len() { Witcher::from(&args[idx..]) }
+			else { Witcher::default() }
+		}
+		else { Witcher::read_paths_from_file(list) }
+			.filter_and_collect(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"),
+		MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}")
+	);
 
-	// What path are we dealing with?
-	let walk = match list {
-		Some(p) => Witcher::read_paths_from_file(p),
-		None => Witcher::from(args),
-	}.filter_and_collect(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$");
-
-	if walk.is_empty() {
-		fyi_menu::die(b"No encodable files were found.");
-	}
 	// With progress.
-	else if progress {
-		fyi_witcher::progress(&walk, "ChannelZ", encode_path);
+	if progress {
+		walker.run(encode_path);
+		walker.print_summary("file", "files");
 	}
 	// Without progress.
 	else {
-		fyi_witcher::process(&walk, encode_path);
+		walker.silent(encode_path);
 	}
 }
 
