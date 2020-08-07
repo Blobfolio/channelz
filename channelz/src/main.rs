@@ -34,7 +34,10 @@ of a file or recurse a directory to do it for many files at once.
 
 use channelz::encode_path;
 use fyi_msg::MsgKind;
-use fyi_progress::Progress;
+use fyi_progress::{
+	Progress,
+	utility::num_threads,
+};
 use fyi_witcher::Witcher;
 use std::{
 	io::{
@@ -73,15 +76,18 @@ fn main() {
 	}
 
 	// What path(s) are we dealing with?
-	let walker = Progress::<PathBuf>::new(
+	let walker = Progress::<PathBuf>::from(
 		if list.is_empty() {
 			if idx < args.len() { Witcher::from(&args[idx..]) }
 			else { Witcher::default() }
 		}
 		else { Witcher::read_paths_from_file(list) }
-			.filter_and_collect(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$"),
-		MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}")
-	);
+			.filter_and_collect(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$")
+	)
+		.with_threads(num_threads() * 2)
+		.with_title(
+			MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}").to_string()
+		);
 
 	// With progress.
 	if progress {
@@ -89,9 +95,7 @@ fn main() {
 		walker.print_summary("file", "files");
 	}
 	// Without progress.
-	else {
-		walker.silent(encode_path);
-	}
+	else { walker.silent(encode_path); }
 }
 
 #[cfg(not(feature = "man"))]
