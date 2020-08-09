@@ -12,17 +12,21 @@ use compu::{
 	},
 };
 use std::{
-	ffi::OsString,
+	ffi::{
+		OsStr,
+		OsString,
+	},
 	fs::{
 		self,
 		File,
 	},
+	os::unix::ffi::OsStringExt,
 	path::PathBuf,
 };
 
 
 
-// Do the dirty work!
+/// Do the dirty work!
 pub fn encode_path(path: &PathBuf) {
 	let _ = rayon::join(
 		|| encode_br(path),
@@ -31,13 +35,19 @@ pub fn encode_path(path: &PathBuf) {
 }
 
 #[allow(unused_must_use)]
+/// Encode Brotli.
 pub fn encode_br(path: &PathBuf) {
 	// It is more efficient to calculate the output path from OsString than
 	// Path or PathBuf since every goddamn Path join/concat-type method adds a
 	// separator.
-	let mut out_path: OsString = OsString::from(path);
-	out_path.reserve_exact(3);
-	out_path.push(".br");
+	let out_path: OsString = unsafe {
+		OsString::from_vec(
+			[
+				&*(path.as_os_str() as *const OsStr as *const [u8]),
+				b".br",
+			].concat()
+		)
+	};
 
 	// Create the output file.
 	if let Ok(mut output) = File::create(&out_path) {
@@ -53,13 +63,19 @@ pub fn encode_br(path: &PathBuf) {
 }
 
 #[allow(unused_must_use)]
+/// Encode GZip.
 pub fn encode_gz(path: &PathBuf) {
 	// It is more efficient to calculate the output path from OsString than
 	// Path or PathBuf since every goddamn Path join/concat-type method adds a
 	// separator.
-	let mut out_path: OsString = OsString::from(path);
-	out_path.reserve_exact(3);
-	out_path.push(".gz");
+	let out_path: OsString = unsafe {
+		OsString::from_vec(
+			[
+				&*(path.as_os_str() as *const OsStr as *const [u8]),
+				b".gz",
+			].concat()
+		)
+	};
 
 	// Create the output file.
 	if let Ok(mut output) = File::create(&out_path) {
