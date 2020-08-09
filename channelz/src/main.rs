@@ -85,9 +85,7 @@ fn main() {
 			.filter_and_collect(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$")
 	)
 		.with_threads(num_threads() * 2)
-		.with_title(
-			MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}").to_string()
-		);
+		.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"));
 
 	// With progress.
 	if progress {
