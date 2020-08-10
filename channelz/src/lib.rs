@@ -2,74 +2,130 @@
 # `ChannelZ`: The Hard Bits
 */
 
-use compu::{
-	compressor::write::Compressor,
-	encoder::{
-		Encoder,
-		EncoderOp,
-		BrotliEncoder,
-		ZlibEncoder,
-	},
-};
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+
+#![deny(missing_copy_implementations)]
+#![deny(missing_debug_implementations)]
+
+#![warn(clippy::filetype_is_file)]
+#![warn(clippy::integer_division)]
+#![warn(clippy::needless_borrow)]
+#![warn(clippy::nursery)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::perf)]
+#![warn(clippy::suboptimal_flops)]
+#![warn(clippy::unneeded_field_pattern)]
+
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::match_like_matches_macro)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::unknown_clippy_lints)]
+
+
+
 use std::{
-	ffi::OsString,
+	ffi::OsStr,
 	fs::{
 		self,
 		File,
 	},
+	io::Write,
+	os::unix::ffi::OsStrExt,
 	path::PathBuf,
 };
 
 
 
-// Do the dirty work!
+#[allow(trivial_casts)] // Trivial my arse.
+/// Do the Deed!
+///
+/// This method generates statically-encoded Brotli and Gzip copies of a given
+/// file. The raw data is read into memory once, and both it and a mutable
+/// buffer are shared by the two encodings.
+///
+/// If for some reason the end result can't be created or winds up bigger than
+/// the original, no static copy is saved to disk. (What would be the point?!)
 pub fn encode_path(path: &PathBuf) {
-	let _ = rayon::join(
-		|| encode_br(path),
-		|| encode_gz(path),
-	);
-}
+	let raw: &[u8] = &fs::read(path).unwrap_or_default();
+	if ! raw.is_empty() {
+		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
+		let raw_path: &[u8] = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) };
 
-#[allow(unused_must_use)]
-pub fn encode_br(path: &PathBuf) {
-	// It is more efficient to calculate the output path from OsString than
-	// Path or PathBuf since every goddamn Path join/concat-type method adds a
-	// separator.
-	let mut out_path: OsString = OsString::from(path);
-	out_path.reserve_exact(3);
-	out_path.push(".br");
+		// Brotli first.
+		if 0 != encode_br(raw, &mut buf) {
+			write_result(OsStr::from_bytes(&[raw_path, b".br"].concat()), &buf);
+		}
 
-	// Create the output file.
-	if let Ok(mut output) = File::create(&out_path) {
-		let mut writer = Compressor::new(BrotliEncoder::default(), &mut output);
-
-		// Write the data! If nothing is written because of failure or general
-		// emptiness, try to delete the file we just created.
-		if 0 == writer.push(&fs::read(path).unwrap_or_default(), EncoderOp::Finish).unwrap_or_default() {
-			drop(output);
-			fs::remove_file(out_path);
+		// Gzip second.
+		if 0 != encode_gz(raw, &mut buf) {
+			write_result(OsStr::from_bytes(&[raw_path, b".gz"].concat()), &buf);
 		}
 	}
 }
 
-#[allow(unused_must_use)]
-pub fn encode_gz(path: &PathBuf) {
-	// It is more efficient to calculate the output path from OsString than
-	// Path or PathBuf since every goddamn Path join/concat-type method adds a
-	// separator.
-	let mut out_path: OsString = OsString::from(path);
-	out_path.reserve_exact(3);
-	out_path.push(".gz");
+#[must_use]
+/// Encode Brotli.
+///
+/// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
+/// Brotli-C bindings.
+fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
+	use compu::{
+		compressor::write::Compressor,
+		encoder::{
+			Encoder,
+			EncoderOp,
+			BrotliEncoder,
+		},
+	};
 
-	// Create the output file.
-	if let Ok(mut output) = File::create(&out_path) {
-		let mut writer = Compressor::new(ZlibEncoder::default(), &mut output);
+	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
+	match writer.push(raw, EncoderOp::Finish) {
+		Ok(x) if x < raw.len() => x,
+		_ => 0,
+	}
+}
 
-		// Write the data! If nothing is written because of failure or general
-		// emptiness, try to delete the file we just created.
-		if 0 == writer.push(&fs::read(path).unwrap_or_default(), EncoderOp::Finish).unwrap_or_default() {
-			drop(output);
-			fs::remove_file(out_path);
-		}
+#[must_use]
+/// Encode Gzip.
+///
+/// Write a Gzip-encoded copy of the raw data to the buffer using the
+/// `libdeflater` library. This is very nearly as fast as Cloudflare's
+/// "optimized" `Zlib`, but achieves better compression.
+fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
+	use libdeflater::{
+		CompressionLvl,
+		Compressor,
+	};
+
+	let mut writer = Compressor::new(CompressionLvl::best());
+	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
+
+	match writer.gzip_compress(raw, buf) {
+		Ok(len) if len < raw.len() => {
+			buf.truncate(len);
+			len
+		},
+		_ => 0,
+	}
+}
+
+/// Write Result.
+///
+/// Write the buffer to an actual file.
+///
+/// The path is represented as an `OsStr` because that turns out to be the most
+/// efficient medium to work with. Appending values to raw `PathBuf` objects is
+/// painfully slow — much better to work with bytes — and `File::create()`
+/// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
+fn write_result(path: &OsStr, data: &[u8]) {
+	if let Ok(mut out) = File::create(path) {
+		out.write_all(data).unwrap();
+		out.flush().unwrap();
 	}
 }
