@@ -30,40 +30,62 @@
 
 
 use std::{
-	ffi::{
-		OsStr,
-		OsString,
-	},
+	ffi::OsStr,
 	fs::{
 		self,
 		File,
 	},
 	io::Write,
-	os::unix::ffi::{
-		OsStrExt,
-		OsStringExt,
-	},
+	os::unix::ffi::OsStrExt,
 	path::PathBuf,
-	sync::Arc,
 };
 
 
 
-/// Do the dirty work!
+#[allow(trivial_casts)] // Trivial my arse.
+/// Do the Deed!
+///
+/// This method generates statically-encoded Brotli and Gzip copies of a given
+/// file. The raw data is read into memory once, and both it and a mutable
+/// buffer are shared by the two encodings.
+///
+/// If for some reason the end result can't be created or winds up bigger than
+/// the original, no static copy is saved to disk. (What would be the point?!)
 pub fn encode_path(path: &PathBuf) {
-	let a_data: Arc<Vec<u8>> = Arc::from(fs::read(path).unwrap_or_default());
-	if ! a_data.is_empty() {
-		rayon::join(
-			|| encode_br(path, &a_data),
-			|| encode_gz(path, &a_data),
-		);
+	let raw: &[u8] = &fs::read(path).unwrap_or_default();
+	if ! raw.is_empty() {
+		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
+		let raw_path: &[u8] = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) };
+
+		// Brotli first.
+		if 0 != encode_br(raw, &mut buf) {
+			write_result(
+				OsStr::from_bytes(&[raw_path, b".br"].concat()),
+				&buf
+			);
+		}
+
+		// Gzip second.
+		if 0 != encode_gz(raw, &mut buf) {
+			write_result(
+				OsStr::from_bytes(&[raw_path, b".gz"].concat()),
+				&buf
+			);
+		}
 	}
 }
 
-#[allow(trivial_casts)] // It is better this way.
-#[allow(unused_must_use)] // We don't care.
-/// Encode `Brotli`.
-pub fn encode_br(path: &PathBuf, data: &Arc<Vec<u8>>) {
+#[must_use]
+/// Encode Brotli.
+///
+/// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
+/// Brotli-C bindings.
+///
+/// TODO: Investigate the "multi" options present in Dropbox's version of the
+/// Brotli library. That plus SIMD might wind up being faster, and since 99% of
+/// the total processing time is spent on Brotli operations, that could make
+/// `ChannelZ` feel a lot snappier!
+pub fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	use compu::{
 		compressor::write::Compressor,
 		encoder::{
@@ -73,62 +95,50 @@ pub fn encode_br(path: &PathBuf, data: &Arc<Vec<u8>>) {
 		},
 	};
 
-	// Calculate the output path.
-	let out_path: OsString = unsafe {
-		OsString::from_vec(
-			[
-				&*(path.as_os_str() as *const OsStr as *const [u8]),
-				b".br",
-			].concat()
-		)
-	};
-
-	// Create the output file.
-	if let Ok(mut output) = File::create(&out_path) {
-		let mut writer = Compressor::new(BrotliEncoder::default(), &mut output);
-
-		// Stream-write to the file. If it fails, we'll need to delete the file
-		// we just created.
-		if 0 == writer.push(data, EncoderOp::Finish).unwrap_or_default() {
-			drop(output);
-			fs::remove_file(out_path);
-		}
+	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
+	match writer.push(raw, EncoderOp::Finish) {
+		Ok(x) if x < raw.len() => x,
+		_ => 0,
 	}
 }
 
-#[allow(trivial_casts)] // It is better this way.
-/// Encode `GZip`.
-pub fn encode_gz(path: &PathBuf, data: &Arc<Vec<u8>>) {
+#[must_use]
+/// Encode Gzip.
+///
+/// Write a Gzip-encoded copy of the raw data to the buffer using the
+/// `libdeflater` library. This is very nearly as fast as Cloudflare's
+/// "optimized" `Zlib`, but achieves better compression.
+pub fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	use libdeflater::{
 		CompressionLvl,
 		Compressor,
 	};
 
-	// This compresses to memory.
-	let compressed: Vec<u8> = {
-		let mut writer = Compressor::new(CompressionLvl::best());
-		let mut tmp = Vec::new();
-		tmp.resize(writer.gzip_compress_bound(data.len()), 0);
+	let mut writer = Compressor::new(CompressionLvl::best());
+	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
 
-		match writer.gzip_compress(data, &mut tmp) {
-			Ok(len) if len > 0 => {
-				tmp.resize(len, 0);
-				tmp
-			},
-			_ => { return; }
-		}
-	};
+	match writer.gzip_compress(raw, buf) {
+		Ok(len) if len < raw.len() => {
+			buf.truncate(len);
+			len
+		},
+		_ => { 0 }
+	}
+}
 
-	// Write what needs writing.
-	if let Ok(mut output) = File::create(unsafe {
-		OsStr::from_bytes(
-			&[
-				&*(path.as_os_str() as *const OsStr as *const [u8]),
-				b".gz",
-			].concat()
-		)
-	}) {
-		output.write_all(&compressed).unwrap();
-		output.flush().unwrap();
+/// Write Result.
+///
+/// Write the buffer to an actual file.
+///
+/// The path is represented as an `OsStr` because that turns out to be the most
+/// efficient medium to work with. Appending values to raw `PathBuf` objects is
+/// painfully slow — much better to work with bytes — and `File::create()`
+/// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
+///
+/// TODO: We should probably be using `Tempfile` for atomicity.
+pub fn write_result(path: &OsStr, data: &[u8]) {
+	if let Ok(mut out) = File::create(path) {
+		out.write_all(data).unwrap();
+		out.flush().unwrap();
 	}
 }
