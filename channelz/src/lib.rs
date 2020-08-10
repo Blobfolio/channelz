@@ -59,18 +59,12 @@ pub fn encode_path(path: &PathBuf) {
 
 		// Brotli first.
 		if 0 != encode_br(raw, &mut buf) {
-			write_result(
-				OsStr::from_bytes(&[raw_path, b".br"].concat()),
-				&buf
-			);
+			write_result(OsStr::from_bytes(&[raw_path, b".br"].concat()), &buf);
 		}
 
 		// Gzip second.
 		if 0 != encode_gz(raw, &mut buf) {
-			write_result(
-				OsStr::from_bytes(&[raw_path, b".gz"].concat()),
-				&buf
-			);
+			write_result(OsStr::from_bytes(&[raw_path, b".gz"].concat()), &buf);
 		}
 	}
 }
@@ -80,11 +74,6 @@ pub fn encode_path(path: &PathBuf) {
 ///
 /// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
 /// Brotli-C bindings.
-///
-/// TODO: Investigate the "multi" options present in Dropbox's version of the
-/// Brotli library. That plus SIMD might wind up being faster, and since 99% of
-/// the total processing time is spent on Brotli operations, that could make
-/// `ChannelZ` feel a lot snappier!
 pub fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	use compu::{
 		compressor::write::Compressor,
@@ -122,7 +111,7 @@ pub fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 			buf.truncate(len);
 			len
 		},
-		_ => { 0 }
+		_ => 0,
 	}
 }
 
@@ -134,9 +123,7 @@ pub fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 /// efficient medium to work with. Appending values to raw `PathBuf` objects is
 /// painfully slow — much better to work with bytes — and `File::create()`
 /// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
-///
-/// TODO: We should probably be using `Tempfile` for atomicity.
-pub fn write_result(path: &OsStr, data: &[u8]) {
+fn write_result(path: &OsStr, data: &[u8]) {
 	if let Ok(mut out) = File::create(path) {
 		out.write_all(data).unwrap();
 		out.flush().unwrap();
