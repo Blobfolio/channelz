@@ -287,6 +287,8 @@ _bench-init:
 # Init dependencies.
 @_init:
 	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
+	#rustup toolchain add nightly
+	#rustup component add clippy --toolchain nightly
 	cargo update
 
 
