@@ -74,7 +74,7 @@ pub fn encode_path(path: &PathBuf) {
 ///
 /// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
 /// Brotli-C bindings.
-pub fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
+fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	use compu::{
 		compressor::write::Compressor,
 		encoder::{
@@ -97,7 +97,7 @@ pub fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 /// Write a Gzip-encoded copy of the raw data to the buffer using the
 /// `libdeflater` library. This is very nearly as fast as Cloudflare's
 /// "optimized" `Zlib`, but achieves better compression.
-pub fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
+fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	use libdeflater::{
 		CompressionLvl,
 		Compressor,
