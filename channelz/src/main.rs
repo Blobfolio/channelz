@@ -79,9 +79,9 @@ fn main() {
 		}
 		else { Witcher::from_list(list) }
 			.filter_into_progress(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$")
+			.with_display(progress)
 			.with_threads(num_threads() * 2)
-			.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"))
-			.with_display(progress);
+			.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"));
 
 	witched.run(encode_path);
 	witched.print_summary("file", "files");
