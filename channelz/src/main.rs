@@ -34,36 +34,67 @@ of a file or recurse a directory to do it for many files at once.
 
 use channelz::encode_path;
 use fyi_msg::MsgKind;
-use fyi_progress::utility::num_threads;
-use fyi_witcher::Witcher;
+use fyi_witcher::{
+	Witcher,
+	WITCHING_QUIET,
+	WITCHING_SUMMARIZE,
+};
 use std::{
 	io::{
 		self,
 		Write,
 	},
+	ops::Range,
 };
 
 
 
 fn main() {
 	let args = fyi_menu::parse_env_args(fyi_menu::FLAG_ALL);
-	let mut progress: bool = false;
-	let mut list: &str = "";
+	let (flags, rg, list) = parse_args(&args);
+
+	// Put it all together!
+	Witcher::default()
+		.with_regex(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$")
+		.with(&args[rg], list)
+		.into_witching()
+		.with_flags(flags)
+		.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"))
+		.run(encode_path);
+}
+
+
+
+#[allow(clippy::reversed_empty_ranges)] // Witcher will print an error for us.
+#[allow(clippy::range_plus_one)] // We need a consistent return type!
+/// Parse Options.
+///
+/// Returns a tuple containing the flags, path range, and whether or not it is
+/// a list.
+fn parse_args(args: &[String]) -> (u8, Range<usize>, bool) {
+	let mut flags: u8 = WITCHING_QUIET | WITCHING_SUMMARIZE;
+	let mut list: usize = 0;
 
 	// Run through the arguments to see what we've got going on!
 	let mut idx: usize = 0;
 	let len: usize = args.len();
 	while idx < len {
 		match args[idx].as_str() {
-			"-h" | "--help" => { return _help(); },
-			"-V" | "--version" => { return _version(); },
+			"-h" | "--help" => {
+				_help();
+				std::process::exit(0);
+			},
+			"-V" | "--version" => {
+				_version();
+				std::process::exit(0);
+			},
 			"-p" | "--progress" => {
-				progress = true;
+				flags &= ! WITCHING_QUIET;
 				idx += 1;
 			},
 			"-l" | "--list" =>
 				if idx + 1 < len {
-					list = &args[idx + 1];
+					list = idx + 1;
 					idx += 2;
 				}
 				else { idx += 1 },
@@ -71,21 +102,19 @@ fn main() {
 		}
 	}
 
-	// What path(s) are we dealing with?
-	let witched =
-		if list.is_empty() {
-			if idx < args.len() { Witcher::from(&args[idx..]) }
-			else { Witcher::default() }
-		}
-		else { Witcher::from_list(list) }
-			.filter_into_progress(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$")
-			.with_display(progress)
-			.with_threads(num_threads() * 2)
-			.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"));
-
-	witched.run(encode_path);
-	witched.print_summary("file", "files");
+	// What paths are we dealing with?
+	(
+		flags,
+		match list {
+			0 if idx < args.len() => idx..args.len(),
+			0 => 0..0,
+			x => x..x+1,
+		},
+		0 != list
+	)
 }
+
+
 
 #[cfg(not(feature = "man"))]
 #[cold]
@@ -115,6 +144,8 @@ fn _help() {
 	)).unwrap();
 }
 
+
+
 #[cfg(feature = "man")]
 #[cold]
 /// Print Help.
@@ -132,6 +163,8 @@ fn _help() {
 		b"\n",
 	].concat()).unwrap();
 }
+
+
 
 #[cold]
 /// Print version and exit.
