@@ -47,7 +47,7 @@ fn main() {
 	// Parse CLI arguments.
 	let args = Argue::new()
 		.with_any()
-		.with_version("ChannelZ")
+		.with_version(versioner)
 		.with_help(helper)
 		.with_list();
 
@@ -104,7 +104,6 @@ fn helper(_: Option<&str>) {
 /// `help2man`, which gets run during the Debian package release build task.
 fn helper(_: Option<&str>) {
 	use std::io::Write;
-
 	let writer = std::io::stdout();
 	let mut handle = writer.lock();
 
@@ -114,6 +113,19 @@ fn helper(_: Option<&str>) {
 	handle.write_all(env!("CARGO_PKG_DESCRIPTION").as_bytes()).unwrap();
 	handle.write_all(b"\n\n").unwrap();
 	handle.write_all(include_bytes!("../misc/help.txt")).unwrap();
+	handle.write_all(b"\n").unwrap();
+
+	handle.flush().unwrap();
+}
+
+/// Print Version.
+fn versioner() {
+	use std::io::Write;
+	let writer = std::io::stdout();
+	let mut handle = writer.lock();
+
+	handle.write_all(b"ChannelZ ").unwrap();
+	handle.write_all(env!("CARGO_PKG_VERSION").as_bytes()).unwrap();
 	handle.write_all(b"\n").unwrap();
 
 	handle.flush().unwrap();
