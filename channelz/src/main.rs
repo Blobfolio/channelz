@@ -34,7 +34,10 @@ of a file or recurse a directory to do it for many files at once.
 
 use channelz::encode_path;
 use fyi_menu::Argue;
-use fyi_msg::MsgKind;
+use fyi_msg::{
+	Msg,
+	MsgKind,
+};
 use fyi_witcher::{
 	Witcher,
 	WITCHING_QUIET,
@@ -47,7 +50,7 @@ fn main() {
 	// Parse CLI arguments.
 	let args = Argue::new()
 		.with_any()
-		.with_version(versioner)
+		.with_version(b"ChannelZ", env!("CARGO_PKG_VERSION").as_bytes())
 		.with_help(helper)
 		.with_list();
 
@@ -70,9 +73,7 @@ fn main() {
 #[cold]
 /// Print Help.
 fn helper(_: Option<&str>) {
-	use std::io::Write;
-
-	std::io::stdout().write_fmt(format_args!(
+	Msg::from(format!(
 		r"
                   ,.
                  (\(\)
@@ -93,7 +94,7 @@ fn helper(_: Option<&str>) {
 		env!("CARGO_PKG_VERSION"),
 		"\x1b[0m",
 		include_str!("../misc/help.txt")
-	)).unwrap();
+	)).print()
 }
 
 #[cfg(feature = "man")]
@@ -103,30 +104,13 @@ fn helper(_: Option<&str>) {
 /// This is a stripped-down version of the help screen made specifically for
 /// `help2man`, which gets run during the Debian package release build task.
 fn helper(_: Option<&str>) {
-	use std::io::Write;
-	let writer = std::io::stdout();
-	let mut handle = writer.lock();
-
-	handle.write_all(b"ChannelZ ").unwrap();
-	handle.write_all(env!("CARGO_PKG_VERSION").as_bytes()).unwrap();
-	handle.write_all(b"\n").unwrap();
-	handle.write_all(env!("CARGO_PKG_DESCRIPTION").as_bytes()).unwrap();
-	handle.write_all(b"\n\n").unwrap();
-	handle.write_all(include_bytes!("../misc/help.txt")).unwrap();
-	handle.write_all(b"\n").unwrap();
-
-	handle.flush().unwrap();
-}
-
-/// Print Version.
-fn versioner() {
-	use std::io::Write;
-	let writer = std::io::stdout();
-	let mut handle = writer.lock();
-
-	handle.write_all(b"ChannelZ ").unwrap();
-	handle.write_all(env!("CARGO_PKG_VERSION").as_bytes()).unwrap();
-	handle.write_all(b"\n").unwrap();
-
-	handle.flush().unwrap();
+	Msg::from([
+		b"ChannelZ ",
+		env!("CARGO_PKG_VERSION").as_bytes(),
+		b"\n",
+		env!("CARGO_PKG_DESCRIPTION").as_bytes(),
+		b"\n\n",
+		include_bytes!("../misc/help.txt"),
+	].concat())
+		.print();
 }
