@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "channelz",
+    "channelz_core",
 ]
 
 [profile.release]

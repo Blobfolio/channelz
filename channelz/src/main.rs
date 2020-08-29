@@ -23,8 +23,8 @@ of a file or recurse a directory to do it for many files at once.
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unreachable_pub)]
-//#![warn(unused_crate_dependencies)]
-//#![warn(unused_extern_crates)]
+#![warn(unused_crate_dependencies)]
+#![warn(unused_extern_crates)]
 #![warn(unused_import_braces)]
 
 #![allow(clippy::cast_possible_truncation)]
@@ -35,7 +35,6 @@ of a file or recurse a directory to do it for many files at once.
 
 
 
-use channelz::encode_path;
 use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
@@ -68,7 +67,7 @@ fn main() {
 		.into_witching()
 		.with_flags(flags)
 		.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"))
-		.run(encode_path);
+		.run(channelz_core::encode_path);
 }
 
 #[cfg(not(feature = "man"))]
