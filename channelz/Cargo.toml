@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.3.4"
+version = "0.3.5"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -26,13 +26,8 @@ assets = [
     ["./misc/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
 
-[dependencies]
-libdeflater = "0.5.*"
-
-[dependencies.compu]
-version = "0.5.*"
-default-features = false
-features = [ "brotli-c" ]
+[dependencies.channelz_core]
+path = "../channelz_core"
 
 [dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
@@ -45,13 +40,6 @@ branch = "master"
 [dependencies.fyi_witcher]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
-
-[dev-dependencies]
-criterion = "*"
-
-[[bench]]
-name = "encode"
-harness = false
 
 [features]
 default = []
