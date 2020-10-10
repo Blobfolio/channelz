@@ -35,7 +35,10 @@ of a file or recurse a directory to do it for many files at once.
 
 
 
-use fyi_menu::Argue;
+use fyi_menu::{
+	Argue,
+	FLAG_REQUIRED,
+};
 use fyi_msg::{
 	Msg,
 	MsgKind,
@@ -50,8 +53,7 @@ use fyi_witcher::{
 
 fn main() {
 	// Parse CLI arguments.
-	let args = Argue::new()
-		.with_any()
+	let args = Argue::new(FLAG_REQUIRED)
 		.with_version(b"ChannelZ", env!("CARGO_PKG_VERSION").as_bytes())
 		.with_help(helper)
 		.with_list();
