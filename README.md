@@ -76,6 +76,39 @@ channelz /path/to/css /path/to/js …
 ```
 
 
+## Benchmarks
+
+These benchmarks were performed on a Intel® Core™ i7-10610U with four discrete cores, averaging 100 runs.
+
+    Test:  ChannelZ Documentation
+    Files: 35/47
+    Size:  226,456 bytes (encodable)
+
+| Program | Time (ms) | GZ (b) | BR (b) |
+| ---- | ---- | ---- | ---- |
+| ChannelZ | **1,050** | **66,394** | **55,099** |
+| Find + Gzip + Brotli | 3,212 | 68,946 | 55,246 |
+
+    Test:  WordPress Core
+    Files: 815/1,980
+    Size:  43,988,358 bytes (encodable)
+
+| Program | Time (s) | GZ (b) | BR (b) |
+| ---- | ---- | ---- | ---- |
+| ChannelZ | **10.5045** | **7,539,948** | **6,522,810** |
+| Find + Gzip + Brotli | 43.9917 | 7,856,120 | 6,557,240 |
+
+
+
+## Credits
+
+| Library | License | Author |
+| ---- | ---- | ---- |
+| [compu](https://crates.io/crates/compu) | Apache-2.0 | Douman |
+| [criterion](https://crates.io/crates/criterion) | Apache-2.0 OR MIT | Jorge Aparicio, Brook Heisler |
+| [libdeflater](https://crates.io/crates/libdeflater) | Apache-2.0 | Adam Kewley |
+
+
 
 ## License
 
