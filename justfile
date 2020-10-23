@@ -23,48 +23,11 @@ pkg_dir2    := justfile_directory() + "/channelz_core"
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
 data_dir    := "/tmp/bench-data"
+doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
 
 rustflags   := "-C link-arg=-s"
 
-
-
-# A/B Test Two Binaries (second is implied)
-@ab BIN="/usr/bin/channelz" REBUILD="": _bench-init
-	[ -z "{{ REBUILD }}" ] || just build
-	[ -f "{{ cargo_bin }}" ] || just build
-
-	clear
-
-	fyi print -p "{{ BIN }}" -c 209 "$( "{{ BIN }}" -V )"
-	fyi print -p "{{ cargo_bin }}" -c 199 "$( "{{ cargo_bin }}" -V )"
-	fyi blank
-
-	fyi task -t "WP Trac"
-	just _ab "{{ BIN }}" "{{ data_dir }}/test/wp/trac.wordpress.org/templates/" 2>/dev/null
-
-	fyi task -t "HTML5 Boilerplate"
-	just _ab "{{ BIN }}" "{{ data_dir }}/test/boiler/new-site/" 2>/dev/null
-
-	fyi task -t "Vue Docs"
-	just _ab "{{ BIN }}" "{{ data_dir }}/test/vue/public/" 2>/dev/null
-
-
-# A/B Test Inner
-@_ab BIN DIR:
-	hyperfine --warmup 4 \
-		--runs 10 \
-		--prepare 'just _bench-reset' \
-		--style color \
-		'{{ BIN }} {{ DIR }}'
-
-	hyperfine --warmup 4 \
-		--runs 10 \
-		--prepare 'just _bench-reset' \
-		--style color \
-		'{{ cargo_bin }} {{ DIR }}'
-
-	echo "\n\033[2m-----\033[0m\n\n"
 
 
 # Benchmark Rust functions.
@@ -98,17 +61,79 @@ bench BENCH="" FILTER="":
 	exit 0
 
 
-# Self benchmark.
-bench-self: _bench-init build
+# Bench Bin.
+bench-bin DIR NATIVE="":
 	#!/usr/bin/env bash
 
+	# Validate directory.
+	if [ ! -d "{{ DIR }}" ]; then
+		fyi error "Invalid directory."
+		exit 1
+	fi
+
+	# Clean up.
+	find "{{ DIR }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 	clear
 
-	just _bench-reset
-	fyi notice "Pausing 5s before running."
-	sleep 5s
+	if [ -z "{{ NATIVE }}" ]; then
+		# Make sure we have a bin built.
+		[ -f "{{ cargo_bin }}" ] || just build
 
-	"{{ cargo_bin }}" -p "{{ data_dir }}/test"
+		fyi print -p "{{ cargo_bin }}" -c 199 "$( "{{ cargo_bin }}" -V )"
+
+		start_time="$(date -u +%s.%N)"
+		"{{ cargo_bin }}" "{{ DIR }}"
+		end_time="$(date -u +%s.%N)"
+		elapsed="$(bc <<<"$end_time-$start_time")"
+	elif [ -f "{{ NATIVE }}" ]; then
+		echo Native
+	else
+		echo "Manual Gzip + Brotli"
+
+		start_time="$(date -u +%s.%N)"
+
+		find "{{ DIR }}" \
+			-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+			-type f \
+			-exec gzip -k -9 {} \;
+
+		find "{{ DIR }}" \
+			-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+			-type f \
+			-exec brotli -k -q 11 {} \;
+
+		end_time="$(date -u +%s.%N)"
+		elapsed="$(bc <<<"$end_time-$start_time")"
+	fi
+
+	# Pull the ending stats.
+	size=$( find "{{ DIR }}" \
+		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+		-print0 | \
+			xargs -r0 du -scb | \
+				tail -n 1 | \
+					cut -f 1 )
+
+	br_size=$( find "{{ DIR }}" \
+		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).br$" \
+		-print0 | \
+			xargs -r0 du -scb | \
+				tail -n 1 | \
+					cut -f 1 )
+
+	gz_size=$( find "{{ DIR }}" \
+		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).gz$" \
+		-print0 | \
+			xargs -r0 du -scb | \
+				tail -n 1 | \
+					cut -f 1 )
+
+	# Print the info!
+	fyi blank
+	fyi print -p "Elapsed" -c 15 "${elapsed} seconds"
+	fyi print -p "  Plain" -c 53 "${size} bytes"
+	fyi print -p "   Gzip" -c 44 " ${gz_size} bytes"
+	fyi print -p " Brotli" -c 35 " ${br_size} bytes"
 
 
 # Build Release!
@@ -191,6 +216,29 @@ bench-self: _bench-init build
 		--target-dir "{{ cargo_dir }}"
 
 
+# Build Docs.
+doc:
+	#!/usr/bin/env bash
+
+	# Make sure nightly is installed; this version generates better docs.
+	rustup install nightly
+
+	# Make the docs.
+	cargo +nightly doc \
+		--workspace \
+		--release \
+		--no-deps \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+	# Move the docs and clean up ownership.
+	[ ! -d "{{ doc_dir }}" ] || rm -rf "{{ doc_dir }}"
+	mv "{{ cargo_dir }}/x86_64-unknown-linux-gnu/doc" "{{ justfile_directory() }}"
+	just _fix-chown "{{ doc_dir }}"
+
+	exit 0
+
+
 # Test Run.
 @run +ARGS:
 	RUSTFLAGS="{{ rustflags }}" cargo run \
@@ -234,59 +282,28 @@ version:
 	mv "/tmp/Cargo.toml" "{{ DIR }}/Cargo.toml"
 
 
-# Benchmark Find + Parallel
-@_bench-fp:
-	find "{{ data_dir }}/test" \
-		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
-		-type f \
-		-print0 | \
-		parallel -0 brotli -q 11
-
-	find "{{ data_dir }}/test" \
-		\( -iname '*.css' -o -iname '*.htm' -o -iname '*.html' -o -iname '*.ico' -o -iname '*.js' -o -iname '*.json' -o -iname '*.mjs' -o -iname '*.svg' -o -iname '*.txt' -o -iname '*.xhtm' -o -iname '*.xhtml' -o -iname '*.xml' -o -iname '*.xsl' \) \
-		-type f \
-		-print0 | \
-		parallel -0 gzip -k -9
-
-
 # Benchmark data.
 _bench-init:
 	#!/usr/bin/env bash
 
+	# Make sure the data dir is set up.
 	[ -d "{{ data_dir }}" ] || mkdir "{{ data_dir }}"
 
+	# Pull some test assets.
 	if [ ! -d "{{ data_dir }}/raw" ]; then
 		mkdir "{{ data_dir }}/raw"
 
-		# The Vue web site has a decent mixture of encodable assets. Build is
-		# tedious, but that's life!
-		git clone \
-			--single-branch \
-			-b master \
-			https://github.com/vuejs/vuejs.org.git \
-			"{{ data_dir }}/raw/vue"
+		# WP Core.
+		mkdir "{{ data_dir }}/raw/wp-core"
+		"{{ data_dir }}/raw/wp-core" && wp core download --allow-root
 
-		cd "{{ data_dir }}/raw/vue"
-		npm i
-		npm run -s build
-
-		# WordPress.org meta is another good one.
-		git clone \
-			--single-branch \
-			-b master \
-			https://github.com/WordPress/wordpress.org.git \
-			"{{ data_dir }}/raw/wp"
-
-		# And HTML Boilerplate.
-		git clone \
-			--single-branch \
-			-b master \
-			https://github.com/h5bp/html5-boilerplate.git \
-			"{{ data_dir }}/raw/boiler"
-
-		cd "{{ data_dir }}/raw/boiler"
-		npx create-html5-boilerplate new-site
+		# Build site docs.
+		just doc
+		cp -aR "{{ doc_dir }}" "{{ data_dir }}/raw/"
 	fi
+
+	# Fix permissions.
+	just _fix-chown "{{ data_dir }}"
 
 
 # Reset benchmarks.
@@ -298,8 +315,6 @@ _bench-init:
 # Init dependencies.
 @_init:
 	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
-	#rustup toolchain add nightly
-	#rustup component add clippy --toolchain nightly
 	cargo update
 
 
