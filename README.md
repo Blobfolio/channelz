@@ -7,6 +7,7 @@ ChannelZ is a CLI tool for x86-64 Linux machines that simplifies the common task
 ## Features
 
  * `gzip` and `brotli` are compiled into `channelz`; their binaries do not need to be separately installed;
+ * The maximum compression settings are applied; the end results will often be smaller than running native `gzip` or `brotli` thanks to various optimizations;
  * It can be set against one or many files, one or many directories;
  * Paths can be specified as trailing command arguments, and/or loaded via text file (with one path per line) with the `-l` option;
  * Directory processing is recursive;
