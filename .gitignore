@@ -3,3 +3,4 @@
 **/target/
 /Cargo.lock
 /release/man/channelz.1.gz
+/doc/

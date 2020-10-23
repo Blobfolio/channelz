@@ -23,6 +23,7 @@ pkg_dir2    := justfile_directory() + "/channelz_core"
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
 data_dir    := "/tmp/bench-data"
+doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
 
 rustflags   := "-C link-arg=-s"
@@ -96,6 +97,78 @@ bench BENCH="" FILTER="":
 	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 
 	exit 0
+
+
+# Bench Bin.
+bench-bin DIR NATIVE="":
+	#!/usr/bin/env bash
+
+	# Validate directory.
+	if [ ! -d "{{ DIR }}" ]; then
+		fyi error "Invalid directory."
+		exit 1
+	fi
+
+	# Clean up.
+	find "{{ DIR }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
+	clear
+
+	if [ -z "{{ NATIVE }}" ]; then
+		# Make sure we have a bin built.
+		[ -f "{{ cargo_bin }}" ] || just build
+
+		fyi print -p "{{ cargo_bin }}" -c 199 "$( "{{ cargo_bin }}" -V )"
+
+		start_time="$(date -u +%s.%N)"
+		"{{ cargo_bin }}" "{{ DIR }}"
+		end_time="$(date -u +%s.%N)"
+		elapsed="$(bc <<<"$end_time-$start_time")"
+	elif [ -f "{{ NATIVE }}" ]; then
+		echo Native
+	else
+		echo "Manual Gzip + Brotli"
+
+		start_time="$(date -u +%s.%N)"
+
+		find "{{ DIR }}" \
+			-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+			-exec gzip -k -9 {} \;
+
+		find "{{ DIR }}" \
+			-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+			-exec brotli -k -q 11 {} \;
+
+		end_time="$(date -u +%s.%N)"
+		elapsed="$(bc <<<"$end_time-$start_time")"
+	fi
+
+	# Pull the ending stats.
+	size=$( find "{{ DIR }}" \
+		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+		-print0 | \
+			xargs -r0 du -scb | \
+				tail -n 1 | \
+					cut -f 1 )
+
+	br_size=$( find "{{ DIR }}" \
+		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).br$" \
+		-print0 | \
+			xargs -r0 du -scb | \
+				tail -n 1 | \
+					cut -f 1 )
+
+	gz_size=$( find "{{ DIR }}" \
+		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).gz$" \
+		-print0 | \
+			xargs -r0 du -scb | \
+				tail -n 1 | \
+					cut -f 1 )
+
+	# Print the info!
+	fyi blank
+	fyi print -p " Plain" -c 53 "${size} bytes (${elapsed} seconds)"
+	fyi print -p "  Gzip" -c 44 " ${gz_size} bytes"
+	fyi print -p "Brotli" -c 35 " ${br_size} bytes"
 
 
 # Self benchmark.
@@ -189,6 +262,29 @@ bench-self: _bench-init build
 		--all-features \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
+
+
+# Build Docs.
+doc:
+	#!/usr/bin/env bash
+
+	# Make sure nightly is installed; this version generates better docs.
+	rustup install nightly
+
+	# Make the docs.
+	cargo +nightly doc \
+		--workspace \
+		--release \
+		--no-deps \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+	# Move the docs and clean up ownership.
+	[ ! -d "{{ doc_dir }}" ] || rm -rf "{{ doc_dir }}"
+	mv "{{ cargo_dir }}/x86_64-unknown-linux-gnu/doc" "{{ justfile_directory() }}"
+	just _fix-chown "{{ doc_dir }}"
+
+	exit 0
 
 
 # Test Run.
