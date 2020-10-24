@@ -109,6 +109,7 @@ bench-bin DIR NATIVE="":
 	# Pull the ending stats.
 	size=$( find "{{ DIR }}" \
 		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+		-type f \
 		-print0 | \
 			xargs -r0 du -scb | \
 				tail -n 1 | \
@@ -116,6 +117,7 @@ bench-bin DIR NATIVE="":
 
 	br_size=$( find "{{ DIR }}" \
 		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).br$" \
+		-type f \
 		-print0 | \
 			xargs -r0 du -scb | \
 				tail -n 1 | \
@@ -123,6 +125,7 @@ bench-bin DIR NATIVE="":
 
 	gz_size=$( find "{{ DIR }}" \
 		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).gz$" \
+		-type f \
 		-print0 | \
 			xargs -r0 du -scb | \
 				tail -n 1 | \
