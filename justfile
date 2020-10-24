@@ -295,7 +295,8 @@ _bench-init:
 
 		# WP Core.
 		mkdir "{{ data_dir }}/raw/wp-core"
-		"{{ data_dir }}/raw/wp-core" && wp core download --allow-root
+		cd "{{ data_dir }}/raw/wp-core" && wp core download --allow-root
+		cd "{{ justfile_directory() }}"
 
 		# Build site docs.
 		just doc
