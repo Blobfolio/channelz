@@ -2,9 +2,10 @@ USAGE:
     channelz [FLAGS] [OPTIONS] <PATH(S)>...
 
 FLAGS:
-    -h, --help        Prints help information
+        --clean       Remove all existing *.gz *.br files before starting.
+    -h, --help        Prints help information.
     -p, --progress    Show progress bar while minifying.
-    -V, --version     Prints version information
+    -V, --version     Prints version information.
 
 OPTIONS:
     -l, --list <list>    Read file paths from this list.

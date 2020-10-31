@@ -12,7 +12,7 @@ _channelz() {
             channelz)
                 cmd="channelz"
                 ;;
-            
+
             *)
                 ;;
         esac
@@ -20,13 +20,13 @@ _channelz() {
 
     case "${cmd}" in
         channelz)
-            opts=" -p -h -V -l  --progress --help --version --list  <PATH(S)>... "
+            opts=" -p -h -V -l  --progress --help --version --list --clean  <PATH(S)>... "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
-                
+
                 --list)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -42,7 +42,7 @@ _channelz() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        
+
     esac
 }
 

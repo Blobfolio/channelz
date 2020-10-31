@@ -57,6 +57,7 @@ It's easy. Just run `channelz [FLAGS] [OPTIONS] <PATH(S)>…`.
 
 The following flags and options are available:
 ```bash
+    --clean          Remove all existing *.gz *.br files before starting.
 -h, --help           Prints help information
 -l, --list <list>    Read file paths from this list.
 -p, --progress       Show progress bar while minifying.
@@ -70,6 +71,9 @@ channelz /path/to/app.js
 
 # Tackle a whole folder at once with a nice progress bar:
 channelz -p /path/to/assets
+
+# Do the same thing, but clear out any old *.gz or *.br files first:
+channelz --clean -p /path/to/assets
 
 # Or load it up with a lot of places separately:
 channelz /path/to/css /path/to/js …
