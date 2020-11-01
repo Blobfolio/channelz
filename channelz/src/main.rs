@@ -1,9 +1,7 @@
 /*!
 # `ChannelZ`
 
-# ChannelZ
-
-ChannelZ is a CLI tool for x86-64 Linux machines that simplifies the common task of encoding static web assets with Gzip and Brotli for production environments.
+`ChannelZ` is a CLI tool for x86-64 Linux machines that simplifies the common task of encoding static web assets with Gzip and Brotli for production environments.
 
 
 
@@ -60,10 +58,11 @@ It's easy. Just run `channelz [FLAGS] [OPTIONS] <PATH(S)>…`.
 
 The following flags and options are available:
 ```bash
--h, --help           Prints help information
+    --clean       Remove all existing *.gz *.br files before starting.
+-h, --help           Prints help information.
 -l, --list <list>    Read file paths from this list.
 -p, --progress       Show progress bar while minifying.
--V, --version        Prints version information
+-V, --version        Prints version information.
 ```
 
 For example:
@@ -73,6 +72,9 @@ channelz /path/to/app.js
 
 # Tackle a whole folder at once with a nice progress bar:
 channelz -p /path/to/assets
+
+# Do the same thing, but clear out any old *.gz or *.br files first:
+channelz --clean -p /path/to/assets
 
 # Or load it up with a lot of places separately:
 channelz /path/to/css /path/to/js …
@@ -143,6 +145,7 @@ use fyi_witcher::{
 	WITCHING_QUIET,
 	WITCHING_SUMMARIZE,
 };
+use std::path::PathBuf;
 
 
 
@@ -153,6 +156,11 @@ fn main() {
 		.with_version(b"ChannelZ", env!("CARGO_PKG_VERSION").as_bytes())
 		.with_help(helper)
 		.with_list();
+
+	// Cleaning?
+	if args.switch("--clean") {
+		clean(args.args());
+	}
 
 	let flags: u8 =
 		if args.switch2("-p", "--progress") { WITCHING_SUMMARIZE }
@@ -166,6 +174,21 @@ fn main() {
 		.with_flags(flags)
 		.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"))
 		.run(channelz_core::encode_path);
+}
+
+/// Clean.
+///
+/// This will run a separate search over the specified paths with the sole
+/// purpose of removing `*.gz` and `*.br` files.
+fn clean(paths: &[String]) {
+	Witcher::default()
+		.with_regex(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)\.(br|gz)$")
+		.with_paths(paths)
+		.into_witching()
+		.with_flags(WITCHING_QUIET)
+		.run(|p: &PathBuf| {
+			let _ = std::fs::remove_file(p).ok();
+		});
 }
 
 #[cfg(not(feature = "man"))]

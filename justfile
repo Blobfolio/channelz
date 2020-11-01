@@ -109,6 +109,7 @@ bench-bin DIR NATIVE="":
 	# Pull the ending stats.
 	size=$( find "{{ DIR }}" \
 		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
+		-type f \
 		-print0 | \
 			xargs -r0 du -scb | \
 				tail -n 1 | \
@@ -116,6 +117,7 @@ bench-bin DIR NATIVE="":
 
 	br_size=$( find "{{ DIR }}" \
 		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).br$" \
+		-type f \
 		-print0 | \
 			xargs -r0 du -scb | \
 				tail -n 1 | \
@@ -123,6 +125,7 @@ bench-bin DIR NATIVE="":
 
 	gz_size=$( find "{{ DIR }}" \
 		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).gz$" \
+		-type f \
 		-print0 | \
 			xargs -r0 du -scb | \
 				tail -n 1 | \
@@ -174,6 +177,10 @@ bench-bin DIR NATIVE="":
 		--all-features \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
+
+	# Clean up the BASH completion script.
+	just _fix-chown "{{ pkg_dir1 }}/misc/{{ pkg_id }}.bash"
+	chmod 644 "{{ pkg_dir1 }}/misc/{{ pkg_id }}.bash"
 
 	# Use help2man to make a crappy MAN page.
 	help2man -o "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1" \
@@ -295,7 +302,8 @@ _bench-init:
 
 		# WP Core.
 		mkdir "{{ data_dir }}/raw/wp-core"
-		"{{ data_dir }}/raw/wp-core" && wp core download --allow-root
+		cd "{{ data_dir }}/raw/wp-core" && wp core download --allow-root
+		cd "{{ justfile_directory() }}"
 
 		# Build site docs.
 		just doc
