@@ -182,7 +182,7 @@ fn main() {
 /// purpose of removing `*.gz` and `*.br` files.
 fn clean(paths: &[String]) {
 	Witcher::default()
-		.with_regex(r"(?i).+\.(br|gz)$")
+		.with_regex(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)\.(br|gz)$")
 		.with_paths(paths)
 		.into_witching()
 		.with_flags(WITCHING_QUIET)
