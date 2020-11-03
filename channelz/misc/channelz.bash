@@ -1,5 +1,5 @@
 _basher__channelz() {
-	local i cur prev opts
+	local i cur prev opts cmd
 	COMPREPLY=()
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -19,6 +19,7 @@ _basher__channelz() {
 
 	if [ ! -z "${cmd}" ]; then
 		opts=()
+		
 		if [[ ! " ${COMP_LINE} " =~ " -l " ]] && [[ ! " ${COMP_LINE} " =~ " --list " ]]; then
 			opts+=("-l")
 			opts+=("--list")
