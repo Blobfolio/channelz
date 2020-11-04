@@ -20,10 +20,6 @@ _basher__channelz() {
 	if [ ! -z "${cmd}" ]; then
 		opts=()
 		
-		if [[ ! " ${COMP_LINE} " =~ " -l " ]] && [[ ! " ${COMP_LINE} " =~ " --list " ]]; then
-			opts+=("-l")
-			opts+=("--list")
-		fi
 		[[ " ${COMP_LINE} " =~ " --clean " ]] || opts+=("--clean")
 		if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
 			opts+=("-h")
@@ -36,6 +32,10 @@ _basher__channelz() {
 		if [[ ! " ${COMP_LINE} " =~ " -V " ]] && [[ ! " ${COMP_LINE} " =~ " --version " ]]; then
 			opts+=("-V")
 			opts+=("--version")
+		fi
+		if [[ ! " ${COMP_LINE} " =~ " -l " ]] && [[ ! " ${COMP_LINE} " =~ " --list " ]]; then
+			opts+=("-l")
+			opts+=("--list")
 		fi
 
 		opts=" ${opts[@]} "
