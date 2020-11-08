@@ -1,12 +1,11 @@
 [package]
 name = "channelz"
-version = "0.4.0"
+version = "0.4.1"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 publish = false
-build = "build.rs"
 
 [package.metadata.deb]
 maintainer = "Josh Stoik <hello@blobfolio.com>"
@@ -23,13 +22,52 @@ In directory mode, only files with the following extensions will be looked at:\n
 css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl"""
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
-    ["./misc/channelz.bash", "etc/bash_completion.d/", "644"],
-    ["./misc/channelz.1.gz", "usr/share/man/man1/", "644"],
+    ["../release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
+    ["../release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
 
-[build-dependencies.fyi_menu]
-git = "https://github.com/Blobfolio/fyi.git"
-branch = "master"
+[package.metadata.bashman]
+name = "ChannelZ"
+bash-dir = "../release/completions"
+man-dir = "../release/man"
+
+[[package.metadata.bashman.switches]]
+long = "--clean"
+description = "Remove all existing *.gz *.br files before starting."
+
+[[package.metadata.bashman.switches]]
+short = "-h"
+long = "--help"
+description = "Print help information."
+
+[[package.metadata.bashman.switches]]
+short = "-p"
+long = "--progress"
+description = "Show progress bar while working."
+
+[[package.metadata.bashman.switches]]
+short = "-V"
+long = "--version"
+description = "Print program version."
+
+[[package.metadata.bashman.options]]
+short = "-l"
+long = "--list"
+label = "<FILE>"
+description = "Read file paths from this text file."
+path = true
+
+[[package.metadata.bashman.arguments]]
+label = "<PATH(s)…>"
+description = "Any number of files and directories to crawl and crunch."
+
+[[package.metadata.bashman.sections]]
+name = "FILE TYPES"
+inside = false
+lines = [
+	"Static copies will only be generated for files with these extensions:",
+	"css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl"
+]
 
 [dependencies.channelz_core]
 path = "../channelz_core"
