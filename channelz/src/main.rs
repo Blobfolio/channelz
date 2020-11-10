@@ -210,10 +210,27 @@ fn helper(_: Option<&str>) {
     \M==M==M=M==M==M/
      `-------------'
 
-{}",
+USAGE:
+    channelz [FLAGS] [OPTIONS] <PATH(S)>...
+
+FLAGS:
+        --clean       Remove all existing *.gz *.br files before starting.
+    -h, --help        Prints help information.
+    -p, --progress    Show progress bar while minifying.
+    -V, --version     Prints version information.
+
+OPTIONS:
+    -l, --list <list>    Read file paths from this list.
+
+ARGS:
+    <PATH(S)>...    One or more files or directories to compress.
+
+Note: static copies will only be generated for files with these extensions:
+css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl
+
+",
 		"\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v",
 		env!("CARGO_PKG_VERSION"),
 		"\x1b[0m",
-		include_str!("../misc/help.txt")
 	)).print()
 }
