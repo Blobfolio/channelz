@@ -53,18 +53,17 @@ use std::{
 /// If for some reason the end result can't be created or winds up bigger than
 /// the original, no static copy is saved to disk. (What would be the point?!)
 pub fn encode_path(path: &PathBuf) {
-	let raw: &[u8] = &fs::read(path).unwrap_or_default();
-	if ! raw.is_empty() {
+	if let Some(raw) = fs::read(path).ok().filter(|r| ! r.is_empty()) {
 		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
 		let raw_path: &[u8] = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) };
 
 		// Brotli first.
-		if 0 != encode_br(raw, &mut buf) {
+		if 0 != encode_br(&raw, &mut buf) {
 			write_result(OsStr::from_bytes(&[raw_path, b".br"].concat()), &buf);
 		}
 
 		// Gzip second.
-		if 0 != encode_gz(raw, &mut buf) {
+		if 0 != encode_gz(&raw, &mut buf) {
 			write_result(OsStr::from_bytes(&[raw_path, b".gz"].concat()), &buf);
 		}
 	}
@@ -86,10 +85,10 @@ fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	};
 
 	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
-	match writer.push(raw, EncoderOp::Finish) {
-		Ok(x) if x < raw.len() => x,
-		_ => 0,
-	}
+	writer.push(raw, EncoderOp::Finish)
+		.ok()
+		.filter(|&x| x < raw.len())
+		.unwrap_or(0)
 }
 
 #[must_use]
@@ -107,13 +106,13 @@ fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	let mut writer = Compressor::new(CompressionLvl::best());
 	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
 
-	match writer.gzip_compress(raw, buf) {
-		Ok(len) if len < raw.len() => {
-			buf.truncate(len);
-			len
-		},
-		_ => 0,
-	}
+	writer.gzip_compress(raw, buf)
+		.ok()
+		.filter(|&x| x < raw.len())
+		.map_or(0, |x| {
+			buf.truncate(x);
+			x
+		})
 }
 
 /// Write Result.
@@ -125,8 +124,6 @@ fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 /// painfully slow — much better to work with bytes — and `File::create()`
 /// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
 fn write_result(path: &OsStr, data: &[u8]) {
-	if let Ok(mut out) = File::create(path) {
-		out.write_all(data).unwrap();
-		out.flush().unwrap();
-	}
+	let _ = File::create(path)
+		.and_then(|mut out| out.write_all(data).and_then(|_| out.flush()));
 }
