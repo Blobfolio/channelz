@@ -127,6 +127,7 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_sign_loss)]
+#![allow(clippy::map_err_ignore)]
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 
@@ -187,7 +188,7 @@ fn clean(paths: &[String]) {
 		.into_witching()
 		.with_flags(WITCHING_QUIET)
 		.run(|p: &PathBuf| {
-			let _ = std::fs::remove_file(p).ok();
+			let _ = std::fs::remove_file(p).is_ok();
 		});
 }
 

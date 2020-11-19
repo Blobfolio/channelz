@@ -1,6 +1,6 @@
 [package]
 name = "channelz_core"
-version = "0.4.2"
+version = "0.4.3"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -8,7 +8,7 @@ description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli enc
 publish = false
 
 [dependencies]
-libdeflater = "0.5.*"
+libdeflater = "0.6.*"
 
 [dependencies.compu]
 version = "0.5.*"
