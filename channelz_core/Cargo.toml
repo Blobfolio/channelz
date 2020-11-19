@@ -8,7 +8,7 @@ description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli enc
 publish = false
 
 [dependencies]
-libdeflater = "0.5.*"
+libdeflater = "0.6.*"
 
 [dependencies.compu]
 version = "0.5.*"
