@@ -59,13 +59,21 @@ pub fn encode_path(path: &PathBuf) {
 		let raw_path: &[u8] = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) };
 
 		// Brotli first.
+		let mut outpath = PathBuf::from(OsStr::from_bytes(&[raw_path, b".br"].concat()));
 		if 0 != encode_br(&raw, &mut buf) {
-			write_result(OsStr::from_bytes(&[raw_path, b".br"].concat()), &buf);
+			write_result(&outpath, &buf);
+		}
+		else if outpath.exists() {
+			let _ = std::fs::remove_file(outpath);
 		}
 
 		// Gzip second.
+		outpath = PathBuf::from(OsStr::from_bytes(&[raw_path, b".gz"].concat()));
 		if 0 != encode_gz(&raw, &mut buf) {
-			write_result(OsStr::from_bytes(&[raw_path, b".gz"].concat()), &buf);
+			write_result(&outpath, &buf);
+		}
+		else if outpath.exists() {
+			let _ = std::fs::remove_file(outpath);
 		}
 	}
 }
@@ -124,7 +132,7 @@ fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 /// efficient medium to work with. Appending values to raw `PathBuf` objects is
 /// painfully slow — much better to work with bytes — and `File::create()`
 /// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
-fn write_result(path: &OsStr, data: &[u8]) {
+fn write_result(path: &PathBuf, data: &[u8]) {
 	let _ = File::create(path)
 		.and_then(|mut out| out.write_all(data).and_then(|_| out.flush()));
 }
