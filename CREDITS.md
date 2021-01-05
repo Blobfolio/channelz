@@ -1,4 +1,26 @@
-<html><head><style>@media (prefers-color-scheme: dark) { body { background: #333; color: white; } a { color: skyblue; } } .container { font-family: sans-serif; max-width: 800px; margin: 0 auto; } .intro { text-align: center; } .licenses-list { list-style-type: none; margin: 0; padding: 0; } .license-used-by { margin-top: -10px; } .license-text { max-height: 200px; overflow-y: scroll; white-space: pre-wrap; }</style></head><body><main class=container> <div class=intro> <h1>Third Party Licenses</h1> <p>License details for project dependencies are listed below.</p> </div> <h2>Overview of licenses:</h2> <ul class=licenses-overview> <li><a href=#Apache-2.0>Apache License 2.0</a> (6)</li> <li><a href=#MIT>MIT License</a> (2)</li> <li><a href=#WTFPL>Do What The F*ck You Want To Public License</a> (1)</li> </ul> <h2>All license text:</h2> <ul class=licenses-list> <li class=license> <h3 id=Apache-2.0>Apache License 2.0</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/taiki-e/const_fn>const_fn 0.4.4</a></li> </ul> <pre class=license-text>                                 Apache License
+# Third Party Licenses
+
+License details for project dependencies are listed below.
+
+## Overview of Licenses:
+
+* Apache License 2.0 (6)
+* MIT License (2)
+* Do What The F*ck You Want To Public License (1)
+
+
+## Complete Licenses:
+
+### Apache License 2.0
+
+**Used By:**
+
+* [const_fn 0.4.4](https://github.com/taiki-e/const_fn)
+
+
+```
+
+                                 Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
 
@@ -174,7 +196,18 @@
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
-</pre> </li> <li class=license> <h3 id=Apache-2.0>Apache License 2.0</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/llogiq/bytecount>bytecount 0.6.2</a></li> </ul> <pre class=license-text>                                 Apache License
+
+```
+
+### Apache License 2.0
+
+**Used By:**
+
+* [bytecount 0.6.2](https://github.com/llogiq/bytecount)
+
+
+```
+                                 Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
 
@@ -375,7 +408,39 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-</pre> </li> <li class=license> <h3 id=Apache-2.0>Apache License 2.0</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/tkaitchuck/ahash>ahash 0.6.2</a></li> <li><a href=https://github.com/alexcrichton/cfg-if>cfg-if 1.0.0</a></li> <li><a href=https://github.com/crossbeam-rs/crossbeam>crossbeam-channel 0.5.0</a></li> <li><a href=https://github.com/crossbeam-rs/crossbeam>crossbeam-deque 0.8.0</a></li> <li><a href=https://github.com/crossbeam-rs/crossbeam>crossbeam-epoch 0.9.1</a></li> <li><a href=https://github.com/crossbeam-rs/crossbeam>crossbeam-utils 0.8.1</a></li> <li><a href=https://github.com/bluss/either>either 1.6.1</a></li> <li><a href=https://github.com/rust-lang-nursery/lazy-static.rs>lazy_static 1.4.0</a></li> <li><a href=https://github.com/rust-lang/libc>libc 0.2.81</a></li> <li><a href=https://github.com/adamkewley/libdeflater>libdeflater 0.7.1</a></li> <li><a href=https://github.com/rust-num/num-integer>num-integer 0.1.44</a></li> <li><a href=https://github.com/rust-num/num-traits>num-traits 0.2.14</a></li> <li><a href=https://github.com/seanmonstar/num_cpus>num_cpus 1.13.0</a></li> <li><a href=https://github.com/rayon-rs/rayon>rayon 1.5.0</a></li> <li><a href=https://github.com/rayon-rs/rayon>rayon-core 1.9.0</a></li> <li><a href=https://github.com/rust-lang/regex>regex 1.4.2</a></li> <li><a href=https://github.com/rust-lang/regex>regex-syntax 0.6.21</a></li> <li><a href=https://github.com/bluss/scopeguard>scopeguard 1.1.0</a></li> <li><a href=https://github.com/kbknapp/term_size-rs.git>term_size 0.3.2</a></li> <li><a href=https://github.com/Amanieu/thread_local-rs>thread_local 1.0.1</a></li> <li><a href=https://github.com/time-rs/time>time 0.1.44</a></li> <li><a href=https://github.com/unicode-rs/unicode-width>unicode-width 0.1.8</a></li> </ul> <pre class=license-text>                              Apache License
+
+```
+
+### Apache License 2.0
+
+**Used By:**
+
+* [ahash 0.6.2](https://github.com/tkaitchuck/ahash)
+* [cfg-if 1.0.0](https://github.com/alexcrichton/cfg-if)
+* [crossbeam-channel 0.5.0](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-deque 0.8.0](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-epoch 0.9.1](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-utils 0.8.1](https://github.com/crossbeam-rs/crossbeam)
+* [either 1.6.1](https://github.com/bluss/either)
+* [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
+* [libc 0.2.81](https://github.com/rust-lang/libc)
+* [libdeflater 0.7.1](https://github.com/adamkewley/libdeflater)
+* [num-integer 0.1.44](https://github.com/rust-num/num-integer)
+* [num-traits 0.2.14](https://github.com/rust-num/num-traits)
+* [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
+* [rayon 1.5.0](https://github.com/rayon-rs/rayon)
+* [rayon-core 1.9.0](https://github.com/rayon-rs/rayon)
+* [regex 1.4.2](https://github.com/rust-lang/regex)
+* [regex-syntax 0.6.21](https://github.com/rust-lang/regex)
+* [scopeguard 1.1.0](https://github.com/bluss/scopeguard)
+* [term_size 0.3.2](https://github.com/kbknapp/term_size-rs.git)
+* [thread_local 1.0.1](https://github.com/Amanieu/thread_local-rs)
+* [time 0.1.44](https://github.com/time-rs/time)
+* [unicode-width 0.1.8](https://github.com/unicode-rs/unicode-width)
+
+
+```
+                              Apache License
                         Version 2.0, January 2004
                      http://www.apache.org/licenses/
 
@@ -576,7 +641,18 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-</pre> </li> <li class=license> <h3 id=Apache-2.0>Apache License 2.0</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/rust-random/getrandom>getrandom 0.2.1</a></li> </ul> <pre class=license-text>                              Apache License
+
+```
+
+### Apache License 2.0
+
+**Used By:**
+
+* [getrandom 0.2.1](https://github.com/rust-random/getrandom)
+
+
+```
+                              Apache License
                         Version 2.0, January 2004
                      https://www.apache.org/licenses/
 
@@ -777,7 +853,20 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-</pre> </li> <li class=license> <h3 id=Apache-2.0>Apache License 2.0</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/DoumanAsh/compu>compu 0.5.1</a></li> <li><a href=https://github.com/DoumanAsh/compu>compu-brotli-sys 0.1.1</a></li> <li><a href=https://github.com/adamkewley/libdeflater>libdeflate-sys 0.7.1</a></li> </ul> <pre class=license-text>Apache License
+
+```
+
+### Apache License 2.0
+
+**Used By:**
+
+* [compu 0.5.1](https://github.com/DoumanAsh/compu)
+* [compu-brotli-sys 0.1.1](https://github.com/DoumanAsh/compu)
+* [libdeflate-sys 0.7.1](https://github.com/adamkewley/libdeflater)
+
+
+```
+Apache License
 Version 2.0, January 2004
 http://www.apache.org/licenses/
 
@@ -850,14 +939,25 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-</pre> </li> <li class=license> <h3 id=Apache-2.0>Apache License 2.0</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/chronotope/chrono>chrono 0.4.19</a></li> </ul> <pre class=license-text>Rust-chrono is dual-licensed under The MIT License [1] and
+
+```
+
+### Apache License 2.0
+
+**Used By:**
+
+* [chrono 0.4.19](https://github.com/chronotope/chrono)
+
+
+```
+Rust-chrono is dual-licensed under The MIT License [1] and
 Apache 2.0 License [2]. Copyright (c) 2014--2017, Kang Seonghoon and
 contributors.
 
 Nota Bene: This is same as the Rust Project's own license.
 
 
-[1]: &lt;http://opensource.org/licenses/MIT&gt;, which is reproduced below:
+[1]: <http://opensource.org/licenses/MIT>, which is reproduced below:
 
 ~~~~
 The MIT License (MIT)
@@ -884,7 +984,7 @@ THE SOFTWARE.
 ~~~~
 
 
-[2]: &lt;http://www.apache.org/licenses/LICENSE-2.0&gt;, which is reproduced below:
+[2]: <http://www.apache.org/licenses/LICENSE-2.0>, which is reproduced below:
 
 ~~~~
                               Apache License
@@ -1090,7 +1190,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ~~~~
 
-</pre> </li> <li class=license> <h3 id=MIT>MIT License</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/Gilnaa/memoffset>memoffset 0.6.1</a></li> </ul> <pre class=license-text>Copyright (c) 2017 Gilad Naaman
+
+```
+
+### MIT License
+
+**Used By:**
+
+* [memoffset 0.6.1](https://github.com/Gilnaa/memoffset)
+
+
+```
+Copyright (c) 2017 Gilad Naaman
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1108,7 +1219,19 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.</pre> </li> <li class=license> <h3 id=MIT>MIT License</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/BurntSushi/aho-corasick>aho-corasick 0.7.15</a></li> <li><a href=https://github.com/BurntSushi/rust-memchr>memchr 2.3.4</a></li> </ul> <pre class=license-text>The MIT License (MIT)
+SOFTWARE.
+```
+
+### MIT License
+
+**Used By:**
+
+* [aho-corasick 0.7.15](https://github.com/BurntSushi/aho-corasick)
+* [memchr 2.3.4](https://github.com/BurntSushi/rust-memchr)
+
+
+```
+The MIT License (MIT)
 
 Copyright (c) 2015 Andrew Gallant
 
@@ -1129,10 +1252,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-</pre> </li> <li class=license> <h3 id=WTFPL>Do What The F*ck You Want To Public License</h3> <h4>Used by:</h4> <ul class=license-used-by> <li><a href=https://github.com/Blobfolio/channelz>channelz 0.4.4</a></li> <li><a href=https://github.com/Blobfolio/channelz>channelz_core 0.4.4</a></li> </ul> <pre class=license-text>DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+
+```
+
+### Do What The F*ck You Want To Public License
+
+**Used By:**
+
+* [channelz 0.4.4](https://github.com/Blobfolio/channelz)
+* [channelz_core 0.4.4](https://github.com/Blobfolio/channelz)
+
+
+```
+DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 Version 2, December 2004
 
-Copyright (C) 2004 Sam Hocevar &lt;sam@hocevar.net&gt;
+Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
 
 Everyone is permitted to copy and distribute verbatim or modified copies of this license document, and changing it is allowed as long as the name is changed.
 
@@ -1140,4 +1275,8 @@ DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 
   0. You just DO WHAT THE FUCK YOU WANT TO.
-</pre> </li> </ul> </main></body></html>
+
+```
+
+
+
