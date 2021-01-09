@@ -104,17 +104,9 @@ These benchmarks were performed on a Intel® Core™ i7-10610U with four discret
 
 
 
-## Credits
-
-| Library | License | Author |
-| ---- | ---- | ---- |
-| [compu](https://crates.io/crates/compu) | Apache-2.0 | Douman |
-| [criterion](https://crates.io/crates/criterion) | Apache-2.0 OR MIT | Jorge Aparicio, Brook Heisler |
-| [libdeflater](https://crates.io/crates/libdeflater) | Apache-2.0 | Adam Kewley |
-
-
-
 ## License
+
+See also: [CREDITS.md](CREDITS.md)
 
 Copyright © 2021 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
 
