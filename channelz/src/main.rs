@@ -137,10 +137,7 @@ use fyi_menu::{
 	Argue,
 	FLAG_REQUIRED,
 };
-use fyi_msg::{
-	Msg,
-	MsgKind,
-};
+use fyi_msg::Msg;
 use fyi_witcher::{
 	Witcher,
 	WITCHING_QUIET,
@@ -154,7 +151,7 @@ use std::path::PathBuf;
 fn main() {
 	// Parse CLI arguments.
 	let args = Argue::new(FLAG_REQUIRED)
-		.with_version(b"ChannelZ", env!("CARGO_PKG_VERSION").as_bytes())
+		.with_version("ChannelZ", env!("CARGO_PKG_VERSION"))
 		.with_help(helper)
 		.with_list();
 
@@ -173,7 +170,7 @@ fn main() {
 		.with_paths(args.args())
 		.into_witching()
 		.with_flags(flags)
-		.with_title(MsgKind::new("ChannelZ", 199).into_msg("Reticulating splines\u{2026}"))
+		.with_title(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}"))
 		.run(channelz_core::encode_path);
 }
 
@@ -195,7 +192,7 @@ fn clean(paths: &[String]) {
 #[cold]
 /// Print Help.
 fn helper(_: Option<&str>) {
-	Msg::from(format!(
+	Msg::plain(format!(
 		r"
                   ,.
                  (\(\)

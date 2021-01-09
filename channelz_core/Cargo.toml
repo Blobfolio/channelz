@@ -1,10 +1,11 @@
 [package]
 name = "channelz_core"
-version = "0.4.4"
+version = "0.4.5"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
-description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
+description = "Library for ChannelZ."
+repository = "https://github.com/Blobfolio/channelz"
 publish = false
 
 [dependencies]

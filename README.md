@@ -104,17 +104,9 @@ These benchmarks were performed on a Intel® Core™ i7-10610U with four discret
 
 
 
-## Credits
-
-| Library | License | Author |
-| ---- | ---- | ---- |
-| [compu](https://crates.io/crates/compu) | Apache-2.0 | Douman |
-| [criterion](https://crates.io/crates/criterion) | Apache-2.0 OR MIT | Jorge Aparicio, Brook Heisler |
-| [libdeflater](https://crates.io/crates/libdeflater) | Apache-2.0 | Adam Kewley |
-
-
-
 ## License
+
+See also: [CREDITS.md](CREDITS.md)
 
 Copyright © 2021 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
 
@@ -122,14 +114,14 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 
     DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
     Version 2, December 2004
-
+    
     Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
-
+    
     Everyone is permitted to copy and distribute verbatim or modified
     copies of this license document, and changing it is allowed as long
     as the name is changed.
-
+    
     DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
     TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
-
+    
     0. You just DO WHAT THE FUCK YOU WANT TO.
