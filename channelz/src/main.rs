@@ -18,18 +18,29 @@
 
 The "appropriate" file types are:
 
+ * atom
+ * bmp
  * css
  * eot
+ * (geo)json
+ * htc
  * htm(l)
  * ico
+ * ics
  * js
- * json
+ * manifest
+ * md
  * mjs
  * otf
+ * rdf
  * rss
  * svg
  * ttf
  * txt
+ * vcard
+ * vcs
+ * vtt
+ * wasm
  * xhtm(l)
  * xml
  * xsl
@@ -58,7 +69,7 @@ It's easy. Just run `channelz [FLAGS] [OPTIONS] <PATH(S)>…`.
 
 The following flags and options are available:
 ```bash
-    --clean       Remove all existing *.gz *.br files before starting.
+    --clean          Remove all existing *.gz *.br files before starting.
 -h, --help           Prints help information.
 -l, --list <list>    Read file paths from this list.
 -p, --progress       Show progress bar while minifying.
@@ -166,7 +177,7 @@ fn main() {
 
 	// Put it all together!
 	Witcher::default()
-		.with_regex(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)$")
+		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
 		.with_paths(args.args())
 		.into_witching()
 		.with_flags(flags)
@@ -180,7 +191,7 @@ fn main() {
 /// purpose of removing `*.gz` and `*.br` files.
 fn clean(paths: &[String]) {
 	Witcher::default()
-		.with_regex(r"(?i).+\.(css|eot|x?html?|ico|m?js|json|otf|rss|svg|ttf|txt|xml|xsl)\.(br|gz)$")
+		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
 		.with_paths(paths)
 		.into_witching()
 		.with_flags(WITCHING_QUIET)
@@ -223,8 +234,12 @@ OPTIONS:
 ARGS:
     <PATH(S)>...    One or more files or directories to compress.
 
+---
+
 Note: static copies will only be generated for files with these extensions:
-css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl
+
+    atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;
+    mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
 
 ",
 		"\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v",
