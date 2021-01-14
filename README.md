@@ -17,18 +17,29 @@ ChannelZ is a CLI tool for x86-64 Linux machines that simplifies the common task
 
 The "appropriate" file types are:
 
+ * atom
+ * bmp
  * css
  * eot
+ * (geo)json
+ * htc
  * htm(l)
  * ico
+ * ics
  * js
- * json
+ * manifest
+ * md
  * mjs
  * otf
+ * rdf
  * rss
  * svg
  * ttf
  * txt
+ * vcard
+ * vcs
+ * vtt
+ * wasm
  * xhtm(l)
  * xml
  * xsl

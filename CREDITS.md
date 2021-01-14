@@ -1258,11 +1258,12 @@ THE SOFTWARE.
 
 **Used By:**
 
-* [channelz 0.4.5](https://github.com/Blobfolio/channelz)
-* [channelz_core 0.4.5](https://github.com/Blobfolio/channelz)
-* [fyi_menu 0.5.0](https://github.com/Blobfolio/fyi)
-* [fyi_msg 0.5.0](https://github.com/Blobfolio/fyi)
-* [fyi_witcher 0.5.0](https://github.com/Blobfolio/fyi)
+* [channelz 0.4.6](https://github.com/Blobfolio/channelz)
+* [channelz_core 0.4.6](https://github.com/Blobfolio/channelz)
+* [fyi_menu 0.5.1](https://github.com/Blobfolio/fyi)
+* [fyi_msg 0.5.1](https://github.com/Blobfolio/fyi)
+* [fyi_num 0.5.1](https://github.com/Blobfolio/fyi)
+* [fyi_witcher 0.5.1](https://github.com/Blobfolio/fyi)
 
 
 ```

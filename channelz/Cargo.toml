@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.4.5"
+version = "0.4.6"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -19,8 +19,9 @@ extended-description = """\
 .\n\
 Point it toward a single file to generate maximally-compressed Brotli- and Gzip-encoded copies, or point it toward a directory to recursively handle many files en masse.\n \
 .\n\
-In directory mode, only files with the following extensions will be looked at:\n\
-css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl"""
+Only files with the following extensions will be looked at:\n\
+atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;\n\
+mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl"""
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
     ["../release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
@@ -67,7 +68,8 @@ name = "FILE TYPES"
 inside = false
 lines = [
 	"Static copies will only be generated for files with these extensions:",
-	"css; eot; htm(l); ico; js; json; mjs; otf; rss; svg; ttf; txt; xhtm(l); xml; xsl"
+	"atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;",
+	"mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl",
 ]
 
 [dependencies.channelz_core]
@@ -75,12 +77,12 @@ path = "../channelz_core"
 
 [dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.0"
+tag = "v0.5.1"
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.0"
+tag = "v0.5.1"
 
 [dependencies.fyi_witcher]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.0"
+tag = "v0.5.1"
