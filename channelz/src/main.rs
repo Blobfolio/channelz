@@ -196,7 +196,7 @@ fn clean(paths: &[String]) {
 		.into_witching()
 		.with_flags(WITCHING_QUIET)
 		.run(|p: &PathBuf| {
-			let _ = std::fs::remove_file(p).is_ok();
+			let _ = std::fs::remove_file(p);
 		});
 }
 
