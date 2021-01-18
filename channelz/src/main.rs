@@ -90,29 +90,6 @@ channelz --clean -p /path/to/assets
 # Or load it up with a lot of places separately:
 channelz /path/to/css /path/to/js …
 ```
-
-
-
-## License
-
-Copyright © 2021 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
-
-This work is free. You can redistribute it and/or modify it under the terms of the Do What The Fuck You Want To Public License, Version 2.
-
-    DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-    Version 2, December 2004
-
-    Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
-
-    Everyone is permitted to copy and distribute verbatim or modified
-    copies of this license document, and changing it is allowed as long
-    as the name is changed.
-
-    DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
-
-    0. You just DO WHAT THE FUCK YOU WANT TO.
-
 */
 
 #![warn(clippy::filetype_is_file)]
@@ -202,8 +179,8 @@ fn clean(paths: &[String]) {
 
 #[cold]
 /// Print Help.
-fn helper(_: Option<&str>) {
-	Msg::plain(format!(
+const fn helper() -> &'static str {
+	concat!(
 		r"
                   ,.
                  (\(\)
@@ -213,7 +190,7 @@ fn helper(_: Option<&str>) {
    `-( /    -=`\   |
  .==`=(  -= = _/   /`--.
 (M==M=M==M=M==M==M==M==M)
- \=N=N==N=N==N=N==N=NN=/   {}{}{}
+ \=N=N==N=N==N=N==N=NN=/   ", "\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r"
   \M==M=M==M=M==M===M=/    Fast, recursive, multi-threaded
    \N=N==N=N==N=NN=N=/     static Brotli and Gzip encoding.
     \M==M==M=M==M==M/
@@ -240,10 +217,6 @@ Note: static copies will only be generated for files with these extensions:
 
     atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;
     mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
-
-",
-		"\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v",
-		env!("CARGO_PKG_VERSION"),
-		"\x1b[0m",
-	)).print()
+"
+	)
 }
