@@ -39,17 +39,18 @@ bench BENCH="" FILTER="":
 	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
 
 	if [ -z "{{ BENCH }}" ]; then
-		cargo bench \
-			-q \
+		RUSTFLAGS="{{ rustflags }}" cargo-criterion \
+			--benches \
 			--workspace \
+			--plotting-backend disabled \
 			--all-features \
 			--target x86_64-unknown-linux-gnu \
 			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
 	else
-		cargo bench \
-			-q \
+		RUSTFLAGS="{{ rustflags }}" cargo-criterion \
 			--bench "{{ BENCH }}" \
 			--workspace \
+			--plotting-backend disabled \
 			--all-features \
 			--target x86_64-unknown-linux-gnu \
 			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
