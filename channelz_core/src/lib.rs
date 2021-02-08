@@ -40,7 +40,10 @@ use std::{
 	},
 	io::Write,
 	os::unix::ffi::OsStrExt,
-	path::PathBuf,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 
 
@@ -57,25 +60,43 @@ use std::{
 pub fn encode_path(path: &PathBuf) {
 	if let Some(raw) = fs::read(path).ok().filter(|r| ! r.is_empty()) {
 		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
-		let raw_path: &[u8] = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) };
+
+		// Make a fast byte version of the output path (starting with a .br
+		// extension). This should just be a slice since it won't grow, but we
+		// can't initiate a slice with a runtime-defined size.
+		let mut dst = [
+			unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) },
+			b".br",
+		].concat();
 
 		// Brotli first.
-		let mut outpath = PathBuf::from(OsStr::from_bytes(&[raw_path, b".br"].concat()));
-		if 0 != encode_br(&raw, &mut buf) {
-			write_result(&outpath, &buf);
+		if 0 == encode_br(&raw, &mut buf) {
+			delete_if(OsStr::from_bytes(&dst));
 		}
-		else if outpath.exists() {
-			let _ = std::fs::remove_file(outpath);
+		else {
+			write_result(OsStr::from_bytes(&dst), &buf);
 		}
 
+		// Update destination path for .gz.
+		let len: usize = dst.len();
+		dst[len - 2..].copy_from_slice(b"gz");
+
 		// Gzip second.
-		outpath = PathBuf::from(OsStr::from_bytes(&[raw_path, b".gz"].concat()));
-		if 0 != encode_gz(&raw, &mut buf) {
-			write_result(&outpath, &buf);
+		if 0 == encode_gz(&raw, &mut buf) {
+			delete_if(OsStr::from_bytes(&dst));
 		}
-		else if outpath.exists() {
-			let _ = std::fs::remove_file(outpath);
+		else {
+			write_result(OsStr::from_bytes(&dst), &buf);
 		}
+	}
+}
+
+/// Delete If.
+fn delete_if<P>(path: P)
+where P: AsRef<Path> {
+	let path = path.as_ref();
+	if path.exists() {
+		let _ = std::fs::remove_file(path);
 	}
 }
 
@@ -133,7 +154,8 @@ fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 /// efficient medium to work with. Appending values to raw `PathBuf` objects is
 /// painfully slow — much better to work with bytes — and `File::create()`
 /// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
-fn write_result(path: &PathBuf, data: &[u8]) {
+fn write_result<P>(path: P, data: &[u8])
+where P: AsRef<Path> {
 	let _ = File::create(path)
 		.and_then(|mut out| out.write_all(data).and_then(|_| out.flush()));
 }
