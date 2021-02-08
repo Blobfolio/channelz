@@ -123,7 +123,10 @@ channelz /path/to/css /path/to/js …
 
 use fyi_menu::{
 	Argue,
+	ArgueError,
+	FLAG_HELP,
 	FLAG_REQUIRED,
+	FLAG_VERSION,
 };
 use fyi_msg::Msg;
 use fyi_witcher::{
@@ -131,42 +134,69 @@ use fyi_witcher::{
 	WITCHING_QUIET,
 	WITCHING_SUMMARIZE,
 };
-use std::path::PathBuf;
+use std::{
+	ffi::OsStr,
+	os::unix::ffi::OsStrExt,
+	path::PathBuf,
+};
 
 
 
 /// Main.
 fn main() {
+	if let Err(e) = _main() {
+		match e {
+			ArgueError::WantsVersion => {
+				fyi_msg::plain!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
+			},
+			ArgueError::WantsHelp => {
+				helper();
+			},
+			_ => {
+				Msg::error(e).die(1);
+			}
+		}
+	}
+}
+
+#[inline]
+/// Actual Main.
+fn _main() -> Result<(), ArgueError> {
 	// Parse CLI arguments.
-	let args = Argue::new(FLAG_REQUIRED)
-		.with_version("ChannelZ", env!("CARGO_PKG_VERSION"))
-		.with_help(helper)
+	let args = Argue::new(FLAG_HELP | FLAG_REQUIRED | FLAG_VERSION)?
 		.with_list();
 
+	let paths: Vec<PathBuf> = args.args()
+		.iter()
+		.map(|x| PathBuf::from(OsStr::from_bytes(x.as_ref())))
+		.collect();
+
 	// Cleaning?
-	if args.switch("--clean") {
-		clean(args.args());
+	if args.switch(b"--clean") {
+		clean(&paths);
 	}
 
 	let flags: u8 =
-		if args.switch2("-p", "--progress") { WITCHING_SUMMARIZE }
+		if args.switch2(b"-p", b"--progress") { WITCHING_SUMMARIZE }
 		else { WITCHING_QUIET | WITCHING_SUMMARIZE };
 
 	// Put it all together!
 	Witcher::default()
 		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
-		.with_paths(args.args())
+		.with_paths(paths)
 		.into_witching()
 		.with_flags(flags)
 		.with_title(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}"))
 		.run(channelz_core::encode_path);
+
+	Ok(())
 }
 
 /// Clean.
 ///
 /// This will run a separate search over the specified paths with the sole
 /// purpose of removing `*.gz` and `*.br` files.
-fn clean(paths: &[String]) {
+fn clean(paths: &[PathBuf]) {
 	Witcher::default()
 		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
 		.with_paths(paths)
@@ -179,8 +209,8 @@ fn clean(paths: &[String]) {
 
 #[cold]
 /// Print Help.
-const fn helper() -> &'static str {
-	concat!(
+fn helper() {
+	fyi_msg::plain!(concat!(
 		r"
                   ,.
                  (\(\)
@@ -218,5 +248,5 @@ Note: static copies will only be generated for files with these extensions:
     atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;
     mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
 "
-	)
+	));
 }

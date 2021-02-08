@@ -31,6 +31,7 @@
 
 
 
+#[cfg(test)] use fyi_bench as _;
 use std::{
 	ffi::OsStr,
 	fs::{
