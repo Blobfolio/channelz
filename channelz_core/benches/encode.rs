@@ -21,10 +21,6 @@ benches!(
 		.timed(Duration::from_secs(2))
 		.with_setup_ref(PathBuf::from("../test/assets/index.html"), |p| encode_path(p)),
 
-	Bench::new("channelz", "encode_path(min.js)")
-		.timed(Duration::from_secs(10))
-		.with_setup_ref(PathBuf::from("../test/assets/core.min.js"), |p| encode_path(p)),
-
 	Bench::new("channelz", "encode_path(svg)")
 		.timed(Duration::from_secs(2))
 		.with_setup_ref(PathBuf::from("../test/assets/favicon.svg"), |p| encode_path(p))
