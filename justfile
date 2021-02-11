@@ -302,7 +302,7 @@ _bench-init:
 @_init:
 	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
 	just clean
-	cargo update --workspace
+	cargo update -w
 	cargo outdated -w
 
 
