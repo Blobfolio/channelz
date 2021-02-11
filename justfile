@@ -30,35 +30,26 @@ rustflags   := "-C link-arg=-s"
 
 
 
-# Benchmark Rust functions.
-bench BENCH="" FILTER="":
+# Bench it!
+bench BENCH="":
 	#!/usr/bin/env bash
 
 	clear
-
-	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-
 	if [ -z "{{ BENCH }}" ]; then
-		RUSTFLAGS="{{ rustflags }}" cargo-criterion \
+		RUSTFLAGS="{{ rustflags }}" cargo bench \
 			--benches \
 			--workspace \
-			--plotting-backend disabled \
 			--all-features \
 			--target x86_64-unknown-linux-gnu \
-			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
+			--target-dir "{{ cargo_dir }}"
 	else
-		RUSTFLAGS="{{ rustflags }}" cargo-criterion \
+		RUSTFLAGS="{{ rustflags }}" cargo bench \
 			--bench "{{ BENCH }}" \
 			--workspace \
-			--plotting-backend disabled \
 			--all-features \
 			--target x86_64-unknown-linux-gnu \
-			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
+			--target-dir "{{ cargo_dir }}"
 	fi
-
-	ls -l "{{ justfile_directory() }}/test/assets"
-	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-
 	exit 0
 
 
@@ -310,7 +301,8 @@ _bench-init:
 # Init dependencies.
 @_init:
 	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
-	cargo update
+	just clean
+	cargo update --workspace
 	cargo outdated -w
 
 

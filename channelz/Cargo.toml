@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.4.9"
+version = "0.5.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -77,13 +77,13 @@ path = "../channelz_core"
 
 [dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.5"
+tag = "v0.6.1"
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.5"
+tag = "v0.6.1"
 
 [dependencies.fyi_witcher]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.5"
+tag = "v0.6.1"
 features = [ "regexp", "witching" ]

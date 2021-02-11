@@ -415,7 +415,7 @@ License details for project dependencies are listed below.
 
 **Used By:**
 
-* [ahash 0.6.3](https://github.com/tkaitchuck/ahash)
+* [ahash 0.7.0](https://github.com/tkaitchuck/ahash)
 * [cfg-if 1.0.0](https://github.com/alexcrichton/cfg-if)
 * [crossbeam-channel 0.5.0](https://github.com/crossbeam-rs/crossbeam)
 * [crossbeam-deque 0.8.0](https://github.com/crossbeam-rs/crossbeam)
@@ -423,7 +423,7 @@ License details for project dependencies are listed below.
 * [crossbeam-utils 0.8.1](https://github.com/crossbeam-rs/crossbeam)
 * [either 1.6.1](https://github.com/bluss/either)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.82](https://github.com/rust-lang/libc)
+* [libc 0.2.86](https://github.com/rust-lang/libc)
 * [libdeflater 0.7.1](https://github.com/adamkewley/libdeflater)
 * [num-integer 0.1.44](https://github.com/rust-num/num-integer)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
@@ -435,7 +435,7 @@ License details for project dependencies are listed below.
 * [regex-syntax 0.6.22](https://github.com/rust-lang/regex)
 * [scopeguard 1.1.0](https://github.com/bluss/scopeguard)
 * [term_size 0.3.2](https://github.com/kbknapp/term_size-rs.git)
-* [thread_local 1.1.2](https://github.com/Amanieu/thread_local-rs)
+* [thread_local 1.1.3](https://github.com/Amanieu/thread_local-rs)
 * [unicode-width 0.1.8](https://github.com/unicode-rs/unicode-width)
 
 
@@ -1008,12 +1008,12 @@ THE SOFTWARE.
 
 **Used By:**
 
-* [channelz 0.4.9](https://github.com/Blobfolio/channelz)
-* [channelz_core 0.4.9](https://github.com/Blobfolio/channelz)
-* [fyi_menu 0.5.5](https://github.com/Blobfolio/fyi)
-* [fyi_msg 0.5.5](https://github.com/Blobfolio/fyi)
-* [fyi_num 0.5.5](https://github.com/Blobfolio/fyi)
-* [fyi_witcher 0.5.5](https://github.com/Blobfolio/fyi)
+* [channelz 0.5.0](https://github.com/Blobfolio/channelz)
+* [channelz_core 0.5.0](https://github.com/Blobfolio/channelz)
+* [fyi_menu 0.6.1](https://github.com/Blobfolio/fyi)
+* [fyi_msg 0.6.1](https://github.com/Blobfolio/fyi)
+* [fyi_num 0.6.1](https://github.com/Blobfolio/fyi)
+* [fyi_witcher 0.6.1](https://github.com/Blobfolio/fyi)
 
 
 ```
