@@ -72,18 +72,18 @@ lines = [
 	"mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl",
 ]
 
+[dependencies]
+argyle = "0.3.*"
+rayon = "1.5.*"
+
 [dependencies.channelz_core]
 path = "../channelz_core"
 
-[dependencies.fyi_menu]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
+[dependencies.dowser]
+version = "0.1.*"
+features = [ "regexp" ]
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-
-[dependencies.fyi_witcher]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-features = [ "regexp", "witching" ]
+branch = "feature/next"
+features = [ "progress" ]

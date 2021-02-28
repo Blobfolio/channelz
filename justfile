@@ -300,6 +300,10 @@ _bench-init:
 
 # Init dependencies.
 @_init:
+	# We need beta until 1.51 is stable.
+	rustup default beta
+	rustup component add clippy
+
 	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
 	just clean
 	cargo update -w

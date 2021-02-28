@@ -121,20 +121,26 @@ channelz /path/to/css /path/to/js …
 
 
 
-use fyi_menu::{
+use argyle::{
 	Argue,
-	ArgueError,
+	ArgyleError,
 	FLAG_HELP,
 	FLAG_REQUIRED,
 	FLAG_VERSION,
 };
-use fyi_msg::Msg;
-use fyi_witcher::{
-	Witcher,
-	WITCHING_QUIET,
-	WITCHING_SUMMARIZE,
+use channelz_core::encode_path;
+use dowser::Dowser;
+use fyi_msg::{
+	Msg,
+	MsgKind,
+	Progless,
+};
+use rayon::iter::{
+	IntoParallelRefIterator,
+	ParallelIterator,
 };
 use std::{
+	convert::TryFrom,
 	ffi::OsStr,
 	os::unix::ffi::OsStrExt,
 	path::PathBuf,
@@ -145,22 +151,22 @@ use std::{
 /// Main.
 fn main() {
 	match _main() {
-		Err(ArgueError::WantsVersion) => {
-			fyi_msg::plain!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
+		Ok(_) => {},
+		Err(ArgyleError::WantsVersion) => {
+			println!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
 		},
-		Err(ArgueError::WantsHelp) => {
+		Err(ArgyleError::WantsHelp) => {
 			helper();
 		},
 		Err(e) => {
 			Msg::error(e).die(1);
 		},
-		Ok(_) => {},
 	}
 }
 
 #[inline]
 /// Actual Main.
-fn _main() -> Result<(), ArgueError> {
+fn _main() -> Result<(), ArgyleError> {
 	// Parse CLI arguments.
 	let args = Argue::new(FLAG_HELP | FLAG_REQUIRED | FLAG_VERSION)?
 		.with_list();
@@ -175,18 +181,39 @@ fn _main() -> Result<(), ArgueError> {
 		clean(&paths);
 	}
 
-	let flags: u8 =
-		if args.switch2(b"-p", b"--progress") { WITCHING_SUMMARIZE }
-		else { WITCHING_QUIET | WITCHING_SUMMARIZE };
-
 	// Put it all together!
-	Witcher::default()
-		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
-		.with_paths(paths)
-		.into_witching()
-		.with_flags(flags)
-		.with_title(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}"))
-		.run(channelz_core::encode_path);
+	let paths = Vec::<PathBuf>::try_from(
+		Dowser::default()
+			.with_regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
+			.with_paths(&paths)
+	).map_err(|_| ArgyleError::Custom("No encodeable files were found."))?;
+
+	// Sexy run-through.
+	if args.switch2(b"-p", b"--progress") {
+		let len: u32 = u32::try_from(paths.len())
+			.map_err(|_| ArgyleError::Custom("Only 4,294,967,295 files can be crunched at one time."))?;
+
+		// Boot up a progress bar.
+		let progress = Progless::steady(len)
+			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
+
+		// Process!
+		paths.par_iter().for_each(|x| {
+			let tmp = x.to_string_lossy();
+			progress.add(&tmp);
+			encode_path(x);
+			progress.remove(&tmp);
+		});
+
+		// Finish up.
+		let _ = progress.finish();
+		progress.summary(MsgKind::Crunched, "file", "files").print();
+	}
+	else {
+		paths.par_iter().for_each(|x| {
+			encode_path(x);
+		});
+	}
 
 	Ok(())
 }
@@ -196,20 +223,20 @@ fn _main() -> Result<(), ArgueError> {
 /// This will run a separate search over the specified paths with the sole
 /// purpose of removing `*.gz` and `*.br` files.
 fn clean(paths: &[PathBuf]) {
-	Witcher::default()
-		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
+	Dowser::default()
+		.with_regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
 		.with_paths(paths)
-		.into_witching()
-		.with_flags(WITCHING_QUIET)
-		.run(|p: &PathBuf| {
-			let _ = std::fs::remove_file(p);
+		.build()
+		.par_iter()
+		.for_each(|x| {
+			let _ = std::fs::remove_file(x);
 		});
 }
 
 #[cold]
 /// Print Help.
 fn helper() {
-	fyi_msg::plain!(concat!(
+	println!(concat!(
 		r"
                   ,.
                  (\(\)

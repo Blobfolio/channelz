@@ -22,16 +22,11 @@
 #![warn(unused_extern_crates)]
 #![warn(unused_import_braces)]
 
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::map_err_ignore)]
-#![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 
 
 
-#[cfg(test)] use fyi_bench as _;
+#[cfg(test)] use brunch as _;
 use std::{
 	ffi::OsStr,
 	fs::{
@@ -40,10 +35,7 @@ use std::{
 	},
 	io::Write,
 	os::unix::ffi::OsStrExt,
-	path::{
-		Path,
-		PathBuf,
-	},
+	path::Path,
 };
 
 
@@ -57,7 +49,9 @@ use std::{
 ///
 /// If for some reason the end result can't be created or winds up bigger than
 /// the original, no static copy is saved to disk. (What would be the point?!)
-pub fn encode_path(path: &PathBuf) {
+pub fn encode_path<P>(path: P)
+where P: AsRef<Path> {
+	let path = path.as_ref();
 	if let Some(raw) = fs::read(path).ok().filter(|r| ! r.is_empty()) {
 		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
 

@@ -16,9 +16,8 @@ version = "0.5.*"
 default-features = false
 features = [ "brotli-c" ]
 
-[dev-dependencies.fyi_bench]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
+[dev-dependencies]
+brunch = "0.1.*"
 
 [[bench]]
 name = "encode"
