@@ -195,6 +195,7 @@ fn _main() -> Result<(), ArgyleError> {
 
 		// Boot up a progress bar.
 		let progress = Progless::steady(len)
+			.ok_or(ArgyleError::Custom("No encodeable files were found."))?
 			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
 
 		// Process!
