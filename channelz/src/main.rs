@@ -143,12 +143,15 @@ use std::{
 	convert::TryFrom,
 	ffi::OsStr,
 	os::unix::ffi::OsStrExt,
-	path::PathBuf,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 
 
 
-/// Main.
+/// # Main.
 fn main() {
 	match _main() {
 		Ok(_) => {},
@@ -165,37 +168,29 @@ fn main() {
 }
 
 #[inline]
-/// Actual Main.
+/// # Actual Main.
 fn _main() -> Result<(), ArgyleError> {
 	// Parse CLI arguments.
 	let args = Argue::new(FLAG_HELP | FLAG_REQUIRED | FLAG_VERSION)?
 		.with_list();
 
-	let paths: Vec<PathBuf> = args.args()
-		.iter()
-		.map(|x| PathBuf::from(OsStr::from_bytes(x.as_ref())))
-		.collect();
-
-	// Cleaning?
+	// Clean first?
 	if args.switch(b"--clean") {
-		clean(&paths);
+		clean(args.args().iter().map(|x| OsStr::from_bytes(x.as_ref())));
 	}
 
 	// Put it all together!
 	let paths = Vec::<PathBuf>::try_from(
-		Dowser::default()
-			.with_regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
-			.with_paths(&paths)
-	).map_err(|_| ArgyleError::Custom("No encodeable files were found."))?;
+		Dowser::regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
+			.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x.as_ref())))
+	)
+		.map_err(|_| ArgyleError::Custom("No encodeable files were found."))?;
 
 	// Sexy run-through.
 	if args.switch2(b"-p", b"--progress") {
-		let len: u32 = u32::try_from(paths.len())
-			.map_err(|_| ArgyleError::Custom("Only 4,294,967,295 files can be crunched at one time."))?;
-
 		// Boot up a progress bar.
-		let progress = Progless::steady(len)
-			.ok_or(ArgyleError::Custom("No encodeable files were found."))?
+		let progress = Progless::try_from(paths.len())
+			.map_err(|_| ArgyleError::Custom("Progress can only be displayed for up to 4,294,967,295 files. Reduce the fileset or crunch silently."))?
 			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
 
 		// Process!
@@ -207,35 +202,35 @@ fn _main() -> Result<(), ArgyleError> {
 		});
 
 		// Finish up.
-		let _ = progress.finish();
+		progress.finish();
 		progress.summary(MsgKind::Crunched, "file", "files").print();
 	}
 	else {
-		paths.par_iter().for_each(|x| {
-			encode_path(x);
-		});
+		paths.par_iter().for_each(|x| { encode_path(x); });
 	}
 
 	Ok(())
 }
 
-/// Clean.
+/// # Clean.
 ///
 /// This will run a separate search over the specified paths with the sole
 /// purpose of removing `*.gz` and `*.br` files.
-fn clean(paths: &[PathBuf]) {
-	Dowser::default()
-		.with_regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
-		.with_paths(paths)
-		.build()
-		.par_iter()
-		.for_each(|x| {
-			let _ = std::fs::remove_file(x);
-		});
+fn clean<P, I>(paths: I)
+where P: AsRef<Path>, I: IntoIterator<Item=P> {
+	if let Ok(paths) = Vec::<PathBuf>::try_from(
+		Dowser::regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
+			.with_paths(paths)
+	) {
+		paths.par_iter()
+			.for_each(|x| {
+				let _ = std::fs::remove_file(x);
+			});
+	}
 }
 
 #[cold]
-/// Print Help.
+/// # Print Help.
 fn helper() {
 	println!(concat!(
 		r"

@@ -58,10 +58,8 @@ where P: AsRef<Path> {
 		// Make a fast byte version of the output path (starting with a .br
 		// extension). This should just be a slice since it won't grow, but we
 		// can't initiate a slice with a runtime-defined size.
-		let mut dst = [
-			unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) },
-			b".br",
-		].concat();
+		let mut dst = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) }.to_vec();
+		dst.extend_from_slice(b".br");
 
 		// Brotli first.
 		if 0 == encode_br(&raw, &mut buf) {
@@ -85,7 +83,8 @@ where P: AsRef<Path> {
 	}
 }
 
-/// Delete If.
+#[inline]
+/// # Delete If.
 fn delete_if<P>(path: P)
 where P: AsRef<Path> {
 	let path = path.as_ref();
@@ -95,7 +94,7 @@ where P: AsRef<Path> {
 }
 
 #[must_use]
-/// Encode Brotli.
+/// # Encode Brotli.
 ///
 /// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
 /// Brotli-C bindings.
@@ -117,7 +116,7 @@ fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 }
 
 #[must_use]
-/// Encode Gzip.
+/// # Encode Gzip.
 ///
 /// Write a Gzip-encoded copy of the raw data to the buffer using the
 /// `libdeflater` library. This is very nearly as fast as Cloudflare's
@@ -140,7 +139,8 @@ fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 		})
 }
 
-/// Write Result.
+#[inline]
+/// # Write Result.
 ///
 /// Write the buffer to an actual file.
 ///

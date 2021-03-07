@@ -80,7 +80,7 @@ rayon = "1.5.*"
 path = "../channelz_core"
 
 [dependencies.dowser]
-version = "0.1.*"
+version = "0.2.*"
 features = [ "regexp" ]
 
 [dependencies.fyi_msg]
