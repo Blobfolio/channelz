@@ -64,9 +64,7 @@ where P: AsRef<Path> {
 		if encode_br(&raw, &mut buf) {
 			write_result(OsStr::from_bytes(&dst), &buf);
 		}
-		else {
-			let _res = std::fs::remove_file(OsStr::from_bytes(&dst));
-		}
+		else { delete_if(OsStr::from_bytes(&dst)); }
 
 		// Update destination path for .gz.
 		let len: usize = dst.len();
@@ -77,9 +75,25 @@ where P: AsRef<Path> {
 		if encode_gz(&raw, &mut buf) {
 			write_result(OsStr::from_bytes(&dst), &buf);
 		}
-		else {
-			let _res = std::fs::remove_file(OsStr::from_bytes(&dst));
-		}
+		else { delete_if(OsStr::from_bytes(&dst)); }
+	}
+}
+
+#[cold]
+/// # Delete If (File Exists).
+///
+/// It is unclear whether `unlink()` has consistent "does this exist" checking
+/// across platforms, so this method explicitly tests before calling [`std::fs::remove_file`]
+/// just in case.
+///
+/// This method is unlikely to be called very often as it only really applies
+/// in cases where Brotli or Gzip fail or produce larger output than the raw
+/// source. It does happen, but is not the norm.
+fn delete_if<P>(path: P)
+where P: AsRef<Path> {
+	let path = path.as_ref();
+	if path.exists() {
+		let _res = std::fs::remove_file(path);
 	}
 }
 
