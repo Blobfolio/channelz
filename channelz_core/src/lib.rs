@@ -56,8 +56,7 @@ where P: AsRef<Path> {
 		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
 
 		// Make a fast byte version of the output path (starting with a .br
-		// extension). This should just be a slice since it won't grow, but we
-		// can't initiate a slice with a runtime-defined size.
+		// extension).
 		let mut dst = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) }.to_vec();
 		dst.extend_from_slice(b".br");
 
@@ -71,7 +70,8 @@ where P: AsRef<Path> {
 
 		// Update destination path for .gz.
 		let len: usize = dst.len();
-		dst[len - 2..].copy_from_slice(b"gz");
+		dst[len - 2] = b'g';
+		dst[len - 1] = b'z';
 
 		// Gzip second.
 		if encode_gz(&raw, &mut buf) {
