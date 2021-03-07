@@ -62,11 +62,11 @@ where P: AsRef<Path> {
 		dst.extend_from_slice(b".br");
 
 		// Brotli first.
-		if 0 == encode_br(&raw, &mut buf) {
-			delete_if(OsStr::from_bytes(&dst));
+		if encode_br(&raw, &mut buf) {
+			write_result(OsStr::from_bytes(&dst), &buf);
 		}
 		else {
-			write_result(OsStr::from_bytes(&dst), &buf);
+			let _res = std::fs::remove_file(OsStr::from_bytes(&dst));
 		}
 
 		// Update destination path for .gz.
@@ -74,22 +74,12 @@ where P: AsRef<Path> {
 		dst[len - 2..].copy_from_slice(b"gz");
 
 		// Gzip second.
-		if 0 == encode_gz(&raw, &mut buf) {
-			delete_if(OsStr::from_bytes(&dst));
-		}
-		else {
+		if encode_gz(&raw, &mut buf) {
 			write_result(OsStr::from_bytes(&dst), &buf);
 		}
-	}
-}
-
-#[inline]
-/// # Delete If.
-fn delete_if<P>(path: P)
-where P: AsRef<Path> {
-	let path = path.as_ref();
-	if path.exists() {
-		let _ = std::fs::remove_file(path);
+		else {
+			let _res = std::fs::remove_file(OsStr::from_bytes(&dst));
+		}
 	}
 }
 
@@ -98,7 +88,7 @@ where P: AsRef<Path> {
 ///
 /// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
 /// Brotli-C bindings.
-fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
+fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> bool {
 	use compu::{
 		compressor::write::Compressor,
 		encoder::{
@@ -110,9 +100,7 @@ fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 
 	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
 	writer.push(raw, EncoderOp::Finish)
-		.ok()
-		.filter(|&x| x < raw.len())
-		.unwrap_or(0)
+		.map_or(false, |x| 0 < x && x < raw.len())
 }
 
 #[must_use]
@@ -121,7 +109,7 @@ fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 /// Write a Gzip-encoded copy of the raw data to the buffer using the
 /// `libdeflater` library. This is very nearly as fast as Cloudflare's
 /// "optimized" `Zlib`, but achieves better compression.
-fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
+fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> bool {
 	use libdeflater::{
 		CompressionLvl,
 		Compressor,
@@ -131,12 +119,15 @@ fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
 
 	writer.gzip_compress(raw, buf)
-		.ok()
-		.filter(|&x| x < raw.len())
-		.map_or(0, |x| {
-			buf.truncate(x);
-			x
-		})
+		.map_or(false, |x|
+			if 0 < x && x < raw.len() {
+				// We need to trim the excess from the buffer to prepare it for
+				// writing.
+				buf.truncate(x);
+				true
+			}
+			else { false }
+		)
 }
 
 #[inline]
@@ -150,6 +141,6 @@ fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
 /// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
 fn write_result<P>(path: P, data: &[u8])
 where P: AsRef<Path> {
-	let _ = File::create(path)
+	let _res = File::create(path)
 		.and_then(|mut out| out.write_all(data).and_then(|_| out.flush()));
 }
