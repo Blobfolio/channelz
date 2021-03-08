@@ -28,6 +28,7 @@
 
 #[cfg(test)] use brunch as _;
 use std::{
+	convert::TryFrom,
 	ffi::OsStr,
 	fs::{
 		self,
@@ -35,126 +36,140 @@ use std::{
 	},
 	io::Write,
 	os::unix::ffi::OsStrExt,
-	path::Path,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 
 
 
-#[allow(trivial_casts)] // Trivial my arse.
-/// Do the Deed!
+/// # Convenience Method.
 ///
-/// This method generates statically-encoded Brotli and Gzip copies of a given
-/// file. The raw data is read into memory once, and both it and a mutable
-/// buffer are shared by the two encodings.
-///
-/// If for some reason the end result can't be created or winds up bigger than
-/// the original, no static copy is saved to disk. (What would be the point?!)
-pub fn encode_path<P>(path: P)
+/// This will try to encode any path-like source. It is equivalent to
+/// instantiating via [`ChannelZ::try_from`] and running [`ChannelZ::encode`].
+pub fn encode_path<P>(src: P)
 where P: AsRef<Path> {
-	let path = path.as_ref();
-	if let Some(raw) = fs::read(path).ok().filter(|r| ! r.is_empty()) {
-		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
-
-		// Make a fast byte version of the output path (starting with a .br
-		// extension).
-		let mut dst = unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) }.to_vec();
-		dst.extend_from_slice(b".br");
-
-		// Brotli first.
-		if encode_br(&raw, &mut buf) {
-			write_result(OsStr::from_bytes(&dst), &buf);
-		}
-		else { delete_if(OsStr::from_bytes(&dst)); }
-
-		// Update destination path for .gz.
-		let len: usize = dst.len();
-		dst[len - 2] = b'g';
-		dst[len - 1] = b'z';
-
-		// Gzip second.
-		if encode_gz(&raw, &mut buf) {
-			write_result(OsStr::from_bytes(&dst), &buf);
-		}
-		else { delete_if(OsStr::from_bytes(&dst)); }
+	let src = src.as_ref().to_path_buf();
+	if let Ok(mut enc) = ChannelZ::try_from(&src) {
+		enc.encode();
 	}
 }
 
-#[cold]
-/// # Delete If (File Exists).
+
+
+#[derive(Debug)]
+/// # `ChannelZ`
 ///
-/// It is unclear whether `unlink()` has consistent "does this exist" checking
-/// across platforms, so this method explicitly tests before calling [`std::fs::remove_file`]
-/// just in case.
-///
-/// This method is unlikely to be called very often as it only really applies
-/// in cases where Brotli or Gzip fail or produce larger output than the raw
-/// source. It does happen, but is not the norm.
-fn delete_if<P>(path: P)
-where P: AsRef<Path> {
-	let path = path.as_ref();
-	if path.exists() {
-		let _res = std::fs::remove_file(path);
-	}
+/// This struct is used to compress a given file using Brotli and Gzip.
+pub struct ChannelZ {
+	raw: Box<[u8]>,
+	buf: Vec<u8>,
+	dst: Box<[u8]>,
 }
 
-#[must_use]
-/// # Encode Brotli.
-///
-/// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
-/// Brotli-C bindings.
-fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> bool {
-	use compu::{
-		compressor::write::Compressor,
-		encoder::{
-			Encoder,
-			EncoderOp,
-			BrotliEncoder,
-		},
-	};
+impl TryFrom<&PathBuf> for ChannelZ {
+	type Error = ();
 
-	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
-	writer.push(raw, EncoderOp::Finish)
-		.map_or(false, |x| 0 < x && x < raw.len())
-}
-
-#[must_use]
-/// # Encode Gzip.
-///
-/// Write a Gzip-encoded copy of the raw data to the buffer using the
-/// `libdeflater` library. This is very nearly as fast as Cloudflare's
-/// "optimized" `Zlib`, but achieves better compression.
-fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> bool {
-	use libdeflater::{
-		CompressionLvl,
-		Compressor,
-	};
-
-	let mut writer = Compressor::new(CompressionLvl::best());
-	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
-
-	writer.gzip_compress(raw, buf)
-		.map_or(false, |x|
-			if 0 < x && x < raw.len() {
-				// We need to trim the excess from the buffer to prepare it for
-				// writing.
-				buf.truncate(x);
-				true
+	#[allow(trivial_casts)] // This is how `std::path::PathBuf` does it.
+	fn try_from(src: &PathBuf) -> Result<Self, Self::Error> {
+		// Read the file.
+		if let Ok(raw) = fs::read(src) {
+			let len = raw.len();
+			if 0 != len {
+				return Ok(Self {
+					raw: raw.into_boxed_slice(),
+					buf: Vec::with_capacity(len),
+					dst: [
+						unsafe { &*(src.as_os_str() as *const OsStr as *const [u8]) },
+						b".br",
+					].concat().into_boxed_slice(),
+				});
 			}
-			else { false }
-		)
+		}
+
+		Err(())
+	}
 }
 
-#[inline]
-/// # Write Result.
-///
-/// Write the buffer to an actual file.
-///
-/// The path is represented as an `OsStr` because that turns out to be the most
-/// efficient medium to work with. Appending values to raw `PathBuf` objects is
-/// painfully slow — much better to work with bytes — and `File::create()`
-/// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
-fn write_result<P>(path: P, data: &[u8])
-where P: AsRef<Path> {
-	let _res = File::create(path)
-		.and_then(|mut out| out.write_all(data).and_then(|_| out.flush()));
+impl ChannelZ {
+	#[inline]
+	/// # Encode!
+	pub fn encode(&mut self) {
+		self.encode_br();
+		self.encode_gz();
+	}
+
+	/// # Encode Brotli.
+	fn encode_br(&mut self) {
+		use compu::{
+			compressor::write::Compressor,
+			encoder::{
+				Encoder,
+				EncoderOp,
+				BrotliEncoder,
+			},
+		};
+
+		let mut writer = Compressor::new(BrotliEncoder::default(), &mut self.buf);
+		if let Ok(x) = writer.push(&self.raw, EncoderOp::Finish) {
+			if 0 < x && x < self.raw.len() {
+				self.write();
+				return;
+			}
+		}
+
+		self.delete_if();
+	}
+
+	/// # Encode Gzip.
+	fn encode_gz(&mut self) {
+		use libdeflater::{
+			CompressionLvl,
+			Compressor,
+		};
+
+		let mut writer = Compressor::new(CompressionLvl::best());
+		self.buf.resize(writer.gzip_compress_bound(self.raw.len()), 0);
+
+		// Update the destination path extension.
+		{
+			let len: usize = self.dst.len();
+			self.dst[len - 2] = b'g';
+			self.dst[len - 1] = b'z';
+		}
+
+		if let Ok(x) = writer.gzip_compress(&self.raw, &mut self.buf) {
+			if 0 < x && x < self.raw.len() {
+				// Libdeflater does not automatically truncate the buffer to
+				// the payload size.
+				self.buf.truncate(x);
+				self.write();
+				return;
+			}
+		}
+
+		self.delete_if();
+	}
+
+	#[cold]
+	/// # Delete If (File Exists).
+	///
+	/// We probably don't need to explicitly check the file exists, but it is
+	/// unclear how the underlying `unlink()` varies from system to system.
+	fn delete_if(&self) {
+		let path = PathBuf::from(OsStr::from_bytes(&self.dst));
+		if path.exists() {
+			let _res = std::fs::remove_file(path);
+		}
+	}
+
+	/// # Write Result.
+	///
+	/// Write the buffer to an actual file.
+	fn write(&self) {
+		// The result doesn't matter. It'll work or it won't.
+		let _res = File::create(OsStr::from_bytes(&self.dst))
+			.and_then(|mut file| file.write_all(&self.buf).and_then(|_| file.flush()));
+	}
 }

@@ -128,7 +128,7 @@ use argyle::{
 	FLAG_REQUIRED,
 	FLAG_VERSION,
 };
-use channelz_core::encode_path;
+use channelz_core::ChannelZ;
 use dowser::Dowser;
 use fyi_msg::{
 	Msg,
@@ -195,10 +195,15 @@ fn _main() -> Result<(), ArgyleError> {
 
 		// Process!
 		paths.par_iter().for_each(|x| {
-			let tmp = x.to_string_lossy();
-			progress.add(&tmp);
-			encode_path(x);
-			progress.remove(&tmp);
+			if let Ok(mut enc) = ChannelZ::try_from(x) {
+				let tmp = x.to_string_lossy();
+				progress.add(&tmp);
+				enc.encode();
+				progress.remove(&tmp);
+			}
+			else {
+				progress.increment();
+			}
 		});
 
 		// Finish up.
@@ -206,7 +211,9 @@ fn _main() -> Result<(), ArgyleError> {
 		progress.summary(MsgKind::Crunched, "file", "files").print();
 	}
 	else {
-		paths.par_iter().for_each(|x| { encode_path(x); });
+		paths.par_iter().for_each(|x|
+			if let Ok(mut x) = ChannelZ::try_from(x) { x.encode(); }
+		);
 	}
 
 	Ok(())
