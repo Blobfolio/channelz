@@ -190,7 +190,7 @@ fn _main() -> Result<(), ArgyleError> {
 	if args.switch2(b"-p", b"--progress") {
 		// Boot up a progress bar.
 		let progress = Progless::try_from(paths.len())
-			.map_err(|_| ArgyleError::Custom("Progress can only be displayed for up to 4,294,967,295 files. Reduce the fileset or crunch silently."))?
+			.map_err(|_| ArgyleError::Custom("Progress can only be displayed for up to 4,294,967,295 files. Try again with fewer files or without the -p/--progress flag."))?
 			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
 
 		// Process!
