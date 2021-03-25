@@ -205,11 +205,8 @@ bench-bin DIR NATIVE="":
 
 # Build Docs.
 @doc:
-	# Make sure nightly is installed; this version generates better docs.
-	rustup install nightly
-
 	# Make the docs.
-	cargo +nightly doc \
+	cargo doc \
 		--workspace \
 		--release \
 		--no-deps \
@@ -300,10 +297,9 @@ _bench-init:
 
 # Init dependencies.
 @_init:
-	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
-	just clean
-	cargo update --workspace
-	cargo outdated -w
+	# We need beta until 1.51 is stable.
+	# env RUSTUP_PERMIT_COPY_RENAME=true rustup default beta
+	# env RUSTUP_PERMIT_COPY_RENAME=true rustup component add clippy
 
 
 # Fix file/directory permissions.

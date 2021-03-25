@@ -22,18 +22,15 @@
 #![warn(unused_extern_crates)]
 #![warn(unused_import_braces)]
 
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::map_err_ignore)]
-#![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 
 
 
-#[cfg(test)] use fyi_bench as _;
+#[cfg(test)] use brunch as _;
 use std::{
+	convert::TryFrom,
 	ffi::OsStr,
+	fmt,
 	fs::{
 		self,
 		File,
@@ -48,114 +45,172 @@ use std::{
 
 
 
-#[allow(trivial_casts)] // Trivial my arse.
-/// Do the Deed!
+/// # Convenience Method.
 ///
-/// This method generates statically-encoded Brotli and Gzip copies of a given
-/// file. The raw data is read into memory once, and both it and a mutable
-/// buffer are shared by the two encodings.
-///
-/// If for some reason the end result can't be created or winds up bigger than
-/// the original, no static copy is saved to disk. (What would be the point?!)
-pub fn encode_path(path: &PathBuf) {
-	if let Some(raw) = fs::read(path).ok().filter(|r| ! r.is_empty()) {
-		let mut buf: Vec<u8> = Vec::with_capacity(raw.len());
-
-		// Make a fast byte version of the output path (starting with a .br
-		// extension). This should just be a slice since it won't grow, but we
-		// can't initiate a slice with a runtime-defined size.
-		let mut dst = [
-			unsafe { &*(path.as_os_str() as *const OsStr as *const [u8]) },
-			b".br",
-		].concat();
-
-		// Brotli first.
-		if 0 == encode_br(&raw, &mut buf) {
-			delete_if(OsStr::from_bytes(&dst));
-		}
-		else {
-			write_result(OsStr::from_bytes(&dst), &buf);
-		}
-
-		// Update destination path for .gz.
-		let len: usize = dst.len();
-		dst[len - 2..].copy_from_slice(b"gz");
-
-		// Gzip second.
-		if 0 == encode_gz(&raw, &mut buf) {
-			delete_if(OsStr::from_bytes(&dst));
-		}
-		else {
-			write_result(OsStr::from_bytes(&dst), &buf);
-		}
-	}
-}
-
-/// Delete If.
-fn delete_if<P>(path: P)
+/// This will try to encode any path-like source. It is equivalent to
+/// instantiating via [`ChannelZ::try_from`] and running [`ChannelZ::encode`].
+pub fn encode_path<P>(src: P)
 where P: AsRef<Path> {
-	let path = path.as_ref();
-	if path.exists() {
-		let _ = std::fs::remove_file(path);
+	let src = src.as_ref().to_path_buf();
+	if let Ok(mut enc) = ChannelZ::try_from(&src) {
+		enc.encode();
 	}
 }
 
-#[must_use]
-/// Encode Brotli.
-///
-/// Write a Brotli-encoded copy of the raw data to the buffer using `Compu`'s
-/// Brotli-C bindings.
-fn encode_br(raw: &[u8], buf: &mut Vec<u8>) -> usize {
-	use compu::{
-		compressor::write::Compressor,
-		encoder::{
-			Encoder,
-			EncoderOp,
-			BrotliEncoder,
-		},
-	};
 
-	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
-	writer.push(raw, EncoderOp::Finish)
-		.ok()
-		.filter(|&x| x < raw.len())
-		.unwrap_or(0)
+
+#[derive(Debug, Copy, Clone)]
+/// # Error.
+pub enum ChannelZError {
+	/// # Empty file.
+	EmptyFile,
+	/// # Unable to encode file.
+	Encode,
+	/// # No compression savings.
+	NoCompression,
+	/// # Unable to read file.
+	Read,
+	/// # Unable to write file.
+	Write,
 }
 
-#[must_use]
-/// Encode Gzip.
+impl fmt::Display for ChannelZError {
+	#[inline]
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(self.as_str())
+	}
+}
+
+impl std::error::Error for ChannelZError {}
+
+impl ChannelZError {
+	#[must_use]
+	/// # As Str.
+	pub const fn as_str(self) -> &'static str {
+		match self {
+			Self::Encode => "Unable to encode the file.",
+			Self::EmptyFile => "The file is empty.",
+			Self::NoCompression => "No compression savings were possible.",
+			Self::Read => "Unable to read the file.",
+			Self::Write => "Unable to save the file.",
+		}
+	}
+}
+
+
+
+#[derive(Debug)]
+/// # `ChannelZ`
 ///
-/// Write a Gzip-encoded copy of the raw data to the buffer using the
-/// `libdeflater` library. This is very nearly as fast as Cloudflare's
-/// "optimized" `Zlib`, but achieves better compression.
-fn encode_gz(raw: &[u8], buf: &mut Vec<u8>) -> usize {
-	use libdeflater::{
-		CompressionLvl,
-		Compressor,
-	};
+/// This struct is used to compress a given file using Brotli and Gzip.
+pub struct ChannelZ {
+	raw: Box<[u8]>,
+	buf: Vec<u8>,
+	dst: Box<[u8]>,
+}
 
-	let mut writer = Compressor::new(CompressionLvl::best());
-	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
+impl TryFrom<&PathBuf> for ChannelZ {
+	type Error = ChannelZError;
 
-	writer.gzip_compress(raw, buf)
-		.ok()
-		.filter(|&x| x < raw.len())
-		.map_or(0, |x| {
-			buf.truncate(x);
-			x
+	#[allow(trivial_casts)] // This is how `std::path::PathBuf` does it.
+	fn try_from(src: &PathBuf) -> Result<Self, Self::Error> {
+		// Read the file.
+		let raw = fs::read(src).map_err(|_| ChannelZError::Read)?.into_boxed_slice();
+		if raw.is_empty() {
+			return Err(ChannelZError::EmptyFile);
+		}
+
+		Ok(Self {
+			buf: Vec::with_capacity(raw.len()),
+			raw,
+			dst: [
+				unsafe { &*(src.as_os_str() as *const OsStr as *const [u8]) },
+				b".br",
+			].concat().into_boxed_slice(),
 		})
+	}
 }
 
-/// Write Result.
-///
-/// Write the buffer to an actual file.
-///
-/// The path is represented as an `OsStr` because that turns out to be the most
-/// efficient medium to work with. Appending values to raw `PathBuf` objects is
-/// painfully slow — much better to work with bytes — and `File::create()`
-/// loads faster with an `OsStr` than `OsString`, `String`, or `str`.
-fn write_result<P>(path: P, data: &[u8])
-where P: AsRef<Path> {
-	let _ = File::create(path)
-		.and_then(|mut out| out.write_all(data).and_then(|_| out.flush()));
+impl ChannelZ {
+	#[inline]
+	/// # Encode!
+	pub fn encode(&mut self) {
+		if self.encode_br().is_err() { self.delete_if(); }
+		if self.encode_gz().is_err() { self.delete_if(); }
+	}
+
+	/// # Encode Brotli.
+	fn encode_br(&mut self) -> Result<(), ChannelZError> {
+		use compu::{
+			compressor::write::Compressor,
+			encoder::{
+				Encoder,
+				EncoderOp,
+				BrotliEncoder,
+			},
+		};
+
+		let mut writer = Compressor::new(BrotliEncoder::default(), &mut self.buf);
+		let len: usize = writer.push(&self.raw, EncoderOp::Finish)
+			.map_err(|_| ChannelZError::Encode)?;
+
+		if 0 < len && len < self.raw.len() { self.write() }
+		else { Err(ChannelZError::NoCompression) }
+	}
+
+	/// # Encode Gzip.
+	fn encode_gz(&mut self) -> Result<(), ChannelZError> {
+		use libdeflater::{
+			CompressionLvl,
+			Compressor,
+		};
+
+		let mut writer = Compressor::new(CompressionLvl::best());
+		self.buf.resize(writer.gzip_compress_bound(self.raw.len()), 0);
+
+		// Update the destination path extension.
+		{
+			let len: usize = self.dst.len();
+			self.dst[len - 2] = b'g';
+			self.dst[len - 1] = b'z';
+		}
+
+		let len: usize = writer.gzip_compress(&self.raw, &mut self.buf)
+			.map_err(|_| ChannelZError::Encode)?;
+
+		if 0 < len && len < self.raw.len() {
+			// Libdeflater does not automatically truncate the buffer to the
+			// final payload size, so we need to do that before trying to write
+			// the data to a file.
+			self.buf.truncate(len);
+			self.write()
+		}
+		else { Err(ChannelZError::NoCompression) }
+	}
+
+	#[cold]
+	/// # Delete If (File Exists).
+	///
+	/// We probably don't need to explicitly check the file exists, but it is
+	/// unclear how the underlying `unlink()` varies from system to system.
+	///
+	/// This method returns no result and suppresses any errors encountered as
+	/// there's not really anything more to be done. If the file doesn't exist,
+	/// it doesn't need to be deleted; if it does and can't be deleted, well,
+	/// we tried.
+	fn delete_if(&self) {
+		let path = PathBuf::from(OsStr::from_bytes(&self.dst));
+		if path.exists() {
+			let _res = std::fs::remove_file(path);
+		}
+	}
+
+	/// # Write Result.
+	///
+	/// Write the buffer to an actual file.
+	fn write(&self) -> Result<(), ChannelZError> {
+		File::create(OsStr::from_bytes(&self.dst))
+			.and_then(|mut file| file.write_all(&self.buf).and_then(|_| file.flush()))
+			.map_err(|_| ChannelZError::Write)
+	}
 }

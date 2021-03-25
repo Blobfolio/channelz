@@ -51,7 +51,7 @@ The "appropriate" file types are:
 
 This application is written in [Rust](https://www.rust-lang.org/) and can be installed using [Cargo](https://github.com/rust-lang/cargo).
 
-For stable Rust (>= `1.47.0`), run:
+For stable Rust (>= `1.51.0`), run:
 ```bash
 RUSTFLAGS="-C link-arg=-s" cargo install \
     --git https://github.com/Blobfolio/channelz.git \
@@ -121,95 +121,125 @@ channelz /path/to/css /path/to/js …
 
 
 
-use fyi_menu::{
+use argyle::{
 	Argue,
-	ArgueError,
+	ArgyleError,
 	FLAG_HELP,
 	FLAG_REQUIRED,
 	FLAG_VERSION,
 };
-use fyi_msg::Msg;
-use fyi_witcher::{
-	Witcher,
-	WITCHING_QUIET,
-	WITCHING_SUMMARIZE,
+use channelz_core::ChannelZ;
+use dowser::Dowser;
+use fyi_msg::{
+	Msg,
+	MsgKind,
+	Progless,
+};
+use rayon::iter::{
+	IntoParallelRefIterator,
+	ParallelIterator,
 };
 use std::{
+	convert::TryFrom,
 	ffi::OsStr,
 	os::unix::ffi::OsStrExt,
-	path::PathBuf,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 
 
 
-/// Main.
+/// # Main.
 fn main() {
 	match _main() {
-		Err(ArgueError::WantsVersion) => {
-			fyi_msg::plain!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
+		Ok(_) => {},
+		Err(ArgyleError::WantsVersion) => {
+			println!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
 		},
-		Err(ArgueError::WantsHelp) => {
+		Err(ArgyleError::WantsHelp) => {
 			helper();
 		},
 		Err(e) => {
 			Msg::error(e).die(1);
 		},
-		Ok(_) => {},
 	}
 }
 
 #[inline]
-/// Actual Main.
-fn _main() -> Result<(), ArgueError> {
+/// # Actual Main.
+fn _main() -> Result<(), ArgyleError> {
 	// Parse CLI arguments.
 	let args = Argue::new(FLAG_HELP | FLAG_REQUIRED | FLAG_VERSION)?
 		.with_list();
 
-	let paths: Vec<PathBuf> = args.args()
-		.iter()
-		.map(|x| PathBuf::from(OsStr::from_bytes(x.as_ref())))
-		.collect();
-
-	// Cleaning?
+	// Clean first?
 	if args.switch(b"--clean") {
-		clean(&paths);
+		clean(args.args().iter().map(|x| OsStr::from_bytes(x.as_ref())));
 	}
 
-	let flags: u8 =
-		if args.switch2(b"-p", b"--progress") { WITCHING_SUMMARIZE }
-		else { WITCHING_QUIET | WITCHING_SUMMARIZE };
-
 	// Put it all together!
-	Witcher::default()
-		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
-		.with_paths(paths)
-		.into_witching()
-		.with_flags(flags)
-		.with_title(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}"))
-		.run(channelz_core::encode_path);
+	let paths = Vec::<PathBuf>::try_from(
+		Dowser::regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
+			.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x.as_ref())))
+	)
+		.map_err(|_| ArgyleError::Custom("No encodeable files were found."))?;
+
+	// Sexy run-through.
+	if args.switch2(b"-p", b"--progress") {
+		// Boot up a progress bar.
+		let progress = Progless::try_from(paths.len())
+			.map_err(|_| ArgyleError::Custom("Progress can only be displayed for up to 4,294,967,295 files. Try again with fewer files or without the -p/--progress flag."))?
+			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
+
+		// Process!
+		paths.par_iter().for_each(|x| {
+			if let Ok(mut enc) = ChannelZ::try_from(x) {
+				let tmp = x.to_string_lossy();
+				progress.add(&tmp);
+				enc.encode();
+				progress.remove(&tmp);
+			}
+			else {
+				progress.increment();
+			}
+		});
+
+		// Finish up.
+		progress.finish();
+		progress.summary(MsgKind::Crunched, "file", "files").print();
+	}
+	else {
+		paths.par_iter().for_each(|x|
+			if let Ok(mut x) = ChannelZ::try_from(x) { x.encode(); }
+		);
+	}
 
 	Ok(())
 }
 
-/// Clean.
+/// # Clean.
 ///
 /// This will run a separate search over the specified paths with the sole
 /// purpose of removing `*.gz` and `*.br` files.
-fn clean(paths: &[PathBuf]) {
-	Witcher::default()
-		.with_regex(r"(?i).+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
-		.with_paths(paths)
-		.into_witching()
-		.with_flags(WITCHING_QUIET)
-		.run(|p: &PathBuf| {
-			let _ = std::fs::remove_file(p);
-		});
+fn clean<P, I>(paths: I)
+where P: AsRef<Path>, I: IntoIterator<Item=P> {
+	if let Ok(paths) = Vec::<PathBuf>::try_from(
+		Dowser::regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
+			.with_paths(paths)
+	) {
+		paths.par_iter()
+			.for_each(|x| {
+				let _ = std::fs::remove_file(x);
+			});
+	}
 }
 
 #[cold]
-/// Print Help.
+/// # Print Help.
 fn helper() {
-	fyi_msg::plain!(concat!(
+	println!(concat!(
 		r"
                   ,.
                  (\(\)
