@@ -1,6 +1,7 @@
 **.br
+**.deb
 **.gz
 **/target/
 /Cargo.lock
-/release/man/channelz.1.gz
 /doc/
+/release/man/channelz.1.gz
