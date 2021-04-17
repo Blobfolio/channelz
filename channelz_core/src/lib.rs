@@ -112,7 +112,6 @@ pub struct ChannelZ {
 impl TryFrom<&PathBuf> for ChannelZ {
 	type Error = ChannelZError;
 
-	#[allow(trivial_casts)] // This is how `std::path::PathBuf` does it.
 	fn try_from(src: &PathBuf) -> Result<Self, Self::Error> {
 		// Read the file.
 		let raw = fs::read(src).map_err(|_| ChannelZError::Read)?.into_boxed_slice();
@@ -123,10 +122,7 @@ impl TryFrom<&PathBuf> for ChannelZ {
 		Ok(Self {
 			buf: Vec::with_capacity(raw.len()),
 			raw,
-			dst: [
-				unsafe { &*(src.as_os_str() as *const OsStr as *const [u8]) },
-				b".br",
-			].concat().into_boxed_slice(),
+			dst: [src.as_os_str().as_bytes(), b".br"].concat().into_boxed_slice(),
 		})
 	}
 }
