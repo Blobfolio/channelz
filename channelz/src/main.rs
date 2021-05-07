@@ -231,7 +231,7 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 	) {
 		paths.par_iter()
 			.for_each(|x| {
-				let _ = std::fs::remove_file(x);
+				let _res = std::fs::remove_file(x);
 			});
 	}
 }
