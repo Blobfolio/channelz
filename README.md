@@ -1,5 +1,7 @@
 # ChannelZ
 
+[![Build Status](https://github.com/Blobfolio/channelz/workflows/Build/badge.svg)](https://github.com/Blobfolio/channelz/actions)
+
 ChannelZ is a CLI tool for x86-64 Linux machines that simplifies the common task of encoding static web assets with Gzip and Brotli for production environments.
 
 
