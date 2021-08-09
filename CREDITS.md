@@ -19,13 +19,14 @@ License details for project dependencies are listed below.
 * [atomic 0.5.0](https://github.com/Amanieu/atomic-rs)
 * [cfg-if 1.0.0](https://github.com/alexcrichton/cfg-if)
 * [crossbeam-channel 0.5.1](https://github.com/crossbeam-rs/crossbeam)
-* [crossbeam-deque 0.8.0](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-deque 0.8.1](https://github.com/crossbeam-rs/crossbeam)
 * [crossbeam-epoch 0.9.5](https://github.com/crossbeam-rs/crossbeam)
 * [crossbeam-utils 0.8.5](https://github.com/crossbeam-rs/crossbeam)
 * [either 1.6.1](https://github.com/bluss/either)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.97](https://github.com/rust-lang/libc)
-* [libdeflater 0.7.1](https://github.com/adamkewley/libdeflater)
+* [libc 0.2.98](https://github.com/rust-lang/libc)
+* [libdeflate-sys 0.7.3](https://github.com/adamkewley/libdeflater)
+* [libdeflater 0.7.3](https://github.com/adamkewley/libdeflater)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
 * [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
 * [once_cell 1.8.0](https://github.com/matklad/once_cell)
@@ -461,7 +462,6 @@ limitations under the License.
 
 * [compu 0.5.3](https://github.com/DoumanAsh/compu)
 * [compu-brotli-sys 0.1.3](https://github.com/DoumanAsh/compu)
-* [libdeflate-sys 0.7.1](https://github.com/adamkewley/libdeflater)
 
 
 ```
