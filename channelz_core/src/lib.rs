@@ -28,7 +28,6 @@
 
 #[cfg(test)] use brunch as _;
 use std::{
-	convert::TryFrom,
 	ffi::OsStr,
 	fmt,
 	fs::{
