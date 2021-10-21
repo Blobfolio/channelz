@@ -15,7 +15,7 @@ License details for project dependencies are listed below.
 
 **Used By:**
 
-* [ahash 0.7.4](https://github.com/tkaitchuck/ahash)
+* [ahash 0.7.6](https://github.com/tkaitchuck/ahash)
 * [atomic 0.5.0](https://github.com/Amanieu/atomic-rs)
 * [cfg-if 1.0.0](https://github.com/alexcrichton/cfg-if)
 * [crossbeam-channel 0.5.1](https://github.com/crossbeam-rs/crossbeam)
@@ -24,7 +24,7 @@ License details for project dependencies are listed below.
 * [crossbeam-utils 0.8.5](https://github.com/crossbeam-rs/crossbeam)
 * [either 1.6.1](https://github.com/bluss/either)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.98](https://github.com/rust-lang/libc)
+* [libc 0.2.104](https://github.com/rust-lang/libc)
 * [libdeflate-sys 0.7.3](https://github.com/adamkewley/libdeflater)
 * [libdeflater 0.7.3](https://github.com/adamkewley/libdeflater)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
@@ -36,7 +36,7 @@ License details for project dependencies are listed below.
 * [regex-syntax 0.6.25](https://github.com/rust-lang/regex)
 * [scopeguard 1.1.0](https://github.com/bluss/scopeguard)
 * [term_size 0.3.2](https://github.com/kbknapp/term_size-rs.git)
-* [unicode-width 0.1.8](https://github.com/unicode-rs/unicode-width)
+* [unicode-width 0.1.9](https://github.com/unicode-rs/unicode-width)
 
 
 ```
@@ -758,7 +758,7 @@ limitations under the License.
 **Used By:**
 
 * [aho-corasick 0.7.18](https://github.com/BurntSushi/aho-corasick)
-* [memchr 2.4.0](https://github.com/BurntSushi/rust-memchr)
+* [memchr 2.4.1](https://github.com/BurntSushi/memchr)
 
 
 ```
@@ -819,12 +819,12 @@ SOFTWARE.
 
 **Used By:**
 
-* [argyle 0.4.2](https://github.com/Blobfolio/argyle)
-* [channelz 0.5.3](https://github.com/Blobfolio/channelz)
-* [channelz_core 0.5.3](https://github.com/Blobfolio/channelz)
-* [dactyl 0.1.8](https://github.com/Blobfolio/dactyl)
-* [dowser 0.2.4](https://github.com/Blobfolio/dowser)
-* [fyi_msg 0.8.1](https://github.com/Blobfolio/fyi)
+* [argyle 0.5.0](https://github.com/Blobfolio/argyle)
+* [channelz 0.5.4](https://github.com/Blobfolio/channelz)
+* [channelz_core 0.5.4](https://github.com/Blobfolio/channelz)
+* [dactyl 0.2.0](https://github.com/Blobfolio/dactyl)
+* [dowser 0.3.0](https://github.com/Blobfolio/dowser)
+* [fyi_msg 0.9.0](https://github.com/Blobfolio/fyi)
 
 
 ```
