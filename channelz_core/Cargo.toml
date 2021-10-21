@@ -1,9 +1,10 @@
 [package]
 name = "channelz_core"
-version = "0.5.3"
+version = "0.5.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.56"
 description = "Library for ChannelZ."
 repository = "https://github.com/Blobfolio/channelz"
 publish = false
@@ -17,7 +18,7 @@ default-features = false
 features = [ "brotli-c" ]
 
 [dev-dependencies]
-brunch = "0.1.*"
+brunch = "0.2.*"
 
 [[bench]]
 name = "encode"
