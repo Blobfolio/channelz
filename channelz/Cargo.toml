@@ -74,16 +74,16 @@ lines = [
 ]
 
 [dependencies]
-argyle = "0.4.*"
+argyle = "0.5.*"
 rayon = "1.5.*"
 
 [dependencies.channelz_core]
 path = "../channelz_core"
 
 [dependencies.dowser]
-version = "0.2.*"
+version = "0.3.*"
 features = [ "regexp" ]
 
 [dependencies.fyi_msg]
-version = "0.8.*"
+version = "0.9.*"
 features = [ "progress" ]
