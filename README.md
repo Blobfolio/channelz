@@ -1,6 +1,7 @@
 # ChannelZ
 
 [![Build Status](https://github.com/Blobfolio/channelz/workflows/Build/badge.svg)](https://github.com/Blobfolio/channelz/actions)
+[![Dependency Status](https://deps.rs/repo/github/blobfolio/channelz/status.svg)](https://deps.rs/repo/github/blobfolio/channelz)
 
 ChannelZ is a CLI tool for x86-64 Linux machines that simplifies the common task of encoding static web assets with Gzip and Brotli for production environments.
 
@@ -128,7 +129,7 @@ These benchmarks were performed on a Intel® Core™ i7-10610U with four discret
 
 See also: [CREDITS.md](CREDITS.md)
 
-Copyright © 2021 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
+Copyright © 2022 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
 
 This work is free. You can redistribute it and/or modify it under the terms of the Do What The Fuck You Want To Public License, Version 2.
 
