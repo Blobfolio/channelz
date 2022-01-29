@@ -108,6 +108,8 @@ pub struct ChannelZ {
 	raw: Box<[u8]>,
 	buf: Vec<u8>,
 	dst: Box<[u8]>,
+	size_br: u64,
+	size_gz: u64,
 }
 
 impl TryFrom<&PathBuf> for ChannelZ {
@@ -124,6 +126,8 @@ impl TryFrom<&PathBuf> for ChannelZ {
 			buf: Vec::with_capacity(raw.len()),
 			raw,
 			dst: [src.as_os_str().as_bytes(), b".br"].concat().into_boxed_slice(),
+			size_br: 0,
+			size_gz: 0,
 		})
 	}
 }
@@ -134,6 +138,24 @@ impl ChannelZ {
 	pub fn encode(&mut self) {
 		if self.encode_br().is_err() { self.delete_if(); }
 		if self.encode_gz().is_err() { self.delete_if(); }
+	}
+
+	#[must_use]
+	/// # Sizes.
+	///
+	/// Return the original size, the Brotli size, and the Gzip size. In cases
+	/// where Brotli and/or Gzip didn't run, the original size will be
+	/// returned in their place.
+	pub const fn sizes(&self) -> (u64, u64, u64) {
+		let size_src = self.raw.len() as u64;
+		let size_br =
+			if 0 < self.size_br { self.size_br }
+			else { size_src };
+		let size_gz =
+			if 0 < self.size_gz { self.size_gz }
+			else { size_src };
+
+		(size_src, size_br, size_gz)
 	}
 
 	/// # Encode Brotli.
@@ -151,7 +173,10 @@ impl ChannelZ {
 		let len: usize = writer.push(&self.raw, EncoderOp::Finish)
 			.map_err(|_| ChannelZError::Encode)?;
 
-		if 0 < len && len < self.raw.len() { self.write() }
+		if 0 < len && len < self.raw.len() {
+			self.size_br = len as u64;
+			self.write()
+		}
 		else { Err(ChannelZError::NoCompression) }
 	}
 
@@ -180,6 +205,7 @@ impl ChannelZ {
 			// final payload size, so we need to do that before trying to write
 			// the data to a file.
 			self.buf.truncate(len);
+			self.size_gz = len as u64;
 			self.write()
 		}
 		else { Err(ChannelZError::NoCompression) }
