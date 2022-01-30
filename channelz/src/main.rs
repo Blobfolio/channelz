@@ -240,43 +240,6 @@ fn _main() -> Result<(), ArgyleError> {
 	Ok(())
 }
 
-/// # Summarize Output Sizes.
-///
-/// This compares the original sources against their Brotli and Gzip
-/// counterparts.
-fn size_chart(src: u64, br: u64, gz: u64) {
-	// Add commas to the numbers.
-	let nice_src = NiceU64::from(src);
-	let nice_br = NiceU64::from(br);
-	let nice_gz = NiceU64::from(gz);
-
-	// Find the maximum length so we can pad nicely.
-	let len = usize::max(usize::max(nice_src.len(), nice_br.len()), nice_gz.len());
-
-	let per_br: String = dactyl::int_div_float(br, src).map_or_else(
-			String::new,
-			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-	);
-
-	let per_gz: String = dactyl::int_div_float(gz, src).map_or_else(
-			String::new,
-			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-	);
-	Msg::custom("  Source", 13, &format!("{}{} bytes", " ".repeat(len - nice_src.len()), nice_src.as_str()))
-		.with_newline(true)
-		.print();
-
-	Msg::custom("  Brotli", 13, &format!("{}{} bytes", " ".repeat(len - nice_br.len()), nice_br.as_str()))
-		.with_suffix(per_br)
-		.with_newline(true)
-		.print();
-
-	Msg::custom("    Gzip", 13, &format!("{}{} bytes", " ".repeat(len - nice_gz.len()), nice_gz.as_str()))
-		.with_suffix(per_gz)
-		.with_newline(true)
-		.print();
-}
-
 /// # Clean.
 ///
 /// This will run a separate search over the specified paths with the sole
@@ -318,15 +281,17 @@ USAGE:
 
 FLAGS:
         --clean       Remove all existing *.gz *.br files before starting.
-    -h, --help        Prints help information.
+    -h, --help        Print help information and exit.
     -p, --progress    Show progress bar while minifying.
-    -V, --version     Prints version information.
+    -V, --version     Print version information and exit.
 
 OPTIONS:
-    -l, --list <list>    Read file paths from this list.
+    -l, --list <FILE> Read (absolute) file and/or directory paths from this
+                      text file, one entry per line.
 
 ARGS:
-    <PATH(S)>...    One or more files or directories to compress.
+    <PATH(S)>...      One or more file and/or directory paths to compress
+                      and/or (recursively) crawl.
 
 ---
 
@@ -336,4 +301,44 @@ Note: static copies will only be generated for files with these extensions:
     mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
 "
 	));
+}
+
+/// # Summarize Output Sizes.
+///
+/// This compares the original sources against their Brotli and Gzip
+/// counterparts.
+fn size_chart(src: u64, br: u64, gz: u64) {
+	// Add commas to the numbers.
+	let nice_src = NiceU64::from(src);
+	let nice_br = NiceU64::from(br);
+	let nice_gz = NiceU64::from(gz);
+
+	// Find the maximum byte length so we can pad nicely.
+	let len = usize::max(usize::max(nice_src.len(), nice_br.len()), nice_gz.len());
+
+	// Figure out relative savings, if any.
+	let per_br: String = dactyl::int_div_float(br, src).map_or_else(
+			String::new,
+			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
+	);
+
+	let per_gz: String = dactyl::int_div_float(gz, src).map_or_else(
+			String::new,
+			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
+	);
+
+	// Print the totals!
+	Msg::custom("  Source", 13, &format!("{}{} bytes", " ".repeat(len - nice_src.len()), nice_src.as_str()))
+		.with_newline(true)
+		.print();
+
+	Msg::custom("  Brotli", 13, &format!("{}{} bytes", " ".repeat(len - nice_br.len()), nice_br.as_str()))
+		.with_suffix(per_br)
+		.with_newline(true)
+		.print();
+
+	Msg::custom("    Gzip", 13, &format!("{}{} bytes", " ".repeat(len - nice_gz.len()), nice_gz.as_str()))
+		.with_suffix(per_gz)
+		.with_newline(true)
+		.print();
 }
