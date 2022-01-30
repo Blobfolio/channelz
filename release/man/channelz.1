@@ -1,6 +1,6 @@
-.TH "CHANNELZ" "1" "January 2022" "ChannelZ v0.5.5" "User Commands"
+.TH "CHANNELZ" "1" "January 2022" "ChannelZ v0.5.6" "User Commands"
 .SH NAME
-ChannelZ \- Manual page for channelz v0.5.5.
+ChannelZ \- Manual page for channelz v0.5.6.
 .SH DESCRIPTION
 ChannelZ is a simple, fast, multi\-threaded static Gzip/Brotli encoding tool for the CLI.
 .SS USAGE:
@@ -12,20 +12,20 @@ channelz [FLAGS] [OPTIONS] <PATH(s)…>
 Remove all existing *.gz *.br files before starting.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
-Print help information.
+Print help information and exit.
 .TP
 \fB\-p\fR, \fB\-\-progress\fR
-Show progress bar while working.
+Show progress bar while minifying.
 .TP
 \fB\-V\fR, \fB\-\-version\fR
-Print program version.
+Print version information and exit.
 .SS OPTIONS:
 .TP
 \fB\-l\fR, \fB\-\-list\fR <FILE>
-Read file paths from this text file.
+Read (absolute) file and/or directory paths from this text file, one entry per line.
 .SS <PATH(S)…>:
 .TP
-Any number of files and directories to crawl and crunch.
+One or more file and/or directory paths to compress and/or (recursively) crawl.
 .SH FILE TYPES
 Static copies will only be generated for files with these extensions:
 .RE

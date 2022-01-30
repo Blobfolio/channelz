@@ -131,6 +131,10 @@ use argyle::{
 	FLAG_VERSION,
 };
 use channelz_core::ChannelZ;
+use dactyl::{
+	NiceU64,
+	NicePercent,
+};
 use dowser::Dowser;
 use fyi_msg::{
 	Msg,
@@ -147,6 +151,10 @@ use std::{
 	path::{
 		Path,
 		PathBuf,
+	},
+	sync::atomic::{
+		AtomicU64,
+		Ordering::SeqCst,
 	},
 };
 
@@ -194,12 +202,23 @@ fn _main() -> Result<(), ArgyleError> {
 			.map_err(|_| ArgyleError::Custom("Progress can only be displayed for up to 4,294,967,295 files. Try again with fewer files or without the -p/--progress flag."))?
 			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
 
+		let size_src = AtomicU64::new(0);
+		let size_br = AtomicU64::new(0);
+		let size_gz = AtomicU64::new(0);
+
 		// Process!
 		paths.par_iter().for_each(|x| {
 			if let Ok(mut enc) = ChannelZ::try_from(x) {
 				let tmp = x.to_string_lossy();
 				progress.add(&tmp);
 				enc.encode();
+
+				// Update the size totals.
+				let (a, b, c) = enc.sizes();
+				size_src.fetch_add(a, SeqCst);
+				size_br.fetch_add(b, SeqCst);
+				size_gz.fetch_add(c, SeqCst);
+
 				progress.remove(&tmp);
 			}
 			else {
@@ -210,6 +229,7 @@ fn _main() -> Result<(), ArgyleError> {
 		// Finish up.
 		progress.finish();
 		progress.summary(MsgKind::Crunched, "file", "files").print();
+		size_chart(size_src.load(SeqCst), size_br.load(SeqCst), size_gz.load(SeqCst));
 	}
 	else {
 		paths.par_iter().for_each(|x|
@@ -261,15 +281,17 @@ USAGE:
 
 FLAGS:
         --clean       Remove all existing *.gz *.br files before starting.
-    -h, --help        Prints help information.
+    -h, --help        Print help information and exit.
     -p, --progress    Show progress bar while minifying.
-    -V, --version     Prints version information.
+    -V, --version     Print version information and exit.
 
 OPTIONS:
-    -l, --list <list>    Read file paths from this list.
+    -l, --list <FILE> Read (absolute) file and/or directory paths from this
+                      text file, one entry per line.
 
 ARGS:
-    <PATH(S)>...    One or more files or directories to compress.
+    <PATH(S)>...      One or more file and/or directory paths to compress
+                      and/or (recursively) crawl.
 
 ---
 
@@ -279,4 +301,44 @@ Note: static copies will only be generated for files with these extensions:
     mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
 "
 	));
+}
+
+/// # Summarize Output Sizes.
+///
+/// This compares the original sources against their Brotli and Gzip
+/// counterparts.
+fn size_chart(src: u64, br: u64, gz: u64) {
+	// Add commas to the numbers.
+	let nice_src = NiceU64::from(src);
+	let nice_br = NiceU64::from(br);
+	let nice_gz = NiceU64::from(gz);
+
+	// Find the maximum byte length so we can pad nicely.
+	let len = usize::max(usize::max(nice_src.len(), nice_br.len()), nice_gz.len());
+
+	// Figure out relative savings, if any.
+	let per_br: String = dactyl::int_div_float(br, src).map_or_else(
+			String::new,
+			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
+	);
+
+	let per_gz: String = dactyl::int_div_float(gz, src).map_or_else(
+			String::new,
+			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
+	);
+
+	// Print the totals!
+	Msg::custom("  Source", 13, &format!("{}{} bytes", " ".repeat(len - nice_src.len()), nice_src.as_str()))
+		.with_newline(true)
+		.print();
+
+	Msg::custom("  Brotli", 13, &format!("{}{} bytes", " ".repeat(len - nice_br.len()), nice_br.as_str()))
+		.with_suffix(per_br)
+		.with_newline(true)
+		.print();
+
+	Msg::custom("    Gzip", 13, &format!("{}{} bytes", " ".repeat(len - nice_gz.len()), nice_gz.as_str()))
+		.with_suffix(per_gz)
+		.with_newline(true)
+		.print();
 }
