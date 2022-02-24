@@ -1,11 +1,11 @@
 [package]
 name = "channelz"
-version = "0.5.6"
+version = "0.5.7"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
 rust-version = "1.56"
-description = "ChannelZ is a simple, fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
+description = "Fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 repository = "https://github.com/Blobfolio/channelz"
 publish = false
 
@@ -15,10 +15,10 @@ copyright = "2022, Blobfolio, LLC <hello@blobfolio.com>"
 license-file = ["../LICENSE", "0"]
 revision = "1"
 depends = "$auto"
-section = "utility"
+section = "utils"
 extended-description = """\
 .\n\
-Point it toward a single file to generate maximally-compressed Brotli- and Gzip-encoded copies, or point it toward a directory to recursively handle many files en masse.\n \
+Point ChannelZ toward a single file to generate maximally-compressed Brotli- and Gzip-encoded copies, or point it toward a directory to recursively handle many files en masse.\n\
 .\n\
 Only files with the following extensions will be looked at:\n\
 atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;\n\
