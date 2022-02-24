@@ -4,7 +4,6 @@ _basher___channelz() {
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
 	opts=()
-
 	[[ " ${COMP_LINE} " =~ " --clean " ]] || opts+=("--clean")
 	if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
 		opts+=("-h")
@@ -22,13 +21,11 @@ _basher___channelz() {
 		opts+=("-l")
 		opts+=("--list")
 	fi
-
 	opts=" ${opts[@]} "
 	if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
 		COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
 		return 0
 	fi
-
 	case "${prev}" in
 		-l|--list)
 			if [ -z "$( declare -f _filedir )" ]; then
@@ -42,7 +39,6 @@ _basher___channelz() {
 			COMPREPLY=()
 			;;
 	esac
-
 	COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
 	return 0
 }
