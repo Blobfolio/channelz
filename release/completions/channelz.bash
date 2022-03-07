@@ -5,6 +5,7 @@ _basher___channelz() {
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
 	opts=()
 	[[ " ${COMP_LINE} " =~ " --clean " ]] || opts+=("--clean")
+	[[ " ${COMP_LINE} " =~ " --force " ]] || opts+=("--force")
 	if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
 		opts+=("-h")
 		opts+=("--help")
