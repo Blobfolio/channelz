@@ -1,6 +1,6 @@
-.TH "CHANNELZ" "1" "February 2022" "ChannelZ v0.5.7" "User Commands"
+.TH "CHANNELZ" "1" "March 2022" "ChannelZ v0.5.8" "User Commands"
 .SH NAME
-ChannelZ \- Manual page for channelz v0.5.7.
+ChannelZ \- Manual page for channelz v0.5.8.
 .SH DESCRIPTION
 Fast, multi\-threaded static Gzip/Brotli encoding tool for the CLI.
 .SS USAGE:
@@ -10,6 +10,9 @@ channelz [FLAGS] [OPTIONS] <PATH(s)…>
 .TP
 \fB\-\-clean\fR
 Remove all existing *.gz *.br files before starting.
+.TP
+\fB\-\-force\fR
+Try to encode ALL files passed to ChannelZ, regardless of file extension (except those already ending in .br/.gz). Be careful with this!
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help information and exit.

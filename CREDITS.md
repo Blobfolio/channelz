@@ -1,7 +1,7 @@
 # Project Dependencies
     Package:   channelz
-    Version:   0.5.7
-    Generated: 2022-02-24 17:40:40 UTC
+    Version:   0.5.8
+    Generated: 2022-03-07 17:38:08 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
@@ -11,7 +11,7 @@
 | [atomic](https://github.com/Amanieu/atomic-rs) | 0.5.1 | [Amanieu d'Antras](mailto:amanieu@gmail.com) | Apache-2.0 or MIT |
 | [bytecount](https://github.com/llogiq/bytecount) | 0.6.2 | [Andre Bogus](mailto:bogusandre@gmail.de) and [Joshua Landau](mailto:joshua@landau.ws) | Apache-2.0 or MIT |
 | [cfg-if](https://github.com/alexcrichton/cfg-if) | 1.0.0 | [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
-| [channelz_core](https://github.com/Blobfolio/channelz) | 0.5.7 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [channelz_core](https://github.com/Blobfolio/channelz) | 0.5.8 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [compu](https://github.com/DoumanAsh/compu) | 0.5.3 | [Douman](mailto:douman@gmx.se) | Apache-2.0 |
 | [compu-brotli-sys](https://github.com/DoumanAsh/compu) | 0.1.3 | [Douman](mailto:douman@gmx.se) | Apache-2.0 |
 | [crossbeam-channel](https://github.com/crossbeam-rs/crossbeam) | 0.5.2 |  | Apache-2.0 or MIT |
@@ -19,9 +19,9 @@
 | [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.7 |  | Apache-2.0 or MIT |
 | [crossbeam-utils](https://github.com/crossbeam-rs/crossbeam) | 0.8.7 |  | Apache-2.0 or MIT |
 | [dactyl](https://github.com/Blobfolio/dactyl) | 0.2.4 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
-| [dowser](https://github.com/Blobfolio/dowser) | 0.3.6 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [dowser](https://github.com/Blobfolio/dowser) | 0.4.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [either](https://github.com/bluss/either) | 1.6.1 | bluss | Apache-2.0 or MIT |
-| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.9.3 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.9.5 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [lazy_static](https://github.com/rust-lang-nursery/lazy-static.rs) | 1.4.0 | [Marvin Löbel](mailto:loebel.marvin@gmail.com) | Apache-2.0 or MIT |
 | [libc](https://github.com/rust-lang/libc) | 0.2.119 | The Rust Project Developers | Apache-2.0 or MIT |
 | [libdeflate-sys](https://github.com/adamkewley/libdeflater) | 0.7.5 | [Adam Kewley](mailto:contact@adamkewley.com) | Apache-2.0 |
