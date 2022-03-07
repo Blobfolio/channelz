@@ -40,6 +40,10 @@ long = "--clean"
 description = "Remove all existing *.gz *.br files before starting."
 
 [[package.metadata.bashman.switches]]
+long = "--force"
+description = "Try to encode ALL files passed to ChannelZ, regardless of file extension (except those already ending in .br/.gz). Be careful with this!"
+
+[[package.metadata.bashman.switches]]
 short = "-h"
 long = "--help"
 description = "Print help information and exit."
@@ -77,14 +81,12 @@ lines = [
 [dependencies]
 argyle = "0.5.*"
 dactyl = "0.2.*"
+dowser = "0.4.*"
 rayon = "1.5.*"
+regex = "1.5.*"
 
 [dependencies.channelz_core]
 path = "../channelz_core"
-
-[dependencies.dowser]
-version = "0.3.*"
-features = [ "regexp" ]
 
 [dependencies.fyi_msg]
 version = "0.9.*"

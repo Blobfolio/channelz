@@ -135,7 +135,10 @@ use dactyl::{
 	NiceU64,
 	NicePercent,
 };
-use dowser::Dowser;
+use dowser::{
+	Dowser,
+	Extension,
+};
 use fyi_msg::{
 	Msg,
 	MsgKind,
@@ -145,6 +148,7 @@ use rayon::iter::{
 	IntoParallelRefIterator,
 	ParallelIterator,
 };
+use regex::bytes::Regex;
 use std::{
 	ffi::OsStr,
 	os::unix::ffi::OsStrExt,
@@ -189,11 +193,29 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 
 	// Put it all together!
-	let paths = Vec::<PathBuf>::try_from(
-		Dowser::regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$")
-			.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x.as_ref())))
-	)
-		.map_err(|_| ArgyleError::Custom("No encodeable files were found."))?;
+	let paths: Vec<PathBuf> =
+		if args.switch(b"--force") {
+			const E_BR: Extension = Extension::new2(*b"br");
+			const E_GZ: Extension = Extension::new2(*b"gz");
+
+			Dowser::default()
+				.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x)))
+				.filter(|p|
+					Extension::try_from2(p).map_or(true, |e| e != E_BR && e != E_GZ)
+				)
+				.collect()
+		}
+		else {
+			let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$").unwrap();
+			Dowser::default()
+				.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x)))
+				.filter(|p| re.is_match(p.as_os_str().as_bytes()))
+				.collect()
+		};
+
+	if paths.is_empty() {
+		return Err(ArgyleError::Custom("No encodeable files were found."));
+	}
 
 	// Sexy run-through.
 	if args.switch2(b"-p", b"--progress") {
@@ -246,14 +268,11 @@ fn _main() -> Result<(), ArgyleError> {
 /// purpose of removing `*.gz` and `*.br` files.
 fn clean<P, I>(paths: I)
 where P: AsRef<Path>, I: IntoIterator<Item=P> {
-	if let Ok(paths) = Vec::<PathBuf>::try_from(
-		Dowser::regex(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$")
-			.with_paths(paths)
-	) {
-		paths.par_iter()
-			.for_each(|x| {
-				let _res = std::fs::remove_file(x);
-			});
+	let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$").unwrap();
+	for p in Dowser::default().with_paths(paths) {
+		if re.is_match(p.as_os_str().as_bytes()) {
+			let _res = std::fs::remove_file(p);
+		}
 	}
 }
 
@@ -281,6 +300,9 @@ USAGE:
 
 FLAGS:
         --clean       Remove all existing *.gz *.br files before starting.
+        --force       Try to encode ALL files passed to ChannelZ, regardless of
+                      file extension (except those already ending in .br/.gz).
+                      Be careful with this!
     -h, --help        Print help information and exit.
     -p, --progress    Show progress bar while minifying.
     -V, --version     Print version information and exit.
