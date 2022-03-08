@@ -83,7 +83,7 @@ argyle = "0.5.*"
 dactyl = "0.2.*"
 dowser = "0.4.*"
 rayon = "1.5.*"
-regex = "1.5.*"
+regex = "1.5.*, >=1.5.5"
 
 [dependencies.channelz_core]
 path = "../channelz_core"
