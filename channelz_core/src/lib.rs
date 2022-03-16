@@ -65,14 +65,8 @@ where P: AsRef<Path> {
 pub enum ChannelZError {
 	/// # Empty file.
 	EmptyFile,
-	/// # Unable to encode file.
-	Encode,
-	/// # No compression savings.
-	NoCompression,
 	/// # Unable to read file.
 	Read,
-	/// # Unable to write file.
-	Write,
 }
 
 impl fmt::Display for ChannelZError {
@@ -89,11 +83,8 @@ impl ChannelZError {
 	/// # As Str.
 	pub const fn as_str(self) -> &'static str {
 		match self {
-			Self::Encode => "Unable to encode the file.",
 			Self::EmptyFile => "The file is empty.",
-			Self::NoCompression => "No compression savings were possible.",
 			Self::Read => "Unable to read the file.",
-			Self::Write => "Unable to save the file.",
 		}
 	}
 }
@@ -136,8 +127,8 @@ impl ChannelZ {
 	#[inline]
 	/// # Encode!
 	pub fn encode(&mut self) {
-		if self.encode_br().is_err() { self.delete_if(); }
-		if self.encode_gz().is_err() { self.delete_if(); }
+		if ! self.encode_br() { self.delete_if(); }
+		if ! self.encode_gz() { self.delete_if(); }
 	}
 
 	#[must_use]
@@ -159,7 +150,7 @@ impl ChannelZ {
 	}
 
 	/// # Encode Brotli.
-	fn encode_br(&mut self) -> Result<(), ChannelZError> {
+	fn encode_br(&mut self) -> bool {
 		use compu::{
 			compressor::write::Compressor,
 			encoder::{
@@ -170,18 +161,18 @@ impl ChannelZ {
 		};
 
 		let mut writer = Compressor::new(BrotliEncoder::default(), &mut self.buf);
-		let len: usize = writer.push(&self.raw, EncoderOp::Finish)
-			.map_err(|_| ChannelZError::Encode)?;
-
-		if 0 < len && len < self.raw.len() {
-			self.size_br = len as u64;
-			self.write()
+		if let Ok(len) = writer.push(&self.raw, EncoderOp::Finish) {
+			if 0 < len && len < self.raw.len() {
+				self.size_br = len as u64;
+				return self.write();
+			}
 		}
-		else { Err(ChannelZError::NoCompression) }
+
+		false
 	}
 
 	/// # Encode Gzip.
-	fn encode_gz(&mut self) -> Result<(), ChannelZError> {
+	fn encode_gz(&mut self) -> bool {
 		use libdeflater::{
 			CompressionLvl,
 			Compressor,
@@ -197,18 +188,18 @@ impl ChannelZ {
 			self.dst[len - 1] = b'z';
 		}
 
-		let len: usize = writer.gzip_compress(&self.raw, &mut self.buf)
-			.map_err(|_| ChannelZError::Encode)?;
-
-		if 0 < len && len < self.raw.len() {
-			// Libdeflater does not automatically truncate the buffer to the
-			// final payload size, so we need to do that before trying to write
-			// the data to a file.
-			self.buf.truncate(len);
-			self.size_gz = len as u64;
-			self.write()
+		if let Ok(len) = writer.gzip_compress(&self.raw, &mut self.buf) {
+			if 0 < len && len < self.raw.len() {
+				// Libdeflater does not automatically truncate the buffer to
+				// the final payload size, so we need to do that before trying
+				// to write the data to a file.
+				self.buf.truncate(len);
+				self.size_gz = len as u64;
+				return self.write();
+			}
 		}
-		else { Err(ChannelZError::NoCompression) }
+
+		false
 	}
 
 	#[cold]
@@ -231,9 +222,9 @@ impl ChannelZ {
 	/// # Write Result.
 	///
 	/// Write the buffer to an actual file.
-	fn write(&self) -> Result<(), ChannelZError> {
+	fn write(&self) -> bool {
 		File::create(OsStr::from_bytes(&self.dst))
 			.and_then(|mut file| file.write_all(&self.buf).and_then(|_| file.flush()))
-			.map_err(|_| ChannelZError::Write)
+			.is_ok()
 	}
 }
