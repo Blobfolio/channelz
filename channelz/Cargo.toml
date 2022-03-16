@@ -80,7 +80,7 @@ lines = [
 
 [dependencies]
 argyle = "0.5.*"
-dactyl = "0.2.*"
+dactyl = "0.3.*"
 dowser = "0.4.*"
 rayon = "1.5.*"
 regex = "1.5.*, >=1.5.5"
