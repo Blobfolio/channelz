@@ -1,6 +1,6 @@
 [package]
 name = "channelz_core"
-version = "0.5.8"
+version = "0.5.9"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -10,7 +10,7 @@ repository = "https://github.com/Blobfolio/channelz"
 publish = false
 
 [dependencies]
-libdeflater = "0.7.*"
+libdeflater = "0.8.*"
 
 [dependencies.compu]
 version = "0.5.*"
