@@ -222,7 +222,7 @@ impl ChannelZ {
 	/// it doesn't need to be deleted; if it does and can't be deleted, well,
 	/// we tried.
 	fn delete_if(&self) {
-		let path = PathBuf::from(OsStr::from_bytes(&self.dst));
+		let path = Path::new(OsStr::from_bytes(&self.dst));
 		if path.exists() {
 			let _res = std::fs::remove_file(path);
 		}
