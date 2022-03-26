@@ -200,17 +200,15 @@ fn _main() -> Result<(), ArgyleError> {
 
 			Dowser::default()
 				.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x)))
-				.filter(|p|
+				.into_vec(|p|
 					Extension::try_from2(p).map_or(true, |e| e != E_BR && e != E_GZ)
 				)
-				.collect()
 		}
 		else {
 			let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$").unwrap();
 			Dowser::default()
 				.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x)))
-				.filter(|p| re.is_match(p.as_os_str().as_bytes()))
-				.collect()
+				.into_vec(|p| re.is_match(p.as_os_str().as_bytes()))
 		};
 
 	if paths.is_empty() {
