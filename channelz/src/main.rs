@@ -150,7 +150,6 @@ use rayon::iter::{
 };
 use regex::bytes::Regex;
 use std::{
-	ffi::OsStr,
 	os::unix::ffi::OsStrExt,
 	path::{
 		Path,
@@ -189,7 +188,7 @@ fn _main() -> Result<(), ArgyleError> {
 
 	// Clean first?
 	if args.switch(b"--clean") {
-		clean(args.args().iter().map(|x| OsStr::from_bytes(x.as_ref())));
+		clean(args.args_os());
 	}
 
 	// Put it all together!
@@ -199,7 +198,7 @@ fn _main() -> Result<(), ArgyleError> {
 			const E_GZ: Extension = Extension::new2(*b"gz");
 
 			Dowser::default()
-				.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x)))
+				.with_paths(args.args_os())
 				.into_vec(|p|
 					Extension::try_from2(p).map_or(true, |e| e != E_BR && e != E_GZ)
 				)
@@ -207,7 +206,7 @@ fn _main() -> Result<(), ArgyleError> {
 		else {
 			let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$").unwrap();
 			Dowser::default()
-				.with_paths(args.args().iter().map(|x| OsStr::from_bytes(x)))
+				.with_paths(args.args_os())
 				.into_vec(|p| re.is_match(p.as_os_str().as_bytes()))
 		};
 
