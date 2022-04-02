@@ -139,6 +139,30 @@ bench-bin DIR NATIVE="":
 		--target-dir "{{ cargo_dir }}"
 
 
+@build-pgo: clean
+	[ ! -d "/tmp/pgo-data" ] || rm -rf /tmp/pgo-data
+
+	RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" cargo build \
+		--bin "{{ pkg_id }}" \
+		--release \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+	just _bench-reset
+	"{{ cargo_bin }}" -p "{{ data_dir }}/test"
+	"{{ cargo_bin }}" -p --force "{{ justfile_directory() }}/Cargo.lock" "{{ justfile_directory() }}/Cargo.toml"
+	rm Cargo*.gz Cargo*.br
+
+	/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata \
+		merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
+
+	RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" cargo build \
+		--bin "{{ pkg_id }}" \
+		--release \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+
 # Build Debian package!
 @build-deb: clean credits build
 	# cargo-deb doesn't support target_dir flags yet.
