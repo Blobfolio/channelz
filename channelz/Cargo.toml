@@ -82,8 +82,8 @@ lines = [
 argyle = "0.5.*, >=0.5.3"
 dactyl = "0.3.*"
 dowser = "0.4.*, >=0.4.3"
-rayon = "1.5.*"
-regex = "1.5.*, >=1.5.5"
+rayon = "=1.5.1"
+regex = "=1.5.5"
 
 [dependencies.channelz_core]
 path = "../channelz_core"
