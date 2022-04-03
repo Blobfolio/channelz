@@ -139,6 +139,22 @@ bench-bin DIR NATIVE="":
 		--target-dir "{{ cargo_dir }}"
 
 
+# Build Debian package!
+@build-deb: clean credits build
+	# cargo-deb doesn't support target_dir flags yet.
+	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
+	mv "{{ cargo_dir }}" "{{ justfile_directory() }}/target"
+
+	# Build the deb.
+	cargo-deb \
+		--no-build \
+		-p {{ pkg_id }} \
+		-o "{{ release_dir }}"
+
+	just _fix-chown "{{ release_dir }}"
+	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
+
+
 @build-pgo: clean
 	[ ! -d "/tmp/pgo-data" ] || rm -rf /tmp/pgo-data
 
@@ -161,22 +177,6 @@ bench-bin DIR NATIVE="":
 		--release \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
-
-
-# Build Debian package!
-@build-deb: clean credits build
-	# cargo-deb doesn't support target_dir flags yet.
-	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
-	mv "{{ cargo_dir }}" "{{ justfile_directory() }}/target"
-
-	# Build the deb.
-	cargo-deb \
-		--no-build \
-		-p {{ pkg_id }} \
-		-o "{{ release_dir }}"
-
-	just _fix-chown "{{ release_dir }}"
-	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
 
 
 # Check Release!
