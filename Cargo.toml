@@ -1,14 +1,99 @@
-[workspace]
-resolver = "2"
-members = [
-    "channelz",
-    "channelz_core",
+[package]
+name = "channelz"
+version = "0.5.9"
+license = "WTFPL"
+authors = ["Josh Stoik <josh@blobfolio.com>"]
+edition = "2021"
+rust-version = "1.59"
+description = "Fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
+repository = "https://github.com/Blobfolio/channelz"
+publish = false
+
+[package.metadata.deb]
+maintainer = "Josh Stoik <hello@blobfolio.com>"
+copyright = "2022, Blobfolio, LLC <hello@blobfolio.com>"
+license-file = ["./LICENSE", "0"]
+revision = "1"
+depends = "$auto"
+section = "utils"
+extended-description = """\
+.\n\
+Point ChannelZ toward a single file to generate maximally-compressed Brotli- and Gzip-encoded copies, or point it toward a directory to recursively handle many files en masse.\n\
+.\n\
+Only files with the following extensions will be looked at:\n\
+atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;\n\
+mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl"""
+assets = [
+    ["./target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
+    ["./release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
+    ["./release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
 
-[profile.bench]
-lto = true
-codegen-units = 1
-opt-level = 3
+[package.metadata.bashman]
+name = "ChannelZ"
+bash-dir = "./release/completions"
+man-dir = "./release/man"
+credits-dir = "./"
+
+[[package.metadata.bashman.switches]]
+long = "--clean"
+description = "Remove all existing *.gz *.br files before starting."
+
+[[package.metadata.bashman.switches]]
+long = "--force"
+description = "Try to encode ALL files passed to ChannelZ, regardless of file extension (except those already ending in .br/.gz). Be careful with this!"
+
+[[package.metadata.bashman.switches]]
+short = "-h"
+long = "--help"
+description = "Print help information and exit."
+
+[[package.metadata.bashman.switches]]
+short = "-p"
+long = "--progress"
+description = "Show progress bar while minifying."
+
+[[package.metadata.bashman.switches]]
+short = "-V"
+long = "--version"
+description = "Print version information and exit."
+
+[[package.metadata.bashman.options]]
+short = "-l"
+long = "--list"
+label = "<FILE>"
+description = "Read (absolute) file and/or directory paths from this text file, one entry per line."
+path = true
+
+[[package.metadata.bashman.arguments]]
+label = "<PATH(s)…>"
+description = "One or more file and/or directory paths to compress and/or (recursively) crawl."
+
+[[package.metadata.bashman.sections]]
+name = "FILE TYPES"
+inside = false
+lines = [
+	"Static copies will only be generated for files with these extensions:",
+	"atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;",
+	"mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl",
+]
+
+[dependencies]
+argyle = "0.5.*, >=0.5.3"
+dactyl = "0.3.*"
+dowser = "0.4.*, >=0.4.3"
+libdeflater = "=0.8.0"
+rayon = "=1.5.1"
+regex = "=1.5.5"
+
+[dependencies.compu]
+version = "=0.5.3"
+default-features = false
+features = [ "brotli-c" ]
+
+[dependencies.fyi_msg]
+version = "0.9.*"
+features = [ "progress", "parking_lot_mutex" ]
 
 [profile.release]
 lto = true
