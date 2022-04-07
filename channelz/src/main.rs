@@ -130,7 +130,6 @@ use argyle::{
 	FLAG_REQUIRED,
 	FLAG_VERSION,
 };
-use channelz_core::ChannelZ;
 use dactyl::{
 	NiceU64,
 	NicePercent,
@@ -227,22 +226,16 @@ fn _main() -> Result<(), ArgyleError> {
 
 		// Process!
 		paths.par_iter().for_each(|x| {
-			if let Ok(mut enc) = ChannelZ::try_from(x) {
-				let tmp = x.to_string_lossy();
-				progress.add(&tmp);
-				enc.encode();
+			let tmp = x.to_string_lossy();
+			progress.add(&tmp);
 
-				// Update the size totals.
-				let (a, b, c) = enc.sizes();
+			if let Some((a, b, c)) = channelz_core::encode(x) {
 				size_src.fetch_add(a, SeqCst);
 				size_br.fetch_add(b, SeqCst);
 				size_gz.fetch_add(c, SeqCst);
+			}
 
-				progress.remove(&tmp);
-			}
-			else {
-				progress.increment();
-			}
+			progress.remove(&tmp);
 		});
 
 		// Finish up.
@@ -250,10 +243,11 @@ fn _main() -> Result<(), ArgyleError> {
 		progress.summary(MsgKind::Crunched, "file", "files").print();
 		size_chart(size_src.load(SeqCst), size_br.load(SeqCst), size_gz.load(SeqCst));
 	}
+	// Silent run-through.
 	else {
-		paths.par_iter().for_each(|x|
-			if let Ok(mut x) = ChannelZ::try_from(x) { x.encode(); }
-		);
+		paths.par_iter().for_each(|x| {
+			let _res = channelz_core::encode(x);
+		});
 	}
 
 	Ok(())

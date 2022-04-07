@@ -31,200 +31,125 @@
 #[cfg(test)] use brunch as _;
 use std::{
 	ffi::OsStr,
-	fmt,
-	fs::{
-		self,
-		File,
-	},
+	fs::File,
 	io::Write,
 	os::unix::ffi::OsStrExt,
-	path::{
-		Path,
-		PathBuf,
-	},
+	path::Path,
 };
 
 
 
-/// # Convenience Method.
+#[must_use]
+/// # Encode File.
 ///
-/// This will try to encode any path-like source. It is equivalent to
-/// instantiating via [`ChannelZ::try_from`] and running [`ChannelZ::encode`].
-pub fn encode_path<P>(src: P)
-where P: AsRef<Path> {
-	let src = src.as_ref().to_path_buf();
-	if let Ok(mut enc) = ChannelZ::try_from(&src) {
-		enc.encode();
-	}
+/// This will attempt to encode the given file with both Brotli and Gzip, and
+/// return all three sizes (original, br, gz).
+pub fn encode(src: &Path) -> Option<(u64, u64, u64)> {
+	// First things first, read the file and make sure its length is non-zero
+	// and fits within `u64`.
+	let raw = std::fs::read(src).ok()?;
+	let len = raw.len();
+	if len == 0 { return None; }
+
+	// Usize should normally be <= u64, but on 128-bit systems we have to
+	// check!
+	#[cfg(target_pointer_width = "128")]
+	u64::try_from(len).ok()?;
+
+	// Do Gzip first because it will likely be bigger than Brotli, saving us
+	// the trouble of allocating additional buffer space down the road.
+	let mut buf: Vec<u8> = Vec::new();
+	let mut src: Vec<u8> = [src.as_os_str().as_bytes(), b".gz"].concat();
+	let len_gz = encode_gzip(&src, &raw, &mut buf).unwrap_or(len);
+
+	// Change the output path, then do Brotli.
+	let src_len = src.len();
+	src[src_len - 2] = b'b';
+	src[src_len - 1] = b'r';
+	let len_br = encode_brotli(&src, &raw, buf).unwrap_or(len);
+
+	// Done!
+	Some((len as u64, len_br as u64, len_gz as u64))
 }
 
 
 
-#[derive(Debug, Copy, Clone)]
-/// # Error.
-pub enum ChannelZError {
-	/// # Empty file.
-	EmptyFile,
-	/// # Unable to read file.
-	Read,
-}
-
-impl fmt::Display for ChannelZError {
-	#[inline]
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str(self.as_str())
-	}
-}
-
-impl std::error::Error for ChannelZError {}
-
-impl ChannelZError {
-	#[must_use]
-	/// # As Str.
-	pub const fn as_str(self) -> &'static str {
-		match self {
-			Self::EmptyFile => "The file is empty.",
-			Self::Read => "Unable to read the file.",
-		}
-	}
-}
-
-
-
-#[derive(Debug)]
-/// # `ChannelZ`
+/// # Encode Brotli.
 ///
-/// This struct is used to compress a given file using Brotli and Gzip.
-pub struct ChannelZ {
-	raw: Box<[u8]>,
-	buf: Vec<u8>,
-	dst: Box<[u8]>,
-	size_br: u64,
-	size_gz: u64,
+/// This will attempt to encode `raw` using Brotli, writing the result to disk
+/// if it is smaller than the original.
+fn encode_brotli(path: &[u8], raw: &[u8], mut buf: Vec<u8>) -> Option<usize> {
+	use compu::{
+		compressor::write::Compressor,
+		encoder::{
+			Encoder,
+			EncoderOp,
+			BrotliEncoder,
+		},
+	};
+
+	// Set up the buffer/writer.
+	buf.truncate(0);
+	let mut writer = Compressor::new(BrotliEncoder::default(), &mut buf);
+
+	// Encode!
+	if let Ok(len) = writer.push(raw, EncoderOp::Finish) {
+		// Save it?
+		if 0 < len && len < raw.len() && write(OsStr::from_bytes(path), &buf) {
+			return Some(len);
+		}
+	}
+
+	// Clean up.
+	remove_if(path);
+	None
 }
 
-impl TryFrom<&PathBuf> for ChannelZ {
-	type Error = ChannelZError;
+/// # Encode Gzip.
+///
+/// This will attempt to encode `raw` using Gzip, writing the result to disk
+/// if it is smaller than the original.
+fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
+	use libdeflater::{
+		CompressionLvl,
+		Compressor,
+	};
 
-	fn try_from(src: &PathBuf) -> Result<Self, Self::Error> {
-		// Read the file.
-		let raw = fs::read(src).map_err(|_| ChannelZError::Read)?.into_boxed_slice();
-		if raw.is_empty() {
-			return Err(ChannelZError::EmptyFile);
+	// Set up the buffer/writer.
+	let old_len = raw.len();
+	let mut writer = Compressor::new(CompressionLvl::best());
+	buf.resize(writer.gzip_compress_bound(old_len), 0);
+
+	// Encode!
+	if let Ok(len) = writer.gzip_compress(raw, buf) {
+		if 0 < len && len < old_len && write(OsStr::from_bytes(path), &buf[..len]) {
+			return Some(len);
 		}
+	}
 
-		Ok(Self {
-			buf: Vec::with_capacity(raw.len()),
-			raw,
-			dst: [src.as_os_str().as_bytes(), b".br"].concat().into_boxed_slice(),
-			size_br: 0,
-			size_gz: 0,
-		})
+	// Clean up.
+	remove_if(path);
+	None
+}
+
+/// # Remove If It Exists.
+///
+/// This method is used to clean up previously-encoded copies of a file when
+/// the current encoding operation fails.
+///
+/// We can't do anything if deletion fails, but at least we can say we tried.
+fn remove_if(path: &[u8]) {
+	let path = Path::new(OsStr::from_bytes(path));
+	if path.exists() {
+		let _res = std::fs::remove_file(path);
 	}
 }
 
-impl ChannelZ {
-	#[inline]
-	/// # Encode!
-	pub fn encode(&mut self) {
-		if ! self.encode_br() { self.delete_if(); }
-		if ! self.encode_gz() { self.delete_if(); }
-	}
-
-	#[must_use]
-	/// # Sizes.
-	///
-	/// Return the original size, the Brotli size, and the Gzip size. In cases
-	/// where Brotli and/or Gzip didn't run, the original size will be
-	/// returned in their place.
-	pub const fn sizes(&self) -> (u64, u64, u64) {
-		let size_src = self.raw.len() as u64;
-		let size_br =
-			if 0 < self.size_br { self.size_br }
-			else { size_src };
-		let size_gz =
-			if 0 < self.size_gz { self.size_gz }
-			else { size_src };
-
-		(size_src, size_br, size_gz)
-	}
-
-	/// # Encode Brotli.
-	fn encode_br(&mut self) -> bool {
-		use compu::{
-			compressor::write::Compressor,
-			encoder::{
-				Encoder,
-				EncoderOp,
-				BrotliEncoder,
-			},
-		};
-
-		let mut writer = Compressor::new(BrotliEncoder::default(), &mut self.buf);
-		if let Ok(len) = writer.push(&self.raw, EncoderOp::Finish) {
-			if 0 < len && len < self.raw.len() {
-				self.size_br = len as u64;
-				return self.write();
-			}
-		}
-
-		false
-	}
-
-	/// # Encode Gzip.
-	fn encode_gz(&mut self) -> bool {
-		use libdeflater::{
-			CompressionLvl,
-			Compressor,
-		};
-
-		let mut writer = Compressor::new(CompressionLvl::best());
-		self.buf.resize(writer.gzip_compress_bound(self.raw.len()), 0);
-
-		// Update the destination path extension.
-		{
-			let len: usize = self.dst.len();
-			self.dst[len - 2] = b'g';
-			self.dst[len - 1] = b'z';
-		}
-
-		if let Ok(len) = writer.gzip_compress(&self.raw, &mut self.buf) {
-			if 0 < len && len < self.raw.len() {
-				// Libdeflater does not automatically truncate the buffer to
-				// the final payload size, so we need to do that before trying
-				// to write the data to a file.
-				self.buf.truncate(len);
-				self.size_gz = len as u64;
-				return self.write();
-			}
-		}
-
-		false
-	}
-
-	#[cold]
-	/// # Delete If (File Exists).
-	///
-	/// We probably don't need to explicitly check the file exists, but it is
-	/// unclear how the underlying `unlink()` varies from system to system.
-	///
-	/// This method returns no result and suppresses any errors encountered as
-	/// there's not really anything more to be done. If the file doesn't exist,
-	/// it doesn't need to be deleted; if it does and can't be deleted, well,
-	/// we tried.
-	fn delete_if(&self) {
-		let path = Path::new(OsStr::from_bytes(&self.dst));
-		if path.exists() {
-			let _res = std::fs::remove_file(path);
-		}
-	}
-
-	/// # Write Result.
-	///
-	/// Write the buffer to an actual file.
-	fn write(&self) -> bool {
-		File::create(OsStr::from_bytes(&self.dst))
-			.and_then(|mut file| file.write_all(&self.buf).and_then(|_| file.flush()))
-			.is_ok()
-	}
+/// # Write Result.
+///
+/// Write the buffer to an actual file.
+fn write(path: &OsStr, data: &[u8]) -> bool {
+	File::create(path)
+		.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
+		.is_ok()
 }
