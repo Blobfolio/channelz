@@ -1,7 +1,7 @@
 # Project Dependencies
     Package:   channelz
     Version:   0.5.10
-    Generated: 2022-04-07 15:57:31 UTC
+    Generated: 2022-04-07 15:58:51 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
