@@ -17,8 +17,7 @@
 
 pkg_id      := "channelz"
 pkg_name    := "ChannelZ"
-pkg_dir1    := justfile_directory() + "/channelz"
-pkg_dir2    := justfile_directory() + "/channelz_core"
+pkg_dir1    := justfile_directory()
 
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
@@ -26,115 +25,12 @@ data_dir    := "/tmp/bench-data"
 doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
 
-rustflags   := "-C link-arg=-s"
-
-
-
-# Bench it!
-bench BENCH="":
-	#!/usr/bin/env bash
-
-	clear
-	if [ -z "{{ BENCH }}" ]; then
-		RUSTFLAGS="{{ rustflags }}" cargo bench \
-			--benches \
-			--workspace \
-			--all-features \
-			--target x86_64-unknown-linux-gnu \
-			--target-dir "{{ cargo_dir }}"
-	else
-		RUSTFLAGS="{{ rustflags }}" cargo bench \
-			--bench "{{ BENCH }}" \
-			--workspace \
-			--all-features \
-			--target x86_64-unknown-linux-gnu \
-			--target-dir "{{ cargo_dir }}"
-	fi
-	exit 0
-
-
-# Bench Bin.
-bench-bin DIR NATIVE="":
-	#!/usr/bin/env bash
-
-	# Validate directory.
-	if [ ! -d "{{ DIR }}" ]; then
-		fyi error "Invalid directory."
-		exit 1
-	fi
-
-	# Clean up.
-	find "{{ DIR }}" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-	clear
-
-	if [ -z "{{ NATIVE }}" ]; then
-		# Make sure we have a bin built.
-		[ -f "{{ cargo_bin }}" ] || just build
-
-		fyi print -p "{{ cargo_bin }}" -c 199 "$( "{{ cargo_bin }}" -V )"
-
-		start_time="$(date -u +%s.%N)"
-		"{{ cargo_bin }}" "{{ DIR }}"
-		end_time="$(date -u +%s.%N)"
-		elapsed="$(bc <<<"$end_time-$start_time")"
-	elif [ -f "{{ NATIVE }}" ]; then
-		echo Native
-	else
-		echo "Manual Gzip + Brotli"
-
-		start_time="$(date -u +%s.%N)"
-
-		find "{{ DIR }}" \
-			-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
-			-type f \
-			-exec gzip -k -9 {} \;
-
-		find "{{ DIR }}" \
-			-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
-			-type f \
-			-exec brotli -k -q 11 {} \;
-
-		end_time="$(date -u +%s.%N)"
-		elapsed="$(bc <<<"$end_time-$start_time")"
-	fi
-
-	# Pull the ending stats.
-	size=$( find "{{ DIR }}" \
-		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\)$" \
-		-type f \
-		-print0 | \
-			xargs -r0 du -scb | \
-				tail -n 1 | \
-					cut -f 1 )
-
-	br_size=$( find "{{ DIR }}" \
-		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).br$" \
-		-type f \
-		-print0 | \
-			xargs -r0 du -scb | \
-				tail -n 1 | \
-					cut -f 1 )
-
-	gz_size=$( find "{{ DIR }}" \
-		-iregex ".*\(css\|eot\|x?html?\|ico\|m?js\|json\|otf\|rss\|svg\|ttf\|txt\|xml\|xsl\).gz$" \
-		-type f \
-		-print0 | \
-			xargs -r0 du -scb | \
-				tail -n 1 | \
-					cut -f 1 )
-
-	# Print the info!
-	fyi blank
-	fyi print -p "Elapsed" -c 15 "${elapsed} seconds"
-	fyi print -p "  Plain" -c 53 "${size} bytes"
-	fyi print -p "   Gzip" -c 44 " ${gz_size} bytes"
-	fyi print -p " Brotli" -c 35 " ${br_size} bytes"
 
 
 # Build Release!
 @build:
 	# First let's build the Rust bit.
-	RUSTFLAGS="--emit asm {{ rustflags }}" cargo build \
+	RUSTFLAGS="--emit asm" cargo build \
 		--bin "{{ pkg_id }}" \
 		--release \
 		--target x86_64-unknown-linux-gnu \
@@ -157,11 +53,34 @@ bench-bin DIR NATIVE="":
 	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
 
 
+@build-pgo: clean
+	[ ! -d "/tmp/pgo-data" ] || rm -rf /tmp/pgo-data
+
+	RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" cargo build \
+		--bin "{{ pkg_id }}" \
+		--release \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+	just _bench-reset
+	"{{ cargo_bin }}" -p "{{ data_dir }}/test"
+	"{{ cargo_bin }}" -p --force "{{ justfile_directory() }}/Cargo.lock" "{{ justfile_directory() }}/Cargo.toml"
+	rm Cargo*.gz Cargo*.br
+
+	/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata \
+		merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
+
+	RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" cargo build \
+		--bin "{{ pkg_id }}" \
+		--release \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+
 # Check Release!
 @check:
 	# First let's build the Rust bit.
-	RUSTFLAGS="{{ rustflags }}" cargo check \
-		--workspace \
+	cargo check \
 		--release \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
@@ -175,14 +94,12 @@ bench-bin DIR NATIVE="":
 	# they place *other* shit in the designated target dir. Haha.
 	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
 	[ ! -d "{{ pkg_dir1 }}/target" ] || rm -rf "{{ pkg_dir1 }}/target"
-	[ ! -d "{{ pkg_dir2 }}/target" ] || rm -rf "{{ pkg_dir2 }}/target"
 
 
 # Clippy.
 @clippy:
 	clear
-	RUSTFLAGS="{{ rustflags }}" cargo clippy \
-		--workspace \
+	cargo clippy \
 		--release \
 		--all-features \
 		--target x86_64-unknown-linux-gnu \
@@ -200,7 +117,6 @@ bench-bin DIR NATIVE="":
 @doc:
 	# Make the docs.
 	cargo doc \
-		--workspace \
 		--release \
 		--no-deps \
 		--target x86_64-unknown-linux-gnu \
@@ -216,7 +132,7 @@ bench-bin DIR NATIVE="":
 
 # Test Run.
 @run +ARGS:
-	RUSTFLAGS="{{ rustflags }}" cargo run \
+	cargo run \
 		--bin "{{ pkg_id }}" \
 		--release \
 		--target x86_64-unknown-linux-gnu \
@@ -244,7 +160,6 @@ version:
 
 	# Set the release version!
 	just _version "{{ pkg_dir1 }}" "$_ver2"
-	just _version "{{ pkg_dir2 }}" "$_ver2"
 
 
 # Set version for real.
