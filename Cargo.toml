@@ -86,6 +86,7 @@ dowser = "0.4.*, >=0.4.3"
 libdeflater = "=0.8.0"
 rayon = "=1.5.1"
 regex = "=1.5.5"
+thread_local = "=1.1.4"
 
 [dependencies.compu]
 version = "=0.5.3"

@@ -94,34 +94,31 @@ channelz /path/to/css /path/to/js …
 
 #![forbid(unsafe_code)]
 
-#![warn(clippy::filetype_is_file)]
-#![warn(clippy::integer_division)]
-#![warn(clippy::needless_borrow)]
-#![warn(clippy::nursery)]
-#![warn(clippy::pedantic)]
-#![warn(clippy::perf)]
-#![warn(clippy::suboptimal_flops)]
-#![warn(clippy::unneeded_field_pattern)]
-#![warn(macro_use_extern_crate)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(non_ascii_idents)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unreachable_pub)]
-#![warn(unused_crate_dependencies)]
-#![warn(unused_extern_crates)]
-#![warn(unused_import_braces)]
-
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::map_err_ignore)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::module_name_repetitions)]
+#![warn(
+	clippy::filetype_is_file,
+	clippy::integer_division,
+	clippy::needless_borrow,
+	clippy::nursery,
+	clippy::pedantic,
+	clippy::perf,
+	clippy::suboptimal_flops,
+	clippy::unneeded_field_pattern,
+	macro_use_extern_crate,
+	missing_copy_implementations,
+	missing_debug_implementations,
+	missing_docs,
+	non_ascii_idents,
+	trivial_casts,
+	trivial_numeric_casts,
+	unreachable_pub,
+	unused_crate_dependencies,
+	unused_extern_crates,
+	unused_import_braces,
+)]
 
 
+
+mod enc;
 
 use argyle::{
 	Argue,
@@ -149,9 +146,7 @@ use rayon::iter::{
 };
 use regex::bytes::Regex;
 use std::{
-	ffi::OsStr,
-	fs::File,
-	io::Write,
+	cell::RefCell,
 	os::unix::ffi::OsStrExt,
 	path::{
 		Path,
@@ -162,6 +157,8 @@ use std::{
 		Ordering::SeqCst,
 	},
 };
+use thread_local::ThreadLocal;
+use enc::Encoder;
 
 
 
@@ -216,41 +213,21 @@ fn _main() -> Result<(), ArgyleError> {
 		return Err(ArgyleError::Custom("No encodeable files were found."));
 	}
 
-	// Sexy run-through.
-	if args.switch2(b"-p", b"--progress") {
-		// Boot up a progress bar.
-		let progress = Progless::try_from(paths.len())
-			.map_err(|_| ArgyleError::Custom("Progress can only be displayed for up to 4,294,967,295 files. Try again with fewer files or without the -p/--progress flag."))?
-			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
-
-		let size_src = AtomicU64::new(0);
-		let size_br = AtomicU64::new(0);
-		let size_gz = AtomicU64::new(0);
-
-		// Process!
-		paths.par_iter().for_each(|x| {
-			let tmp = x.to_string_lossy();
-			progress.add(&tmp);
-
-			if let Some((a, b, c)) = encode(x) {
-				size_src.fetch_add(a, SeqCst);
-				size_br.fetch_add(b, SeqCst);
-				size_gz.fetch_add(c, SeqCst);
-			}
-
-			progress.remove(&tmp);
-		});
-
-		// Finish up.
-		progress.finish();
-		progress.summary(MsgKind::Crunched, "file", "files").print();
-		size_chart(size_src.load(SeqCst), size_br.load(SeqCst), size_gz.load(SeqCst));
+	// Should we show progress as we go?
+	let mut progress = args.switch2(b"-p", b"--progress");
+	if progress && 4_294_967_295 < paths.len()  {
+		Msg::warning("Progress can't be displayed when there are more than 4,294,967,295 files.")
+			.print();
+		progress = false;
 	}
-	// Silent run-through.
+
+	// Encode with cache.
+	if rayon::current_num_threads() * 2 <= paths.len() {
+		crunch_cached(&paths, progress);
+	}
+	// Just encode.
 	else {
-		paths.par_iter().for_each(|x| {
-			let _res = encode(x);
-		});
+		crunch(&paths, progress);
 	}
 
 	Ok(())
@@ -270,103 +247,95 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 	}
 }
 
-/// # Encode File.
+/// # Crunch.
 ///
-/// This will attempt to encode the given file with both Brotli and Gzip, and
-/// return all three sizes (original, br, gz).
-///
-/// If the file is unreadable, empty, or too big to represent as `u64`, `None`
-/// will be returned. If either Gzip or Brotli fail (or result in larger
-/// output), their "sizes" will actually represent the original input size.
-/// (We're looking for savings, and if we can't encode as .gz or whatever,
-/// there are effectively no savings.)
-fn encode(src: &Path) -> Option<(u64, u64, u64)> {
-	// First things first, read the file and make sure its length is non-zero
-	// and fits within `u64`.
-	let raw = std::fs::read(src).ok()?;
-	let len = raw.len();
-	if len == 0 { return None; }
+/// Encode all the paths. Easy enough!
+fn crunch(paths: &[PathBuf], progress: bool) {
+	// Sexy run-through.
+	if progress {
+		// Boot up a progress bar.
+		let progress = Progless::try_from(paths.len())
+			.unwrap()
+			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
 
-	// Usize should normally be <= u64, but on 128-bit systems we have to
-	// check!
-	#[cfg(target_pointer_width = "128")]
-	u64::try_from(len).ok()?;
+		let size_src = AtomicU64::new(0);
+		let size_br = AtomicU64::new(0);
+		let size_gz = AtomicU64::new(0);
 
-	// Do Gzip first because it will likely be bigger than Brotli, saving us
-	// the trouble of allocating additional buffer space down the road.
-	let mut buf: Vec<u8> = Vec::new();
-	let mut src: Vec<u8> = [src.as_os_str().as_bytes(), b".gz"].concat();
-	let len_gz = encode_gzip(&src, &raw, &mut buf).unwrap_or(len);
+		// Process!
+		paths.par_iter().for_each(|x| {
+			let tmp = x.to_string_lossy();
+			progress.add(&tmp);
 
-	// Change the output path, then do Brotli.
-	let src_len = src.len();
-	src[src_len - 2] = b'b';
-	src[src_len - 1] = b'r';
-	let len_br = encode_brotli(&src, &raw, buf).unwrap_or(len);
-
-	// Done!
-	Some((len as u64, len_br as u64, len_gz as u64))
-}
-
-/// # Encode Brotli.
-///
-/// This will attempt to encode `raw` using Brotli, writing the result to disk
-/// if it is smaller than the original.
-fn encode_brotli(path: &[u8], raw: &[u8], mut buf: Vec<u8>) -> Option<usize> {
-	use compu::{
-		compressor::write::Compressor,
-		encoder::{
-			Encoder,
-			EncoderOp,
-			BrotliEncoder,
-		},
-	};
-
-	// Set up the buffer/writer.
-	buf.truncate(0);
-	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
-
-	// Encode!
-	if let Ok(len) = writer.push(raw, EncoderOp::Finish) {
-		// Save it?
-		if 0 < len && len < raw.len() {
-			let buf = writer.take();
-			if write(OsStr::from_bytes(path), &buf) {
-				return Some(len);
+			if let Some(mut e) = Encoder::new(x) {
+				let (a, b, c) = e.encode();
+				size_src.fetch_add(a, SeqCst);
+				size_br.fetch_add(b, SeqCst);
+				size_gz.fetch_add(c, SeqCst);
 			}
-		}
-	}
 
-	// Clean up.
-	remove_if(path);
-	None
+			progress.remove(&tmp);
+		});
+
+		// Finish up.
+		progress.finish();
+		progress.summary(MsgKind::Crunched, "file", "files").print();
+		size_chart(size_src.load(SeqCst), size_br.load(SeqCst), size_gz.load(SeqCst));
+	}
+	// Silent run-through.
+	else {
+		paths.par_iter().for_each(|x| {
+			if let Some(mut e) = Encoder::new(x) {
+				e.encode();
+			}
+		});
+	}
 }
 
-/// # Encode Gzip.
+/// # Crunch w/ Cache.
 ///
-/// This will attempt to encode `raw` using Gzip, writing the result to disk
-/// if it is smaller than the original.
-fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	use libdeflater::{
-		CompressionLvl,
-		Compressor,
-	};
+/// This works just like `crunch`, except thread-local storage caches are
+/// leveraged to reduce the number of allocations being made. For large
+/// workloads, this should improve performance a little bit.
+fn crunch_cached(paths: &[PathBuf], progress: bool) {
+	let tls: ThreadLocal<RefCell<Encoder>> = ThreadLocal::new();
 
-	// Set up the buffer/writer.
-	let old_len = raw.len();
-	let mut writer = Compressor::new(CompressionLvl::best());
-	buf.resize(writer.gzip_compress_bound(old_len), 0);
+	// Sexy run-through.
+	if progress {
+		// Boot up a progress bar.
+		let progress = Progless::try_from(paths.len())
+			.unwrap()
+			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
 
-	// Encode!
-	if let Ok(len) = writer.gzip_compress(raw, buf) {
-		if 0 < len && len < old_len && write(OsStr::from_bytes(path), &buf[..len]) {
-			return Some(len);
-		}
+		let size_src = AtomicU64::new(0);
+		let size_br = AtomicU64::new(0);
+		let size_gz = AtomicU64::new(0);
+
+		// Process!
+		paths.par_iter().for_each(|x| {
+			let tmp = x.to_string_lossy();
+			progress.add(&tmp);
+
+			if let Some((a, b, c)) = tls.get_or_default().borrow_mut().encode_with(x) {
+				size_src.fetch_add(a, SeqCst);
+				size_br.fetch_add(b, SeqCst);
+				size_gz.fetch_add(c, SeqCst);
+			}
+
+			progress.remove(&tmp);
+		});
+
+		// Finish up.
+		progress.finish();
+		progress.summary(MsgKind::Crunched, "file", "files").print();
+		size_chart(size_src.load(SeqCst), size_br.load(SeqCst), size_gz.load(SeqCst));
 	}
-
-	// Clean up.
-	remove_if(path);
-	None
+	// Silent run-through.
+	else {
+		paths.par_iter().for_each(|x| {
+			let _res = tls.get_or_default().borrow_mut().encode_with(x);
+		});
+	}
 }
 
 #[cold]
@@ -418,19 +387,6 @@ Note: static copies will only be generated for files with these extensions:
 	));
 }
 
-/// # Remove If It Exists.
-///
-/// This method is used to clean up previously-encoded copies of a file when
-/// the current encoding operation fails.
-///
-/// We can't do anything if deletion fails, but at least we can say we tried.
-fn remove_if(path: &[u8]) {
-	let path = Path::new(OsStr::from_bytes(path));
-	if path.exists() {
-		let _res = std::fs::remove_file(path);
-	}
-}
-
 /// # Summarize Output Sizes.
 ///
 /// This compares the original sources against their Brotli and Gzip
@@ -469,13 +425,4 @@ fn size_chart(src: u64, br: u64, gz: u64) {
 		.with_suffix(per_gz)
 		.with_newline(true)
 		.print();
-}
-
-/// # Write Result.
-///
-/// Write the buffer to an actual file.
-fn write(path: &OsStr, data: &[u8]) -> bool {
-	File::create(path)
-		.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
-		.is_ok()
 }
