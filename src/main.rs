@@ -324,13 +324,16 @@ fn encode_brotli(path: &[u8], raw: &[u8], mut buf: Vec<u8>) -> Option<usize> {
 
 	// Set up the buffer/writer.
 	buf.truncate(0);
-	let mut writer = Compressor::new(BrotliEncoder::default(), &mut buf);
+	let mut writer = Compressor::new(BrotliEncoder::default(), buf);
 
 	// Encode!
 	if let Ok(len) = writer.push(raw, EncoderOp::Finish) {
 		// Save it?
-		if 0 < len && len < raw.len() && write(OsStr::from_bytes(path), &buf) {
-			return Some(len);
+		if 0 < len && len < raw.len() {
+			let buf = writer.take();
+			if write(OsStr::from_bytes(path), &buf) {
+				return Some(len);
+			}
 		}
 	}
 
