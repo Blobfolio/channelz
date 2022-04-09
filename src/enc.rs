@@ -96,22 +96,23 @@ impl Encoder {
 
 	/// # Encode Brotli.
 	fn encode_brotli(&mut self) -> Option<usize> {
-		use compu::{
-			compressor::write::Compressor,
-			encoder::{
-				Encoder,
-				EncoderOp,
-				BrotliEncoder,
-			},
+		use compu::encoder::{
+			Encoder,
+			EncoderOp,
+			BrotliEncoder,
 		};
 
-		// Set up the buffer/writer.
-		self.buf.truncate(0);
-		let mut writer = Compressor::new(BrotliEncoder::default(), &mut self.buf);
-
 		// Encode!
-		if let Ok(len) = writer.push(&self.raw, EncoderOp::Finish) {
+		let mut encoder = BrotliEncoder::default();
+		let (_, _, res) = encoder.encode(&self.raw, &mut [], EncoderOp::Finish);
+		if res {
+			self.buf.truncate(0);
+			if let Some(output) = encoder.output() {
+				self.buf.extend_from_slice(output);
+			}
+
 			// Save it?
+			let len = self.buf.len();
 			if 0 < len && len < self.raw.len() && self.write() {
 				return Some(len);
 			}
