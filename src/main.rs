@@ -254,9 +254,7 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 	// Silent run-through.
 	else {
-		paths.par_iter().for_each(|x| {
-			let _res = encode(x);
-		});
+		paths.par_iter().for_each(|x| { let _res = encode(x); });
 	}
 
 	Ok(())
