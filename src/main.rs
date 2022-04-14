@@ -213,6 +213,8 @@ fn _main() -> Result<(), ArgyleError> {
 
 	// Should we show progress as we go?
 	let mut progress = args.switch2(b"-p", b"--progress");
+
+	#[cfg(any(target_pointer_width = "64", target_pointer_width = "128"))]
 	if progress && 4_294_967_295 < paths.len()  {
 		Msg::warning("Progress can't be displayed when there are more than 4,294,967,295 files.")
 			.print();
