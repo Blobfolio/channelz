@@ -18,17 +18,20 @@
 
 The "appropriate" file types are:
 
+ * appcache
  * atom
  * bmp
  * css
  * eot
- * (geo)json
+ * geojson
  * htc
  * htm(l)
  * ico
  * ics
  * js
- * manifest
+ * json
+ * jsonld
+ * (web)manifest
  * md
  * mjs
  * otf
@@ -202,7 +205,7 @@ fn _main() -> Result<(), ArgyleError> {
 				)
 		}
 		else {
-			let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$").unwrap();
+			let re = Regex::new(r"(?i)[^/]+\.(appcache|atom|bmp|css|eot|geojson|htc|ico|ics|json(ld)?|m?js|(web)?manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$").unwrap();
 			Dowser::default()
 				.with_paths(args.args_os())
 				.into_vec(|p| re.is_match(p.as_os_str().as_bytes()))
@@ -267,7 +270,7 @@ fn _main() -> Result<(), ArgyleError> {
 /// purpose of removing `*.gz` and `*.br` files.
 fn clean<P, I>(paths: I)
 where P: AsRef<Path>, I: IntoIterator<Item=P> {
-	let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$").unwrap();
+	let re = Regex::new(r"(?i)[^/]+\.(appcache|atom|bmp|css|eot|geojson|htc|ico|ics|json(ld)?|m?js|(web)?manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$").unwrap();
 	for p in Dowser::default().with_paths(paths) {
 		if re.is_match(p.as_os_str().as_bytes()) && std::fs::remove_file(&p).is_err() {
 			Msg::warning(format!("Unable to delete {:?}", p)).print();
@@ -417,8 +420,9 @@ ARGS:
 
 Note: static copies will only be generated for files with these extensions:
 
-    atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;
-    mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
+    appcache; atom; bmp; css; eot; geojson; htc; htm(l); ico; ics; js; json;
+    jsonld; manifest; md; mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt;
+    wasm; webmanifest; xhtm(l); xml; xsl
 "
 	));
 }
