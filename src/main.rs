@@ -270,8 +270,8 @@ fn clean<P, I>(paths: I)
 where P: AsRef<Path>, I: IntoIterator<Item=P> {
 	let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$").unwrap();
 	for p in Dowser::default().with_paths(paths) {
-		if re.is_match(p.as_os_str().as_bytes()) {
-			let _res = std::fs::remove_file(p);
+		if re.is_match(p.as_os_str().as_bytes()) && std::fs::remove_file(&p).is_err() {
+			Msg::warning(format!("Unable to delete {:?}", p)).print();
 		}
 	}
 }
