@@ -184,8 +184,9 @@ fn _main() -> Result<(), ArgyleError> {
 		.with_list();
 
 	// Clean first?
-	if args.switch(b"--clean") {
+	if args.switch2(b"--clean", b"--clean-only") {
 		clean(args.args_os());
+		if args.switch(b"--clean-only") { return Ok(()); }
 	}
 
 	// Put it all together!
@@ -394,7 +395,9 @@ USAGE:
     channelz [FLAGS] [OPTIONS] <PATH(S)>...
 
 FLAGS:
-        --clean       Remove all existing *.gz *.br files before starting.
+        --clean       Remove all existing *.gz *.br files (of types ChannelZ
+                      would encode) before starting.
+        --clean-only  Same as --clean, but exit immediately afterward.
         --force       Try to encode ALL files passed to ChannelZ, regardless of
                       file extension (except those already ending in .br/.gz).
                       Be careful with this!

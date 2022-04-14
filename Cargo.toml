@@ -38,7 +38,11 @@ credits-dir = "./"
 
 [[package.metadata.bashman.switches]]
 long = "--clean"
-description = "Remove all existing *.gz *.br files before starting."
+description = "Remove all existing *.gz *.br files (of types ChannelZ would encode) before starting."
+
+[[package.metadata.bashman.switches]]
+long = "--clean-only"
+description = "Same as --clean, but exit immediately afterward."
 
 [[package.metadata.bashman.switches]]
 long = "--force"
