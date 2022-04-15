@@ -28,6 +28,10 @@
 
 
 
+mod ext;
+
+
+
 use argyle::{
 	Argue,
 	ArgyleError,
@@ -39,10 +43,7 @@ use dactyl::{
 	NiceU64,
 	NicePercent,
 };
-use dowser::{
-	Dowser,
-	Extension,
-};
+use dowser::Dowser;
 use fyi_msg::{
 	Msg,
 	MsgKind,
@@ -52,7 +53,6 @@ use rayon::iter::{
 	IntoParallelRefIterator,
 	ParallelIterator,
 };
-use regex::bytes::Regex;
 use std::{
 	ffi::OsStr,
 	fs::File,
@@ -102,20 +102,14 @@ fn _main() -> Result<(), ArgyleError> {
 	// Put it all together!
 	let paths: Vec<PathBuf> =
 		if args.switch(b"--force") {
-			const E_BR: Extension = Extension::new2(*b"br");
-			const E_GZ: Extension = Extension::new2(*b"gz");
-
 			Dowser::default()
 				.with_paths(args.args_os())
-				.into_vec(|p|
-					Extension::try_from2(p).map_or(true, |e| e != E_BR && e != E_GZ)
-				)
+				.into_vec(|p| ! ext::match_br_gz(p.as_os_str().as_bytes()))
 		}
 		else {
-			let re = Regex::new(r"(?i)[^/]+\.(appcache|atom|bmp|css|eot|geojson|htc|ico|ics|json(ld)?|m?js|(web)?manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$").unwrap();
 			Dowser::default()
 				.with_paths(args.args_os())
-				.into_vec(|p| re.is_match(p.as_os_str().as_bytes()))
+				.into_vec(|p| ext::match_extension(p.as_os_str().as_bytes()))
 		};
 
 	if paths.is_empty() {
@@ -177,10 +171,13 @@ fn _main() -> Result<(), ArgyleError> {
 /// purpose of removing `*.gz` and `*.br` files.
 fn clean<P, I>(paths: I)
 where P: AsRef<Path>, I: IntoIterator<Item=P> {
-	let re = Regex::new(r"(?i)[^/]+\.(appcache|atom|bmp|css|eot|geojson|htc|ico|ics|json(ld)?|m?js|(web)?manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$").unwrap();
 	for p in Dowser::default().with_paths(paths) {
-		if re.is_match(p.as_os_str().as_bytes()) && std::fs::remove_file(&p).is_err() {
-			Msg::warning(format!("Unable to delete {:?}", p)).print();
+		let bytes = p.as_os_str().as_bytes();
+		if ext::match_br_gz(bytes) {
+			let len = bytes.len();
+			if ext::match_extension(&bytes[..len - 3]) && std::fs::remove_file(&p).is_err() {
+				Msg::warning(format!("Unable to delete {:?}", p)).print();
+			}
 		}
 	}
 }

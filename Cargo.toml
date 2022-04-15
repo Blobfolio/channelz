@@ -90,7 +90,6 @@ dactyl = "0.3.*"
 dowser = "0.4.*, >=0.4.3"
 libdeflater = "=0.8.0"
 rayon = "=1.5.2"
-regex = "=1.5.5"
 
 [dependencies.compu]
 version = "=0.5.3"
