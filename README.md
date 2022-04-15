@@ -80,14 +80,14 @@ cargo build \
 It's easy. Just run `channelz [FLAGS] [OPTIONS] <PATH(S)>…`.
 
 The following flags and options are available:
-```bash
-    --clean          Remove all existing *.gz *.br files before starting.
--h, --help           Print help information and exit.
--l, --list <FILE>    Read (absolute) file and/or directory paths from this text
-                     file, one entry per line.
--p, --progress       Show progress bar while minifying.
--V, --version        Print version information and exit.
-```
+
+| Short | Long | Value | Description |
+| ----- | ---- | ----- | ----------- |
+| | `--clean` | | Remove all existing \*.gz \*.br files before starting. |
+| `-h` | `--help` | | Print help information and exit. |
+| `-l` | `--list` | `<FILE>` | Read (absolute) file and/or directory paths from this text file, one entry per line. |
+| `-p` | `--progress` | | Show progress bar while minifying. |
+| `-V` | `--version` | | Print program version and exit. |
 
 For example:
 ```bash
