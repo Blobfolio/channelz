@@ -84,6 +84,9 @@ lines = [
     "wasm; webmanifest; xhtm(l); xml; xsl",
 ]
 
+[build-dependencies]
+dactyl = "0.3.*"
+
 [dependencies]
 argyle = "0.5.*, >=0.5.3"
 dactyl = "0.3.*"

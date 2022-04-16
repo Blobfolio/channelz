@@ -2,6 +2,10 @@
 # `ChannelZ`
 */
 
+use dactyl::{
+	NiceU16,
+	NiceU32,
+};
 use std::{
 	io::Write,
 	path::Path,
@@ -10,46 +14,13 @@ use std::{
 
 
 /// # Pre-Compute Extensions.
+///
+/// Because we know all of the target extensions in advance, we can store them
+/// as primitives for faster runtime comparison (when crawling paths).
+///
+/// There are a few other, longer extensions that aren't worth optimizing in
+/// this way. They're just dealt with inline in `ext.rs`.
 pub fn main() {
-	let outbrgz = format!(
-		"{} | {}",
-		u16::from_le_bytes([b'b', b'r']),
-		u16::from_le_bytes([b'g', b'z'])
-	);
-
-	let out2 = format!(
-		"{} | {}",
-		u16::from_le_bytes([b'j', b's']),
-		u16::from_le_bytes([b'm', b'd'])
-	);
-
-	let mut out3 = Vec::new();
-	for i in ["bmp", "css", "eot", "htc", "htm", "ico", "ics", "mjs", "otf", "rdf", "rss", "svg", "ttf", "txt", "vcs", "vtt", "xml", "xsl"] {
-		let i = i.as_bytes();
-		let num = u32::from_le_bytes([b'.', i[0], i[1], i[2]]);
-		out3.push(num);
-	}
-	out3.sort_unstable();
-	let out3 = out3.into_iter()
-		.map(|x| x.to_string())
-		.collect::<Vec<_>>()
-		.join(" | ");
-
-	let mut out4 = Vec::new();
-	for i in ["atom", "html", "json", "wasm", "xhtm"] {
-		let i = i.as_bytes();
-		let num = u32::from_le_bytes([i[0], i[1], i[2], i[3]]);
-		out4.push(num);
-	}
-	out4.sort_unstable();
-	let out4 = out4.into_iter()
-		.map(|x| x.to_string())
-		.collect::<Vec<_>>()
-		.join(" | ");
-
-	let out_dir = std::fs::canonicalize(std::env::var("OUT_DIR").expect("Missing OUT_DIR."))
-		.expect("Missing OUT_DIR.");
-
 	let out = format!(
 		r"
 /// # Match br/gz.
@@ -75,13 +46,60 @@ const fn match3(ext: u32) -> bool {{ matches!(ext, {}) }}
 /// # Match 4.
 const fn match4(ext: u32) -> bool {{ matches!(ext, {}) }}
 		",
-		outbrgz,
-		out2,
-		out3,
-		out4,
+		pat16(&["br", "gz"]),
+		pat16(&["js", "md"]),
+		pat32(&[
+			".bmp", ".css", ".eot", ".htc", ".htm", ".ico", ".ics", ".mjs", ".otf",
+			".rdf", ".rss", ".svg", ".ttf", ".txt", ".vcs", ".vtt", ".xml", ".xsl",
+		]),
+		pat32(&["atom", "html", "json", "wasm", "xhtm"]),
 	);
 
-	write(&out_dir.join("channelz-matchers.rs"), out.as_bytes());
+	let out_path = std::fs::canonicalize(std::env::var("OUT_DIR").expect("Missing OUT_DIR."))
+		.expect("Missing OUT_DIR.")
+		.join("channelz-matchers.rs");
+
+	write(&out_path, out.as_bytes());
+}
+
+/// # U16 Pattern.
+///
+/// Generate a match pattern of u16 values for the provided two-byte extensions.
+fn pat16(ext: &[&str]) -> String {
+	let mut out = Vec::new();
+	for i in ext {
+		let i = i.as_bytes();
+		assert_eq!(i.len(), 2);
+		let num = NiceU16::with_separator(
+			u16::from_le_bytes([i[0], i[1]]),
+			b'_',
+		);
+		out.push(num);
+	}
+	out.sort();
+	out.join(" | ")
+}
+
+/// # U32 Pattern.
+///
+/// Generate a match pattern of u32 values for the provided four-byte
+/// extensions.
+///
+/// Note: this is also used for three-byte extensions; they're just padded with
+/// a leading dot.
+fn pat32(ext: &[&str]) -> String {
+	let mut out = Vec::new();
+	for i in ext {
+		let i = i.as_bytes();
+		assert_eq!(i.len(), 4);
+		let num = NiceU32::with_separator(
+			u32::from_le_bytes([i[0], i[1], i[2], i[3]]),
+			b'_',
+		);
+		out.push(num);
+	}
+	out.sort();
+	out.join(" | ")
 }
 
 /// # Write File.
