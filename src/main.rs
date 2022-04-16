@@ -1,125 +1,32 @@
 /*!
 # `ChannelZ`
-
-`ChannelZ` is a CLI tool for x86-64 Linux machines that simplifies the common task of encoding static web assets with Gzip and Brotli for production environments.
-
-
-
-## Features
-
- * `gzip` and `brotli` are compiled into `channelz`; their binaries do not need to be separately installed;
- * The maximum compression settings are applied; the end results will often be smaller than running native `gzip` or `brotli` thanks to various optimizations;
- * It can be set against one or many files, one or many directories;
- * Paths can be specified as trailing command arguments, and/or loaded via text file (with one path per line) with the `-l` option;
- * Directory processing is recursive;
- * Processing is done in parallel with multiple threads for major speedups;
- * Appropriate file types are automatically targeted; no thinking involved!
-
-
-The "appropriate" file types are:
-
- * atom
- * bmp
- * css
- * eot
- * (geo)json
- * htc
- * htm(l)
- * ico
- * ics
- * js
- * manifest
- * md
- * mjs
- * otf
- * rdf
- * rss
- * svg
- * ttf
- * txt
- * vcard
- * vcs
- * vtt
- * wasm
- * xhtm(l)
- * xml
- * xsl
-
-
-
-## Installation
-
-This application is written in [Rust](https://www.rust-lang.org/) and can be installed using [Cargo](https://github.com/rust-lang/cargo).
-
-For stable Rust (>= `1.51.0`), run:
-```bash
-RUSTFLAGS="-C link-arg=-s" cargo install \
-    --git https://github.com/Blobfolio/channelz.git \
-    --bin channelz \
-    --target x86_64-unknown-linux-gnu
-```
-
-Pre-built `.deb` packages are also added for each [release](https://github.com/Blobfolio/channelz/releases/latest). They should always work for the latest stable Debian and Ubuntu.
-
-
-
-## Usage
-
-It's easy. Just run `channelz [FLAGS] [OPTIONS] <PATH(S)>…`.
-
-The following flags and options are available:
-```bash
-    --clean          Remove all existing *.gz *.br files before starting.
--h, --help           Prints help information.
--l, --list <list>    Read file paths from this list.
--p, --progress       Show progress bar while minifying.
--V, --version        Prints version information.
-```
-
-For example:
-```bash
-# Generate app.js.gz and app.js.br:
-channelz /path/to/app.js
-
-# Tackle a whole folder at once with a nice progress bar:
-channelz -p /path/to/assets
-
-# Do the same thing, but clear out any old *.gz or *.br files first:
-channelz --clean -p /path/to/assets
-
-# Or load it up with a lot of places separately:
-channelz /path/to/css /path/to/js …
-```
 */
 
-#![forbid(unsafe_code)]
+#![warn(
+	clippy::filetype_is_file,
+	clippy::integer_division,
+	clippy::needless_borrow,
+	clippy::nursery,
+	clippy::pedantic,
+	clippy::perf,
+	clippy::suboptimal_flops,
+	clippy::unneeded_field_pattern,
+	macro_use_extern_crate,
+	missing_copy_implementations,
+	missing_debug_implementations,
+	missing_docs,
+	non_ascii_idents,
+	trivial_casts,
+	trivial_numeric_casts,
+	unreachable_pub,
+	unused_crate_dependencies,
+	unused_extern_crates,
+	unused_import_braces,
+)]
 
-#![warn(clippy::filetype_is_file)]
-#![warn(clippy::integer_division)]
-#![warn(clippy::needless_borrow)]
-#![warn(clippy::nursery)]
-#![warn(clippy::pedantic)]
-#![warn(clippy::perf)]
-#![warn(clippy::suboptimal_flops)]
-#![warn(clippy::unneeded_field_pattern)]
-#![warn(macro_use_extern_crate)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(non_ascii_idents)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unreachable_pub)]
-#![warn(unused_crate_dependencies)]
-#![warn(unused_extern_crates)]
-#![warn(unused_import_braces)]
 
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::map_err_ignore)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::module_name_repetitions)]
+
+mod ext;
 
 
 
@@ -134,10 +41,7 @@ use dactyl::{
 	NiceU64,
 	NicePercent,
 };
-use dowser::{
-	Dowser,
-	Extension,
-};
+use dowser::Dowser;
 use fyi_msg::{
 	Msg,
 	MsgKind,
@@ -147,7 +51,6 @@ use rayon::iter::{
 	IntoParallelRefIterator,
 	ParallelIterator,
 };
-use regex::bytes::Regex;
 use std::{
 	ffi::OsStr,
 	fs::File,
@@ -189,38 +92,44 @@ fn _main() -> Result<(), ArgyleError> {
 		.with_list();
 
 	// Clean first?
-	if args.switch(b"--clean") {
+	if args.switch2(b"--clean", b"--clean-only") {
 		clean(args.args_os());
+		if args.switch(b"--clean-only") { return Ok(()); }
 	}
 
 	// Put it all together!
 	let paths: Vec<PathBuf> =
 		if args.switch(b"--force") {
-			const E_BR: Extension = Extension::new2(*b"br");
-			const E_GZ: Extension = Extension::new2(*b"gz");
-
 			Dowser::default()
 				.with_paths(args.args_os())
-				.into_vec(|p|
-					Extension::try_from2(p).map_or(true, |e| e != E_BR && e != E_GZ)
-				)
+				.into_vec(|p| ! ext::match_br_gz(p.as_os_str().as_bytes()))
 		}
 		else {
-			let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)$").unwrap();
 			Dowser::default()
 				.with_paths(args.args_os())
-				.into_vec(|p| re.is_match(p.as_os_str().as_bytes()))
+				.into_vec(|p| ext::match_extension(p.as_os_str().as_bytes()))
 		};
 
 	if paths.is_empty() {
 		return Err(ArgyleError::Custom("No encodeable files were found."));
 	}
 
+	// Should we show progress as we go?
+	let mut progress = args.switch2(b"-p", b"--progress");
+
+	#[cfg(any(target_pointer_width = "64", target_pointer_width = "128"))]
+	if progress && 4_294_967_295 < paths.len()  {
+		Msg::warning("Progress can't be displayed when there are more than 4,294,967,295 files.")
+			.print();
+		progress = false;
+	}
+
+	// Encode with cache.
 	// Sexy run-through.
-	if args.switch2(b"-p", b"--progress") {
+	if progress {
 		// Boot up a progress bar.
 		let progress = Progless::try_from(paths.len())
-			.map_err(|_| ArgyleError::Custom("Progress can only be displayed for up to 4,294,967,295 files. Try again with fewer files or without the -p/--progress flag."))?
+			.unwrap()
 			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
 
 		let size_src = AtomicU64::new(0);
@@ -248,9 +157,7 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 	// Silent run-through.
 	else {
-		paths.par_iter().for_each(|x| {
-			let _res = encode(x);
-		});
+		paths.par_iter().for_each(|x| { let _res = encode(x); });
 	}
 
 	Ok(())
@@ -262,10 +169,13 @@ fn _main() -> Result<(), ArgyleError> {
 /// purpose of removing `*.gz` and `*.br` files.
 fn clean<P, I>(paths: I)
 where P: AsRef<Path>, I: IntoIterator<Item=P> {
-	let re = Regex::new(r"(?i)[^/]+\.((geo)?json|atom|bmp|css|eot|htc|ico|ics|m?js|manifest|md|otf|rdf|rss|svg|ttf|txt|vcard|vcs|vtt|wasm|x?html?|xml|xsl)\.(br|gz)$").unwrap();
 	for p in Dowser::default().with_paths(paths) {
-		if re.is_match(p.as_os_str().as_bytes()) {
-			let _res = std::fs::remove_file(p);
+		let bytes = p.as_os_str().as_bytes();
+		if ext::match_br_gz(bytes) {
+			let len = bytes.len();
+			if ext::match_extension(&bytes[..len - 3]) && std::fs::remove_file(&p).is_err() {
+				Msg::warning(format!("Unable to delete {:?}", p)).print();
+			}
 		}
 	}
 }
@@ -285,12 +195,12 @@ fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 	// and fits within `u64`.
 	let raw = std::fs::read(src).ok()?;
 	let len = raw.len();
-	if len == 0 { return None; }
 
-	// Usize should normally be <= u64, but on 128-bit systems we have to
-	// check!
 	#[cfg(target_pointer_width = "128")]
-	u64::try_from(len).ok()?;
+	if 0 == len || len > 18_446_744_073_709_551_615 { return None; }
+
+	#[cfg(not(target_pointer_width = "128"))]
+	if len == 0 { return None; }
 
 	// Do Gzip first because it will likely be bigger than Brotli, saving us
 	// the trouble of allocating additional buffer space down the road.
@@ -302,7 +212,7 @@ fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 	let src_len = src.len();
 	src[src_len - 2] = b'b';
 	src[src_len - 1] = b'r';
-	let len_br = encode_brotli(&src, &raw, buf).unwrap_or(len);
+	let len_br = encode_brotli(&src, &raw, &mut buf).unwrap_or(len);
 
 	// Done!
 	Some((len as u64, len_br as u64, len_gz as u64))
@@ -312,24 +222,25 @@ fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 ///
 /// This will attempt to encode `raw` using Brotli, writing the result to disk
 /// if it is smaller than the original.
-fn encode_brotli(path: &[u8], raw: &[u8], mut buf: Vec<u8>) -> Option<usize> {
-	use compu::{
-		compressor::write::Compressor,
-		encoder::{
-			Encoder,
-			EncoderOp,
-			BrotliEncoder,
-		},
+fn encode_brotli(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
+	use compu::encoder::{
+		Encoder,
+		EncoderOp,
+		BrotliEncoder,
 	};
 
-	// Set up the buffer/writer.
-	buf.truncate(0);
-	let mut writer = Compressor::new(BrotliEncoder::default(), &mut buf);
-
 	// Encode!
-	if let Ok(len) = writer.push(raw, EncoderOp::Finish) {
+	let mut encoder = BrotliEncoder::default();
+	let (_, _, res) = encoder.encode(raw, &mut [], EncoderOp::Finish);
+	if res {
+		buf.truncate(0);
+		if let Some(output) = encoder.output() {
+			buf.extend_from_slice(output);
+		}
+
 		// Save it?
-		if 0 < len && len < raw.len() && write(OsStr::from_bytes(path), &buf) {
+		let len = buf.len();
+		if 0 < len && len < raw.len() && write(OsStr::from_bytes(path), buf) {
 			return Some(len);
 		}
 	}
@@ -389,7 +300,9 @@ USAGE:
     channelz [FLAGS] [OPTIONS] <PATH(S)>...
 
 FLAGS:
-        --clean       Remove all existing *.gz *.br files before starting.
+        --clean       Remove all existing *.gz *.br files (of types ChannelZ
+                      would encode) before starting.
+        --clean-only  Same as --clean, but exit immediately afterward.
         --force       Try to encode ALL files passed to ChannelZ, regardless of
                       file extension (except those already ending in .br/.gz).
                       Be careful with this!
@@ -409,8 +322,9 @@ ARGS:
 
 Note: static copies will only be generated for files with these extensions:
 
-    atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;
-    mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
+    appcache; atom; bmp; css; eot; geojson; htc; htm(l); ico; ics; js; json;
+    jsonld; manifest; md; mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt;
+    wasm; webmanifest; xhtm(l); xml; xsl
 "
 	));
 }

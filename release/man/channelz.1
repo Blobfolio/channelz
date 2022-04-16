@@ -1,6 +1,6 @@
-.TH "CHANNELZ" "1" "April 2022" "ChannelZ v0.5.10" "User Commands"
+.TH "CHANNELZ" "1" "April 2022" "ChannelZ v0.5.11" "User Commands"
 .SH NAME
-ChannelZ \- Manual page for channelz v0.5.10.
+ChannelZ \- Manual page for channelz v0.5.11.
 .SH DESCRIPTION
 Fast, multi\-threaded static Gzip/Brotli encoding tool for the CLI.
 .SS USAGE:
@@ -9,7 +9,10 @@ channelz [FLAGS] [OPTIONS] <PATH(s)…>
 .SS FLAGS:
 .TP
 \fB\-\-clean\fR
-Remove all existing *.gz *.br files before starting.
+Remove all existing *.gz *.br files (of types ChannelZ would encode) before starting.
+.TP
+\fB\-\-clean\-only\fR
+Same as \-\-clean, but exit immediately afterward.
 .TP
 \fB\-\-force\fR
 Try to encode ALL files passed to ChannelZ, regardless of file extension (except those already ending in .br/.gz). Be careful with this!
@@ -32,6 +35,8 @@ One or more file and/or directory paths to compress and/or (recursively) crawl.
 .SH FILE TYPES
 Static copies will only be generated for files with these extensions:
 .RE
-atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;
+appcache; atom; bmp; css; eot; geojson; htc; htm(l); ico; ics; js; json;
 .RE
-mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl
+jsonld; manifest; md; mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt;
+.RE
+wasm; webmanifest; xhtm(l); xml; xsl
