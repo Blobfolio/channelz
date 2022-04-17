@@ -3,53 +3,45 @@
 */
 
 
+use dowser::Extension;
+
+
 // See build.rs.
 include!(concat!(env!("OUT_DIR"), "/channelz-matchers.rs"));
 
 
 
-#[allow(clippy::option_if_let_else)] // No.
 /// # Match Extension.
+///
+/// This checks that the path (as a byte slice) ends with one of the supported
+/// extensions.
 pub(super) fn match_extension(ext: &[u8]) -> bool {
-	if let Some(dot) = ext.iter().rposition(|b| b'.'.eq(b)) {
-		if
-			// There's stuff before the dot.
-			0 < dot &&
-			// The dot leaves room for our shortest extension afterward.
-			dot + 2 < ext.len() &&
-			// Safety: we tested 0 < dot, so the subtraction won't overflow.
-			! matches!(unsafe { *(ext.get_unchecked(dot - 1)) }, b'/' | b'\\')
-		{
-			// Safety: we tested dot+2 earlier, so dot+1 is fine.
-			let ext = unsafe { ext.get_unchecked(dot + 1..) };
-			match ext.len() {
-				2 => match2(u16::from_le_bytes([
-					ext[0].to_ascii_lowercase(),
-					ext[1].to_ascii_lowercase(),
-				])),
-				3 => match3(u32::from_le_bytes([
-					b'.',
-					ext[0].to_ascii_lowercase(),
-					ext[1].to_ascii_lowercase(),
-					ext[2].to_ascii_lowercase(),
-				])),
-				4 => match4(u32::from_le_bytes([
-					ext[0].to_ascii_lowercase(),
-					ext[1].to_ascii_lowercase(),
-					ext[2].to_ascii_lowercase(),
-					ext[3].to_ascii_lowercase(),
-				])),
-				5 => ext.eq_ignore_ascii_case(b"vcard") || ext.eq_ignore_ascii_case(b"xhtml"),
-				6 => ext.eq_ignore_ascii_case(b"jsonld"),
-				7 => ext.eq_ignore_ascii_case(b"geojson"),
-				8 => ext.eq_ignore_ascii_case(b"appcache") || ext.eq_ignore_ascii_case(b"manifest"),
-				11 => ext.eq_ignore_ascii_case(b"webmanifest"),
-				_ => false,
-			}
+	Extension::slice_ext(ext).map_or(false, |ext|
+		match ext.len() {
+			2 => match2(u16::from_le_bytes([
+				ext[0].to_ascii_lowercase(),
+				ext[1].to_ascii_lowercase(),
+			])),
+			3 => match3(u32::from_le_bytes([
+				b'.',
+				ext[0].to_ascii_lowercase(),
+				ext[1].to_ascii_lowercase(),
+				ext[2].to_ascii_lowercase(),
+			])),
+			4 => match4(u32::from_le_bytes([
+				ext[0].to_ascii_lowercase(),
+				ext[1].to_ascii_lowercase(),
+				ext[2].to_ascii_lowercase(),
+				ext[3].to_ascii_lowercase(),
+			])),
+			5 => ext.eq_ignore_ascii_case(b"vcard") || ext.eq_ignore_ascii_case(b"xhtml"),
+			6 => ext.eq_ignore_ascii_case(b"jsonld"),
+			7 => ext.eq_ignore_ascii_case(b"geojson"),
+			8 => ext.eq_ignore_ascii_case(b"appcache") || ext.eq_ignore_ascii_case(b"manifest"),
+			11 => ext.eq_ignore_ascii_case(b"webmanifest"),
+			_ => false,
 		}
-		else { false }
-	}
-	else { false }
+	)
 }
 
 
