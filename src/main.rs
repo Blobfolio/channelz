@@ -55,16 +55,18 @@ use rayon::iter::{
 };
 use std::{
 	ffi::OsStr,
-	fs::File,
-	io::Write,
 	os::unix::ffi::OsStrExt,
 	path::{
 		Path,
 		PathBuf,
 	},
-	sync::atomic::{
-		AtomicU64,
-		Ordering::SeqCst,
+	sync::{
+		Arc,
+		atomic::{
+			AtomicBool,
+			AtomicU64,
+			Ordering::SeqCst,
+		},
 	},
 };
 
@@ -126,6 +128,10 @@ fn _main() -> Result<(), ArgyleError> {
 		progress = false;
 	}
 
+	// Controls for early termination.
+	let killed = Arc::from(AtomicBool::new(false));
+	let k2 = Arc::clone(&killed);
+
 	// Encode with cache.
 	// Sexy run-through.
 	if progress {
@@ -138,18 +144,27 @@ fn _main() -> Result<(), ArgyleError> {
 		let size_br = AtomicU64::new(0);
 		let size_gz = AtomicU64::new(0);
 
+		// Intercept CTRL+C so we can gracefully shut down.
+		let p2 = progress.clone();
+		let _res = ctrlc::set_handler(move || {
+			k2.store(true, SeqCst);
+			p2.set_title(Some(Msg::warning("Early shutdown in progress.")));
+		});
+
 		// Process!
 		paths.par_iter().for_each(|x| {
-			let tmp = x.to_string_lossy();
-			progress.add(&tmp);
+			if ! killed.load(SeqCst) {
+				let tmp = x.to_string_lossy();
+				progress.add(&tmp);
 
-			if let Some((a, b, c)) = encode(x) {
-				size_src.fetch_add(a, SeqCst);
-				size_br.fetch_add(b, SeqCst);
-				size_gz.fetch_add(c, SeqCst);
+				if let Some((a, b, c)) = encode(x) {
+					size_src.fetch_add(a, SeqCst);
+					size_br.fetch_add(b, SeqCst);
+					size_gz.fetch_add(c, SeqCst);
+				}
+
+				progress.remove(&tmp);
 			}
-
-			progress.remove(&tmp);
 		});
 
 		// Finish up.
@@ -159,10 +174,17 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 	// Silent run-through.
 	else {
-		paths.par_iter().for_each(|x| { let _res = encode(x); });
+		// Intercept CTRL+C so we can gracefully shut down.
+		let _res = ctrlc::set_handler(move || { k2.store(true, SeqCst); });
+
+		paths.par_iter().for_each(|x| {
+			if ! killed.load(SeqCst) { let _res = encode(x); }
+		});
 	}
 
-	Ok(())
+	// Early abort?
+	if killed.load(SeqCst) { Err(ArgyleError::Custom("The process was aborted early.")) }
+	else { Ok(()) }
 }
 
 /// # Clean.
@@ -242,7 +264,7 @@ fn encode_brotli(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 
 		// Save it?
 		let len = buf.len();
-		if 0 < len && len < raw.len() && write(OsStr::from_bytes(path), buf) {
+		if 0 < len && len < raw.len() && write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok() {
 			return Some(len);
 		}
 	}
@@ -269,7 +291,7 @@ fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 
 	// Encode!
 	if let Ok(len) = writer.gzip_compress(raw, buf) {
-		if 0 < len && len < old_len && write(OsStr::from_bytes(path), &buf[..len]) {
+		if 0 < len && len < old_len && write_atomic::write_file(OsStr::from_bytes(path), &buf[..len]).is_ok() {
 			return Some(len);
 		}
 	}
@@ -382,13 +404,4 @@ fn size_chart(src: u64, br: u64, gz: u64) {
 		.with_suffix(per_gz)
 		.with_newline(true)
 		.print();
-}
-
-/// # Write Result.
-///
-/// Write the buffer to an actual file.
-fn write(path: &OsStr, data: &[u8]) -> bool {
-	File::create(path)
-		.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
-		.is_ok()
 }
