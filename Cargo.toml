@@ -89,7 +89,6 @@ dactyl = "0.3.*"
 
 [dependencies]
 argyle = "0.5.*, >=0.5.3"
-ctrlc = "=3.2.1"
 dactyl = "0.3.*"
 dowser = "0.4.*, >=0.4.6"
 libdeflater = "=0.8.0"
@@ -104,6 +103,10 @@ features = [ "brotli-c" ]
 [dependencies.fyi_msg]
 version = "0.9.*"
 features = [ "progress", "parking_lot_mutex" ]
+
+[dependencies.signal-hook]
+version = "=0.3.13"
+default-features = false
 
 [profile.release]
 lto = true

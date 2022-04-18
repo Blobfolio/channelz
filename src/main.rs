@@ -128,11 +128,13 @@ fn _main() -> Result<(), ArgyleError> {
 		progress = false;
 	}
 
-	// Controls for early termination.
+	// Watch for SIGINT so we can shut down cleanly.
 	let killed = Arc::from(AtomicBool::new(false));
-	let k2 = Arc::clone(&killed);
+	let _res = signal_hook::flag::register(
+		signal_hook::consts::SIGINT,
+		Arc::clone(&killed)
+	);
 
-	// Encode with cache.
 	// Sexy run-through.
 	if progress {
 		// Boot up a progress bar.
@@ -144,16 +146,15 @@ fn _main() -> Result<(), ArgyleError> {
 		let size_br = AtomicU64::new(0);
 		let size_gz = AtomicU64::new(0);
 
-		// Intercept CTRL+C so we can gracefully shut down.
-		let p2 = progress.clone();
-		let _res = ctrlc::set_handler(move || {
-			k2.store(true, SeqCst);
-			p2.set_title(Some(Msg::warning("Early shutdown in progress.")));
-		});
-
 		// Process!
+		let killed2 = AtomicBool::new(false);
 		paths.par_iter().for_each(|x| {
-			if ! killed.load(SeqCst) {
+			if killed.load(SeqCst) {
+				if killed2.compare_exchange(false, true, SeqCst, SeqCst).is_ok() {
+					progress.set_title(Some(Msg::warning("Early shutdown in progress.")));
+				}
+			}
+			else {
 				let tmp = x.to_string_lossy();
 				progress.add(&tmp);
 
@@ -174,9 +175,6 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 	// Silent run-through.
 	else {
-		// Intercept CTRL+C so we can gracefully shut down.
-		let _res = ctrlc::set_handler(move || { k2.store(true, SeqCst); });
-
 		paths.par_iter().for_each(|x| {
 			if ! killed.load(SeqCst) { let _res = encode(x); }
 		});
