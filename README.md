@@ -90,6 +90,7 @@ The following flags and options are available:
 | `-V` | `--version` | | Print program version and exit. |
 
 For example:
+
 ```bash
 # Generate app.js.gz and app.js.br:
 channelz /path/to/app.js
