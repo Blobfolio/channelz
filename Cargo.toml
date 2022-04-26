@@ -97,6 +97,8 @@ write_atomic = "0.2.*"
 
 [dependencies.compu]
 version = "=0.5.3"
+git = "https://github.com/DoumanAsh/compu.git"
+rev = "8eb12b9"
 default-features = false
 features = [ "brotli-c" ]
 
