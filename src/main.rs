@@ -134,10 +134,14 @@ fn _main() -> Result<(), ArgyleError> {
 
 	// Watch for SIGINT so we can shut down cleanly.
 	let killed = Arc::from(AtomicBool::new(false));
-	let _res = signal_hook::flag::register(
+	let _res = signal_hook::flag::register_conditional_shutdown(
+		signal_hook::consts::SIGINT,
+		1,
+		Arc::clone(&killed)
+	).and_then(|_| signal_hook::flag::register(
 		signal_hook::consts::SIGINT,
 		Arc::clone(&killed)
-	);
+	));
 
 	// Sexy run-through.
 	if progress {
