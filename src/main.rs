@@ -2,7 +2,7 @@
 # `ChannelZ`
 */
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 #![warn(
 	clippy::filetype_is_file,
@@ -28,6 +28,7 @@
 
 
 
+mod brotli;
 mod ext;
 
 
@@ -248,31 +249,15 @@ fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 /// This will attempt to encode `raw` using Brotli, writing the result to disk
 /// if it is smaller than the original.
 fn encode_brotli(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	use compu::encoder::{
-		Encoder,
-		EncoderOp,
-		BrotliEncoder,
-	};
-
-	// Encode!
-	let mut encoder = BrotliEncoder::default();
-	let (_, _, res) = encoder.encode(raw, &mut [], EncoderOp::Finish);
-	if res {
-		buf.truncate(0);
-		if let Some(output) = encoder.output() {
-			buf.extend_from_slice(output);
-		}
-
-		// Save it?
-		let len = buf.len();
-		if 0 < len && len < raw.len() && write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok() {
-			return Some(len);
-		}
+	let size = brotli::encode(raw, buf);
+	if 0 < size && write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok() {
+		Some(size)
 	}
-
-	// Clean up.
-	remove_if(path);
-	None
+	else {
+		// Clean up.
+		remove_if(path);
+		None
+	}
 }
 
 /// # Encode Gzip.
