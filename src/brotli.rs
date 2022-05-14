@@ -143,7 +143,7 @@ unsafe extern "C" fn custom_malloc(_: *mut c_void, size: usize) -> *mut c_void {
 ///
 /// This tells Brotli how to free memory allocated for us.
 unsafe extern "C" fn custom_free(_: *mut c_void, mem: *mut c_void) {
-	if !mem.is_null() {
+	if ! mem.is_null() {
 		let mem = mem.cast::<u8>().offset(-(LAYOUT_OFFSET as isize));
 		let size = std::ptr::read(mem.cast::<usize>());
 		let layout = Layout::from_size_align_unchecked(size, MIN_ALIGN);

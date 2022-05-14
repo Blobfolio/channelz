@@ -66,7 +66,10 @@ use std::{
 		atomic::{
 			AtomicBool,
 			AtomicU64,
-			Ordering::SeqCst,
+			Ordering::{
+				Relaxed,
+				SeqCst,
+			},
 		},
 	},
 };
@@ -135,14 +138,7 @@ fn _main() -> Result<(), ArgyleError> {
 
 	// Watch for SIGINT so we can shut down cleanly.
 	let killed = Arc::from(AtomicBool::new(false));
-	let _res = signal_hook::flag::register_conditional_shutdown(
-		signal_hook::consts::SIGINT,
-		1,
-		Arc::clone(&killed)
-	).and_then(|_| signal_hook::flag::register(
-		signal_hook::consts::SIGINT,
-		Arc::clone(&killed)
-	));
+	let k2 = Arc::clone(&killed);
 
 	// Sexy run-through.
 	if progress {
@@ -151,14 +147,24 @@ fn _main() -> Result<(), ArgyleError> {
 			.unwrap()
 			.with_reticulating_splines("ChannelZ");
 
+		// Intercept CTRL+C so we can gracefully shut down.
+		let p2 = progress.clone();
+		let _res = ctrlc::set_handler(move ||
+			// Once stops new progress items from being started.
+			if k2.compare_exchange(false, true, SeqCst, Relaxed).is_ok() {
+				p2.sigint();
+			}
+			// Twice shuts down immediately.
+			else { std::process::exit(1); }
+		);
+
 		let size_src = AtomicU64::new(0);
 		let size_br = AtomicU64::new(0);
 		let size_gz = AtomicU64::new(0);
 
 		// Process!
 		paths.par_iter().for_each(|x| {
-			if killed.load(SeqCst) { progress.sigint(); }
-			else {
+			if ! killed.load(SeqCst) {
 				let tmp = x.to_string_lossy();
 				progress.add(&tmp);
 
@@ -179,8 +185,16 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 	// Silent run-through.
 	else {
-		paths.par_iter().for_each(|x| {
-			if ! killed.load(SeqCst) { let _res = encode(x); }
+		// Intercept CTRL+C so we can gracefully shut down.
+		let _res = ctrlc::set_handler(move ||
+			// Force immediate shutdown on second CTRL+C.
+			if k2.compare_exchange(false, true, SeqCst, SeqCst).is_err() {
+				std::process::exit(1);
+			}
+		);
+
+		paths.par_iter().for_each(|x| if ! killed.load(SeqCst) {
+			let _res = encode(x);
 		});
 	}
 
