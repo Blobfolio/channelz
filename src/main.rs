@@ -93,7 +93,6 @@ fn main() {
 }
 
 #[inline]
-#[allow(clippy::cast_possible_truncation)] // It fits.
 /// # Actual Main.
 fn _main() -> Result<(), ArgyleError> {
 	// Parse CLI arguments.
@@ -125,26 +124,15 @@ fn _main() -> Result<(), ArgyleError> {
 		return Err(ArgyleError::Custom("No encodeable files were found."));
 	}
 
-	// Should we show progress?
-	let progress =
-		if args.switch2(b"-p", b"--progress") {
-			if paths.len() <= Progless::MAX_TOTAL { true }
-			else {
-				Msg::warning(Progless::MAX_TOTAL_ERROR).print();
-				false
-			}
-		}
-		else { false };
-
 	// Watch for SIGINT so we can shut down cleanly.
 	let killed = Arc::from(AtomicBool::new(false));
 	let k2 = Arc::clone(&killed);
 
 	// Sexy run-through.
-	if progress {
+	if args.switch2(b"-p", b"--progress") {
 		// Boot up a progress bar.
-		let progress = Progless::try_from(paths.len() as u32)
-			.unwrap()
+		let progress = Progless::try_from(paths.len())
+			.map_err(|e| ArgyleError::Custom(e.as_str()))?
 			.with_reticulating_splines("ChannelZ");
 
 		// Intercept CTRL+C so we can gracefully shut down.
