@@ -106,19 +106,12 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 
 	// Put it all together!
-	let paths: Vec<PathBuf> =
-		// Pull anything that isn't already br/gz.
-		if args.switch(b"--force") {
-			Dowser::default()
-				.with_paths(args.args_os())
-				.into_vec(|p| ! ext::match_br_gz(p.as_os_str().as_bytes()))
-		}
-		// Pull only supported files.
-		else {
-			Dowser::default()
-				.with_paths(args.args_os())
-				.into_vec(|p| ext::match_extension(p.as_os_str().as_bytes()))
-		};
+	let paths: Vec<PathBuf> = Dowser::default()
+		.with_paths(args.args_os())
+		.into_vec(
+			if args.switch(b"--force") { find_all }
+			else { find_default }
+		);
 
 	if paths.is_empty() {
 		return Err(ArgyleError::Custom("No encodeable files were found."));
@@ -288,6 +281,13 @@ fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 	remove_if(path);
 	None
 }
+
+#[cold]
+/// # Find Non-GZ/BR.
+fn find_all(p: &Path) -> bool { ! ext::match_br_gz(p.as_os_str().as_bytes()) }
+
+/// # Find Default.
+fn find_default(p: &Path) -> bool { ext::match_extension(p.as_os_str().as_bytes()) }
 
 #[cold]
 /// # Print Help.
