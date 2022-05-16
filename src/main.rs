@@ -67,6 +67,7 @@ use std::{
 			AtomicBool,
 			AtomicU64,
 			Ordering::{
+				Acquire,
 				Relaxed,
 				SeqCst,
 			},
@@ -134,14 +135,14 @@ fn _main() -> Result<(), ArgyleError> {
 		// Process!
 		sigint(Arc::clone(&killed), Some(progress.clone()));
 		paths.par_iter().for_each(|x| {
-			if ! killed.load(SeqCst) {
+			if ! killed.load(Acquire) {
 				let tmp = x.to_string_lossy();
 				progress.add(&tmp);
 
 				if let Some((a, b, c)) = encode(x) {
-					size_src.fetch_add(a, SeqCst);
-					size_br.fetch_add(b, SeqCst);
-					size_gz.fetch_add(c, SeqCst);
+					size_src.fetch_add(a, Relaxed);
+					size_br.fetch_add(b, Relaxed);
+					size_gz.fetch_add(c, Relaxed);
 				}
 
 				progress.remove(&tmp);
@@ -151,18 +152,18 @@ fn _main() -> Result<(), ArgyleError> {
 		// Finish up.
 		progress.finish();
 		progress.summary(MsgKind::Crunched, "file", "files").print();
-		size_chart(size_src.load(SeqCst), size_br.load(SeqCst), size_gz.load(SeqCst));
+		size_chart(size_src.into_inner(), size_br.into_inner(), size_gz.into_inner());
 	}
 	// Silent run-through.
 	else {
 		sigint(Arc::clone(&killed), None);
-		paths.par_iter().for_each(|x| if ! killed.load(SeqCst) {
+		paths.par_iter().for_each(|x| if ! killed.load(Acquire) {
 			let _res = encode(x);
 		});
 	}
 
 	// Early abort?
-	if killed.load(SeqCst) { Err(ArgyleError::Custom("The process was aborted early.")) }
+	if killed.load(Acquire) { Err(ArgyleError::Custom("The process was aborted early.")) }
 	else { Ok(()) }
 }
 
