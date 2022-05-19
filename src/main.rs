@@ -2,7 +2,7 @@
 # `ChannelZ`
 */
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 #![warn(
 	clippy::filetype_is_file,
@@ -28,6 +28,7 @@
 
 
 
+mod brotli;
 mod ext;
 
 
@@ -65,7 +66,11 @@ use std::{
 		atomic::{
 			AtomicBool,
 			AtomicU64,
-			Ordering::SeqCst,
+			Ordering::{
+				Acquire,
+				Relaxed,
+				SeqCst,
+			},
 		},
 	},
 };
@@ -102,66 +107,42 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 
 	// Put it all together!
-	let paths: Vec<PathBuf> =
-		if args.switch(b"--force") {
-			Dowser::default()
-				.with_paths(args.args_os())
-				.into_vec(|p| ! ext::match_br_gz(p.as_os_str().as_bytes()))
-		}
-		else {
-			Dowser::default()
-				.with_paths(args.args_os())
-				.into_vec(|p| ext::match_extension(p.as_os_str().as_bytes()))
-		};
+	let paths: Vec<PathBuf> = Dowser::default()
+		.with_paths(args.args_os())
+		.into_vec(
+			if args.switch(b"--force") { find_all }
+			else { find_default }
+		);
 
 	if paths.is_empty() {
 		return Err(ArgyleError::Custom("No encodeable files were found."));
 	}
 
-	// Should we show progress as we go?
-	let mut progress = args.switch2(b"-p", b"--progress");
-
-	#[cfg(any(target_pointer_width = "64", target_pointer_width = "128"))]
-	if progress && 4_294_967_295 < paths.len()  {
-		Msg::warning("Progress can't be displayed when there are more than 4,294,967,295 files.")
-			.print();
-		progress = false;
-	}
-
 	// Watch for SIGINT so we can shut down cleanly.
 	let killed = Arc::from(AtomicBool::new(false));
-	let _res = signal_hook::flag::register(
-		signal_hook::consts::SIGINT,
-		Arc::clone(&killed)
-	);
 
 	// Sexy run-through.
-	if progress {
+	if args.switch2(b"-p", b"--progress") {
 		// Boot up a progress bar.
 		let progress = Progless::try_from(paths.len())
-			.unwrap()
-			.with_title(Some(Msg::custom("ChannelZ", 199, "Reticulating splines\u{2026}")));
+			.map_err(|e| ArgyleError::Custom(e.as_str()))?
+			.with_reticulating_splines("ChannelZ");
 
 		let size_src = AtomicU64::new(0);
 		let size_br = AtomicU64::new(0);
 		let size_gz = AtomicU64::new(0);
 
 		// Process!
-		let killed2 = AtomicBool::new(false);
+		sigint(Arc::clone(&killed), Some(progress.clone()));
 		paths.par_iter().for_each(|x| {
-			if killed.load(SeqCst) {
-				if killed2.compare_exchange(false, true, SeqCst, SeqCst).is_ok() {
-					progress.set_title(Some(Msg::warning("Early shutdown in progress.")));
-				}
-			}
-			else {
+			if ! killed.load(Acquire) {
 				let tmp = x.to_string_lossy();
 				progress.add(&tmp);
 
 				if let Some((a, b, c)) = encode(x) {
-					size_src.fetch_add(a, SeqCst);
-					size_br.fetch_add(b, SeqCst);
-					size_gz.fetch_add(c, SeqCst);
+					size_src.fetch_add(a, Relaxed);
+					size_br.fetch_add(b, Relaxed);
+					size_gz.fetch_add(c, Relaxed);
 				}
 
 				progress.remove(&tmp);
@@ -171,17 +152,18 @@ fn _main() -> Result<(), ArgyleError> {
 		// Finish up.
 		progress.finish();
 		progress.summary(MsgKind::Crunched, "file", "files").print();
-		size_chart(size_src.load(SeqCst), size_br.load(SeqCst), size_gz.load(SeqCst));
+		size_chart(size_src.into_inner(), size_br.into_inner(), size_gz.into_inner());
 	}
 	// Silent run-through.
 	else {
-		paths.par_iter().for_each(|x| {
-			if ! killed.load(SeqCst) { let _res = encode(x); }
+		sigint(Arc::clone(&killed), None);
+		paths.par_iter().for_each(|x| if ! killed.load(Acquire) {
+			let _res = encode(x);
 		});
 	}
 
 	// Early abort?
-	if killed.load(SeqCst) { Err(ArgyleError::Custom("The process was aborted early.")) }
+	if killed.load(Acquire) { Err(ArgyleError::Custom("The process was aborted early.")) }
 	else { Ok(()) }
 }
 
@@ -245,31 +227,15 @@ fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 /// This will attempt to encode `raw` using Brotli, writing the result to disk
 /// if it is smaller than the original.
 fn encode_brotli(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	use compu::encoder::{
-		Encoder,
-		EncoderOp,
-		BrotliEncoder,
-	};
-
-	// Encode!
-	let mut encoder = BrotliEncoder::default();
-	let (_, _, res) = encoder.encode(raw, &mut [], EncoderOp::Finish);
-	if res {
-		buf.truncate(0);
-		if let Some(output) = encoder.output() {
-			buf.extend_from_slice(output);
-		}
-
-		// Save it?
-		let len = buf.len();
-		if 0 < len && len < raw.len() && write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok() {
-			return Some(len);
-		}
+	let size = brotli::encode(raw, buf);
+	if 0 < size && write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok() {
+		Some(size)
 	}
-
-	// Clean up.
-	remove_if(path);
-	None
+	else {
+		// Clean up.
+		remove_if(path);
+		None
+	}
 }
 
 /// # Encode Gzip.
@@ -298,6 +264,13 @@ fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 	remove_if(path);
 	None
 }
+
+#[cold]
+/// # Find Non-GZ/BR.
+fn find_all(p: &Path) -> bool { ! ext::match_br_gz(p.as_os_str().as_bytes()) }
+
+/// # Find Default.
+fn find_default(p: &Path) -> bool { ext::match_extension(p.as_os_str().as_bytes()) }
 
 #[cold]
 /// # Print Help.
@@ -362,6 +335,18 @@ fn remove_if(path: &[u8]) {
 	if path.exists() {
 		let _res = std::fs::remove_file(path);
 	}
+}
+
+/// # Hook Up CTRL+C.
+///
+/// Once stops processing new items, twice forces immediate shutdown.
+fn sigint(killed: Arc<AtomicBool>, progress: Option<Progless>) {
+	let _res = ctrlc::set_handler(move ||
+		if killed.compare_exchange(false, true, SeqCst, Relaxed).is_ok() {
+			if let Some(p) = &progress { p.sigint(); }
+		}
+		else { std::process::exit(1); }
+	);
 }
 
 /// # Summarize Output Sizes.
