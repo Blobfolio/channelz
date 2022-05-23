@@ -8,6 +8,18 @@ rust-version = "1.59"
 description = "Brotli (C) compression for ChannelZ."
 repository = "https://github.com/Blobfolio/channelz"
 readme = "README.md"
+exclude = [
+	"vendor/csharp",
+	"vendor/docs",
+	"vendor/fetch-spec",
+	"vendor/go",
+	"vendor/java",
+	"vendor/js",
+	"vendor/python",
+	"vendor/research",
+	"vendor/scripts",
+	"vendor/test",
+]
 
 [build-dependencies]
 cc = "=1.0.73"
