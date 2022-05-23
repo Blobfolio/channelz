@@ -28,7 +28,6 @@
 
 
 
-mod brotli;
 mod ext;
 
 
@@ -227,9 +226,11 @@ fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 /// This will attempt to encode `raw` using Brotli, writing the result to disk
 /// if it is smaller than the original.
 fn encode_brotli(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	let size = brotli::encode(raw, buf);
-	if 0 < size && write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok() {
-		Some(size)
+	if
+		channelz_brotli::encode(raw, buf) &&
+		write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok()
+	{
+		Some(buf.len())
 	}
 	else {
 		// Clean up.

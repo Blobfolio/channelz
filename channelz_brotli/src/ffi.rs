@@ -1,84 +1,57 @@
 /*!
-# `ChannelZ`: Brotli
+# `ChannelZ Brotli`
 
-This is a slimmed-down rewrite of the wrappers provided by the [`compu`](https://crates.io/crates/compu) crate.
-We only need a fraction of what that provides, so by doing it ourselves we can
-depend on `compu_brotli_sys` directly.
+This contains a few FFI bindings to the Brotli C encoder, transcribed from what
+the `build.rs` bindgen process came up with.
+
+This borrows heavily from the [`compu`](https://crates.io/crates/compu) crate,
+which unfortunately no longer builds correctly on some platforms.
 */
 
-use compu_brotli_sys::{
-	BrotliEncoderCompressStream,
-	BrotliEncoderCreateInstance,
-	BrotliEncoderDestroyInstance,
-	BrotliEncoderOperation_BROTLI_OPERATION_FINISH,
-	BrotliEncoderState,
-	BrotliEncoderTakeOutput,
-};
+#![allow(non_camel_case_types, non_upper_case_globals)]
+
 use std::{
 	alloc::Layout,
-	os::raw::c_void,
+	os::raw::{
+		c_int,
+		c_uint,
+		c_void,
+	},
 };
 
 
 
-// Linux and Windows-32 require an alignment of 8, while Mac and Windows-64
-// require an alignment of 16.
+// Linux and Windows-32 require an alignment of 8.
 #[cfg(not(any(target_os = "macos", all(windows, target_pointer_width = "64"))))]
 const MIN_ALIGN: usize = 8;
 
+// Mac and Windows-64 require an alignment of 16.
 #[cfg(any(target_os = "macos", all(windows, target_pointer_width = "64")))]
 const MIN_ALIGN: usize = 16;
 
+// Stick with usize.
 const LAYOUT_OFFSET: usize = std::mem::size_of::<usize>();
 
+/// # Single-Shot Encode.
+pub(super) const BROTLI_OPERATION_FINISH: c_uint = 2;
 
 
-#[allow(unsafe_code)]
-/// # Encode.
-///
-/// Try to encode the contents of a slice with Brotli, writing the result to
-/// the provided output buffer if it comes out smaller than the source.
-///
-/// This returns the number of bytes written. Zero means it didn't work.
-pub(super) fn encode(src: &[u8], buf: &mut Vec<u8>) -> usize {
-	// Start an encoder instance.
-	let enc = match BrotliEncoder::new() {
-		Some(x) => x,
-		_ => return 0,
-	};
 
-	let mut avail_in = src.len();
-	let mut avail_out = 0;
+/// # Alias for Encoder State.
+pub(super) type BrotliEncoderState = BrotliEncoderStateStruct;
 
-	// Encode it!
-	// Safety: a zero response indicates an error.
-	if 0 == unsafe {
-		BrotliEncoderCompressStream(
-			enc.state,
-			BrotliEncoderOperation_BROTLI_OPERATION_FINISH,
-			&mut avail_in,
-			&mut src.as_ptr(),
-			&mut avail_out,
-			std::ptr::null_mut(),
-			std::ptr::null_mut()
-		)
-	} { return 0; }
+/// # Custom Allocation Callback.
+type brotli_alloc_func = Option<
+	unsafe extern "C" fn(
+		opaque: *mut c_void,
+		size: usize,
+	) -> *mut c_void,
+>;
 
-	// Let's try to extract the slice we just encoded.
-	// Safety: result will be null if the operation fails.
-	let mut size = 0;
-	let result = unsafe { BrotliEncoderTakeOutput(enc.state, &mut size) };
-
-	// Let's save it if it's worth saving.
-	if result.is_null() || size == 0 || src.len() <= size { 0 }
-	else {
-		buf.truncate(0);
-		buf.extend_from_slice(unsafe {
-			std::slice::from_raw_parts(result, size)
-		});
-		buf.len()
-	}
-}
+/// # Custom Free Callback.
+type brotli_free_func = Option<
+	unsafe extern "C" fn(opaque: *mut c_void, address: *mut c_void),
+>;
 
 
 
@@ -86,8 +59,8 @@ pub(super) fn encode(src: &[u8], buf: &mut Vec<u8>) -> usize {
 ///
 /// This is a simple wrapper struct that allows us to enforce cleanup on
 /// destruction.
-struct BrotliEncoder {
-	state: *mut BrotliEncoderState,
+pub(super) struct BrotliEncoder {
+	pub(super) state: *mut BrotliEncoderState,
 }
 
 impl Drop for BrotliEncoder {
@@ -104,7 +77,7 @@ impl BrotliEncoder {
 	///
 	/// This shouldn't fail, but it technically _can_, so the return value is
 	/// wrapped in an option.
-	fn new() -> Option<Self> {
+	pub(super) fn new() -> Option<Self> {
 		// Safety: the pointer will be null if the operation fails.
 		let state = unsafe {
 			BrotliEncoderCreateInstance(Some(custom_malloc), Some(custom_free), std::ptr::null_mut())
@@ -117,9 +90,40 @@ impl BrotliEncoder {
 
 
 
-#[cold]
-#[inline(never)]
-const fn unlikely_null() -> *mut c_void { std::ptr::null_mut() }
+#[repr(C)]
+#[derive(Debug)]
+/// # Encoder State.
+pub(super) struct BrotliEncoderStateStruct { _unused: [u8; 0] }
+
+
+
+extern "C" {
+	pub(super) fn BrotliEncoderCompressStream(
+		state: *mut BrotliEncoderState,
+		op: c_uint,
+		available_in: *mut usize,
+		next_in: *mut *const u8,
+		available_out: *mut usize,
+		next_out: *mut *mut u8,
+		total_out: *mut usize,
+	) -> c_int;
+}
+
+extern "C" {
+	fn BrotliEncoderCreateInstance(
+		alloc_func: brotli_alloc_func,
+		free_func: brotli_free_func,
+		opaque: *mut c_void,
+	) -> *mut BrotliEncoderState;
+}
+
+extern "C" {
+	fn BrotliEncoderDestroyInstance(state: *mut BrotliEncoderState);
+}
+
+extern "C" {
+	pub(super) fn BrotliEncoderTakeOutput(state: *mut BrotliEncoderState, size: *mut usize) -> *const u8;
+}
 
 #[allow(clippy::cast_ptr_alignment, unsafe_code)]
 /// # Custom Malloc.
@@ -150,3 +154,8 @@ unsafe extern "C" fn custom_free(_: *mut c_void, mem: *mut c_void) {
 		std::alloc::dealloc(mem, layout);
 	}
 }
+
+#[cold]
+#[inline(never)]
+/// # Null Pointer.
+const fn unlikely_null() -> *mut c_void { std::ptr::null_mut() }
