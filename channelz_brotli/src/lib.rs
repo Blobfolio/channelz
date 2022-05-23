@@ -38,19 +38,19 @@ mod ffi;
 
 
 
-#[allow(unsafe_code)]
 /// # Encode With Brotli.
 ///
-/// Try to encode the contents of a slice with brotli using the strongest
-/// compression settings, and write the results to the provided buffer _if_ the
-/// brotlified version comes out _smaller_ than the original.
+/// This method will encode the contents of a slice with brotli — using the
+/// strongest possible settings — and write the results to the provided buffer
+/// if brotlification brought any savings.
 ///
-/// This returns `true` on success, `false` on failure.
+/// (If the result winds up larger, it will not be saved.)
 ///
-/// The output buffer does not need to be sized or cleared in advance; it will
-/// be truncated/extended as needed. When compressing multiple files, it is
-/// recommended you reuse the same buffer to minimize the number of
-/// allocations.
+/// The return value is a simple bool indicating whether or not the buffer was
+/// written to.
+///
+/// Note: the output buffer does not need to be pre-sized; it will be truncated
+/// and/or extended as necessary.
 ///
 /// ## Examples
 ///
@@ -65,42 +65,6 @@ mod ffi;
 /// assert!(! channelz_brotli::encode(raw, &mut out)); // False is sad.
 /// ```
 pub fn encode(src: &[u8], buf: &mut Vec<u8>) -> bool {
-	// Start an encoder instance.
-	let enc = match ffi::BrotliEncoder::new() {
-		Some(x) => x,
-		_ => return false,
-	};
-
-	let mut avail_in = src.len();
-	let mut avail_out = 0;
-
-	// Encode it!
-	// Safety: a zero response indicates an error.
-	if 0 == unsafe {
-		ffi::BrotliEncoderCompressStream(
-			enc.state,
-			ffi::BROTLI_OPERATION_FINISH,
-			&mut avail_in,
-			&mut src.as_ptr(),
-			&mut avail_out,
-			std::ptr::null_mut(),
-			std::ptr::null_mut()
-		)
-	} { return false; }
-
-	// Let's try to extract the slice we just encoded.
-	// Safety: result will be null if the operation fails.
-	let mut size = 0;
-	let result = unsafe { ffi::BrotliEncoderTakeOutput(enc.state, &mut size) };
-
-	// Let's save it if it's worth saving.
-	if result.is_null() || size == 0 || src.len() <= size { false }
-	else {
-		buf.truncate(0);
-		buf.extend_from_slice(unsafe {
-			std::slice::from_raw_parts(result, size)
-		});
-
-		true
-	}
+	ffi::BrotliEncoder::new()
+		.map_or(false, |enc| enc.encode(src) && enc.write_to(src.len(), buf))
 }
