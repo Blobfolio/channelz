@@ -23,6 +23,7 @@ fn build() {
 			vendor_dir.join("common/context.c"),
 			vendor_dir.join("common/dictionary.c"),
 			vendor_dir.join("common/platform.c"),
+			vendor_dir.join("common/shared_dictionary.c"),
 			vendor_dir.join("common/transform.c"),
 			vendor_dir.join("dec/bit_reader.c"),
 			vendor_dir.join("dec/decode.c"),
@@ -35,6 +36,7 @@ fn build() {
 			vendor_dir.join("enc/brotli_bit_stream.c"),
 			vendor_dir.join("enc/cluster.c"),
 			vendor_dir.join("enc/command.c"),
+			vendor_dir.join("enc/compound_dictionary.c"),
 			vendor_dir.join("enc/compress_fragment.c"),
 			vendor_dir.join("enc/compress_fragment_two_pass.c"),
 			vendor_dir.join("enc/dictionary_hash.c"),
@@ -49,6 +51,7 @@ fn build() {
 			vendor_dir.join("enc/static_dict.c"),
 			vendor_dir.join("enc/utf8_util.c"),
 		])
+		.define("BROTLI_BUILD_ENC_EXTRA_API", None)
 		.compile("libbrotli.a");
 
 	// bindings(&vendor_dir);

@@ -1,8 +1,7 @@
 /*!
 # `ChannelZ Brotli`
 
-This library exposes brotli [1.0.9](https://github.com/google/brotli/releases/tag/v1.0.9) encoding via the
-single-shot [`encode`] method.
+This library exposes brotli (FFI C) encoding via the single-shot [`encode`] method.
 
 That's it!
 
