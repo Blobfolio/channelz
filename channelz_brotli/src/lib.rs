@@ -52,14 +52,11 @@ mod ffi;
 ///
 /// // Give it a shot.
 /// let mut out = Vec::new();
-/// let size = channelz_brotli::encode(raw, &mut out).expect("Encoding failed!");
-///
-/// // The returned length should match the buffer's current length.
-/// assert_eq!(size.get(), out.len());
+/// assert!(channelz_brotli::encode(raw, &mut out));
 ///
 /// // Not everything will compress, though. The following slice is too small.
 /// let raw: &[u8] = b"I'm already small.";
-/// assert!(channelz_brotli::encode(raw, &mut out).is_none());
+/// assert!(! channelz_brotli::encode(raw, &mut out));
 /// ```
 pub fn encode(src: &[u8], buf: &mut Vec<u8>) -> bool {
 	// Start an encoder instance.
