@@ -1,5 +1,12 @@
 /*!
 # `ChannelZ Brotli`
+
+This library exposes brotli [1.0.9](https://github.com/google/brotli/releases/tag/v1.0.9) encoding via the
+single-shot [`encode`] method.
+
+That's it!
+
+Refer to the documentation for usage details.
 */
 
 #![deny(unsafe_code)]
@@ -42,21 +49,21 @@ mod ffi;
 /// This returns `true` on success, `false` on failure.
 ///
 /// The output buffer does not need to be sized or cleared in advance; it will
-/// be truncated/extended as needed.
+/// be truncated/extended as needed. When compressing multiple files, it is
+/// recommended you reuse the same buffer to minimize the number of
+/// allocations.
 ///
 /// ## Examples
 ///
 /// ```
 /// // This slice should be compressable!
 /// let raw: &[u8] = b"One One One Two Two Two Three Three Three!";
-///
-/// // Give it a shot.
 /// let mut out = Vec::new();
-/// assert!(channelz_brotli::encode(raw, &mut out));
+/// assert!(channelz_brotli::encode(raw, &mut out)); // True is happy.
 ///
 /// // Not everything will compress, though. The following slice is too small.
 /// let raw: &[u8] = b"I'm already small.";
-/// assert!(! channelz_brotli::encode(raw, &mut out));
+/// assert!(! channelz_brotli::encode(raw, &mut out)); // False is sad.
 /// ```
 pub fn encode(src: &[u8], buf: &mut Vec<u8>) -> bool {
 	// Start an encoder instance.
