@@ -1,7 +1,7 @@
 # Project Dependencies
     Package:   channelz
-    Version:   0.6.0
-    Generated: 2022-05-19 18:56:28 UTC
+    Version:   0.6.1
+    Generated: 2022-05-23 20:44:13 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
@@ -9,7 +9,7 @@
 | [argyle](https://github.com/Blobfolio/argyle) | 0.5.6 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [bytecount](https://github.com/llogiq/bytecount) | 0.6.2 | [Andre Bogus](mailto:bogusandre@gmail.de) and [Joshua Landau](mailto:joshua@landau.ws) | Apache-2.0 or MIT |
 | [cfg-if](https://github.com/alexcrichton/cfg-if) | 1.0.0 | [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
-| [compu-brotli-sys](https://github.com/DoumanAsh/compu-brotli-sys) | 1.0.9+1 | [Douman](mailto:douman@gmx.se) | BSL-1.0 |
+| [channelz_brotli](https://github.com/Blobfolio/channelz) | 0.6.1 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [crossbeam-channel](https://github.com/crossbeam-rs/crossbeam) | 0.5.4 |  | Apache-2.0 or MIT |
 | [crossbeam-deque](https://github.com/crossbeam-rs/crossbeam) | 0.8.1 | The Crossbeam Project Developers | Apache-2.0 or MIT |
 | [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.8 |  | Apache-2.0 or MIT |
@@ -21,7 +21,6 @@
 | [fastrand](https://github.com/smol-rs/fastrand) | 1.7.0 | [Stjepan Glavina](mailto:stjepang@gmail.com) | Apache-2.0 or MIT |
 | [fyi_msg](https://github.com/Blobfolio/fyi) | 0.9.10 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [lazy_static](https://github.com/rust-lang-nursery/lazy-static.rs) | 1.4.0 | [Marvin Löbel](mailto:loebel.marvin@gmail.com) | Apache-2.0 or MIT |
-| [libc](https://github.com/rust-lang/libc) | 0.2.126 | The Rust Project Developers | Apache-2.0 or MIT |
 | [libdeflate-sys](https://github.com/adamkewley/libdeflater) | 0.8.0 | [Adam Kewley](mailto:contact@adamkewley.com) | Apache-2.0 |
 | [libdeflater](https://github.com/adamkewley/libdeflater) | 0.8.0 | [Adam Kewley](mailto:contact@adamkewley.com) | Apache-2.0 |
 | [lock_api](https://github.com/Amanieu/parking_lot) | 0.4.7 | [Amanieu d'Antras](mailto:amanieu@gmail.com) | Apache-2.0 or MIT |
