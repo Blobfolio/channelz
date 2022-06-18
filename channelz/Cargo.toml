@@ -85,12 +85,12 @@ lines = [
 ]
 
 [build-dependencies]
-dactyl = "0.3.*"
+dactyl = "0.4.*"
 
 [dependencies]
 argyle = "0.6.*"
 ctrlc = "=3.2.2"
-dactyl = "0.3.*"
+dactyl = "0.4.*"
 dowser = "0.5.*"
 libdeflater = "=0.8.0"
 rayon = "=1.5.3"
