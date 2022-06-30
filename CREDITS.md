@@ -1,7 +1,7 @@
 # Project Dependencies
     Package:   channelz
-    Version:   0.6.2
-    Generated: 2022-06-30 19:17:17 UTC
+    Version:   0.6.3
+    Generated: 2022-06-30 19:28:45 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
@@ -9,7 +9,7 @@
 | [argyle](https://github.com/Blobfolio/argyle) | 0.6.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [bytecount](https://github.com/llogiq/bytecount) | 0.6.3 | [Andre Bogus](mailto:bogusandre@gmail.de) and [Joshua Landau](mailto:joshua@landau.ws) | Apache-2.0 or MIT |
 | [cfg-if](https://github.com/alexcrichton/cfg-if) | 1.0.0 | [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
-| [channelz_brotli](https://github.com/Blobfolio/channelz) | 0.6.2 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [channelz_brotli](https://github.com/Blobfolio/channelz) | 0.6.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [crossbeam-channel](https://github.com/crossbeam-rs/crossbeam) | 0.5.5 |  | Apache-2.0 or MIT |
 | [crossbeam-deque](https://github.com/crossbeam-rs/crossbeam) | 0.8.1 | The Crossbeam Project Developers | Apache-2.0 or MIT |
 | [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.9 |  | Apache-2.0 or MIT |
