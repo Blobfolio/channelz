@@ -32,6 +32,8 @@ Refer to the documentation for usage details.
 	unused_import_braces,
 )]
 
+#![allow(clippy::redundant_pub_crate)]
+
 
 
 mod ffi;
@@ -65,6 +67,5 @@ mod ffi;
 /// assert!(! channelz_brotli::encode(raw, &mut out)); // False is sad.
 /// ```
 pub fn encode(src: &[u8], buf: &mut Vec<u8>) -> bool {
-	ffi::BrotliEncoder::new()
-		.map_or(false, |enc| enc.encode(src) && enc.write_to(src.len(), buf))
+	ffi::BrotliEncoder::encode(src).map_or(false, |enc| enc.write_to(buf))
 }

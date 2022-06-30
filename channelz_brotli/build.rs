@@ -17,7 +17,6 @@ fn build() {
 
 	cc::Build::new()
 		.include(&vendor_dir.join("include"))
-		.warnings(false)
 		.files(&[
 			vendor_dir.join("common/constants.c"),
 			vendor_dir.join("common/context.c"),

@@ -9,6 +9,10 @@ for the (commented-out) bindgen settings that were used as a foundation.
 
 use std::{
 	alloc::Layout,
+	marker::{
+		PhantomData,
+		PhantomPinned,
+	},
 	os::raw::{
 		c_int,
 		c_uint,
@@ -74,11 +78,12 @@ mod alloc {
 ///
 /// This is a simple wrapper struct that allows us to enforce cleanup on
 /// destruction.
-pub(super) struct BrotliEncoder {
+pub(super) struct BrotliEncoder<'a> {
 	state: *mut BrotliEncoderState,
+	src: &'a [u8],
 }
 
-impl Drop for BrotliEncoder {
+impl Drop for BrotliEncoder<'_> {
 	#[allow(unsafe_code)]
 	fn drop(&mut self) {
 		// Safety: let Brotli run its memory cleanup.
@@ -86,57 +91,63 @@ impl Drop for BrotliEncoder {
 	}
 }
 
-impl BrotliEncoder {
+impl<'a> BrotliEncoder<'a> {
 	#[allow(unsafe_code)]
 	/// # New Instance.
 	///
 	/// This shouldn't fail, but it technically _can_, so the return value is
 	/// wrapped in an option.
-	pub(super) fn new() -> Option<Self> {
-		// Safety: the pointer will be null if the operation fails.
-		let state = unsafe {
-			BrotliEncoderCreateInstance(
-				Some(alloc::custom_malloc),
-				Some(alloc::custom_free),
-				std::ptr::null_mut()
-			)
-		};
+	fn new(src: &'a [u8]) -> Option<Self> {
+		if src.is_empty() { None }
+		else {
+			// Safety: the pointer will be null if the operation fails.
+			let state = unsafe {
+				BrotliEncoderCreateInstance(
+					Some(alloc::custom_malloc),
+					Some(alloc::custom_free),
+					std::ptr::null_mut()
+				)
+			};
 
-		if state.is_null() { None }
-		else { Some(Self { state }) }
-	}
-
-	#[allow(unsafe_code)]
-	/// # Encode.
-	pub(super) fn encode(&self, src: &[u8]) -> bool {
-		let mut avail_in = src.len();
-		let mut avail_out = 0;
-
-		// Encode it!
-		// Safety: a zero response indicates an error.
-		0 != avail_in && 0 != unsafe {
-			BrotliEncoderCompressStream(
-				self.state,
-				2, // FINISH
-				&mut avail_in,
-				&mut src.as_ptr(),
-				&mut avail_out,
-				std::ptr::null_mut(),
-				std::ptr::null_mut()
-			)
+			if state.is_null() { None }
+			else { Some(Self { state, src }) }
 		}
 	}
 
 	#[allow(unsafe_code)]
+	/// # Encode.
+	pub(super) fn encode(src: &'a [u8]) -> Option<Self> {
+		let out = Self::new(src)?;
+
+		let mut avail_in = out.src.len();
+		let mut avail_out = 0;
+
+		// Encode it!
+		// Safety: a zero response indicates an error.
+		if 0 == unsafe {
+			BrotliEncoderCompressStream(
+				out.state,
+				2, // FINISH
+				&mut avail_in,
+				&mut out.src.as_ptr(),
+				&mut avail_out,
+				std::ptr::null_mut(),
+				std::ptr::null_mut(),
+			)
+		} { None }
+		else { Some(out) }
+	}
+
+	#[allow(unsafe_code)]
 	/// # Write Result.
-	pub(super) fn write_to(&self, len: usize, buf: &mut Vec<u8>) -> bool {
+	pub(super) fn write_to(self, buf: &mut Vec<u8>) -> bool {
 		// Let's try to extract the slice we just encoded.
 		// Safety: result will be null if the operation fails.
 		let mut size = 0;
 		let result = unsafe { BrotliEncoderTakeOutput(self.state, &mut size) };
 
 		// Let's save it if it's worth saving.
-		if result.is_null() || size == 0 || len <= size { false }
+		if result.is_null() || size == 0 || self.src.len() <= size { false }
 		else {
 			buf.truncate(0);
 			buf.extend_from_slice(unsafe {
@@ -159,7 +170,7 @@ type brotli_free_func = Option<unsafe extern "C" fn(opaque: *mut c_void, address
 /// # Encoder State.
 struct BrotliEncoderState {
 	_unused: [u8; 0],
-	_marker: std::marker::PhantomData<(*mut u8, std::marker::PhantomPinned)>,
+	_marker: PhantomData<(*mut u8, PhantomPinned)>,
 }
 
 extern "C" {
