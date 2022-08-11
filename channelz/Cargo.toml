@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.6.3"
+version = "0.6.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -92,7 +92,7 @@ argyle = "0.6.*"
 ctrlc = "=3.2.2"
 dactyl = "0.4.*"
 dowser = "0.5.*"
-libdeflater = "=0.8.0"
+libdeflater = "=0.10.0"
 rayon = "=1.5.3"
 write_atomic = "0.2.*"
 
