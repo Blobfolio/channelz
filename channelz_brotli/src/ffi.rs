@@ -9,14 +9,14 @@ for the (commented-out) bindgen settings that were used as a foundation.
 
 use std::{
 	alloc::Layout,
-	marker::{
-		PhantomData,
-		PhantomPinned,
-	},
-	os::raw::{
+	ffi::{
 		c_int,
 		c_uint,
 		c_void,
+	},
+	marker::{
+		PhantomData,
+		PhantomPinned,
 	},
 };
 
