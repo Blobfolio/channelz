@@ -1,10 +1,10 @@
 [package]
 name = "channelz_brotli"
-version = "0.6.5"
+version = "0.6.6"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
-rust-version = "1.61"
+rust-version = "1.64"
 description = "Brotli (C) compression for ChannelZ."
 repository = "https://github.com/Blobfolio/channelz"
 readme = "README.md"

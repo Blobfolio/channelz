@@ -106,7 +106,7 @@ fn _main() -> Result<(), ArgyleError> {
 	// Put it all together!
 	let paths: Vec<PathBuf> = Dowser::default()
 		.with_paths(args.args_os())
-		.into_vec(
+		.into_vec_filtered(
 			if args.switch(b"--force") { find_all }
 			else { find_default }
 		);

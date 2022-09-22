@@ -1,7 +1,9 @@
 # ChannelZ
 
-[![Build Status](https://github.com/Blobfolio/channelz/workflows/Build/badge.svg)](https://github.com/Blobfolio/channelz/actions)
-[![Dependency Status](https://deps.rs/repo/github/blobfolio/channelz/status.svg)](https://deps.rs/repo/github/blobfolio/channelz)
+[![ci](https://img.shields.io/github/workflow/status/Blobfolio/channelz/Build.svg?style=flat-square&label=ci)](https://github.com/Blobfolio/channelz/actions)
+[![deps.rs](https://deps.rs/repo/github/blobfolio/channelz/status.svg?style=flat-square&label=deps.rs)](https://deps.rs/repo/github/blobfolio/channelz)<br>
+[![license](https://img.shields.io/badge/license-wtfpl-ff1493?style=flat-square)](https://en.wikipedia.org/wiki/WTFPL)
+[![contributions welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&label=contributions)](https://github.com/Blobfolio/channelz/issues)
 
 ChannelZ is a CLI tool for x86-64 Linux machines that simplifies the common task of encoding static web assets with Gzip and Brotli for production environments.
 
