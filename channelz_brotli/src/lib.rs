@@ -65,7 +65,7 @@ mod ffi;
 /// ## Examples
 ///
 /// ```
-/// // This slice should be compressable!
+/// // This slice should be compressible!
 /// let raw: &[u8] = b"One One One Two Two Two Three Three Three!";
 /// let mut out = Vec::new();
 /// assert!(channelz_brotli::encode(raw, &mut out)); // True is happy.
