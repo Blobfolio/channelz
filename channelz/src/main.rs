@@ -175,7 +175,7 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 		if ext::match_br_gz(bytes) {
 			let len = bytes.len();
 			if ext::match_extension(&bytes[..len - 3]) && std::fs::remove_file(&p).is_err() {
-				Msg::warning(format!("Unable to delete {:?}", p)).print();
+				Msg::warning(format!("Unable to delete {p:?}")).print();
 			}
 		}
 	}
