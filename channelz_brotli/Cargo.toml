@@ -1,6 +1,6 @@
 [package]
 name = "channelz_brotli"
-version = "0.6.7"
+version = "0.6.8"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -18,4 +18,4 @@ include = [
 ]
 
 [build-dependencies]
-cc = "=1.0.74"
+cc = "1.0.*"
