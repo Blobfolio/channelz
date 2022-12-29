@@ -136,7 +136,7 @@ These benchmarks were performed on a Intel® Core™ i7-10610U with four discret
 
 See also: [CREDITS.md](CREDITS.md)
 
-Copyright © 2022 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
+Copyright © 2023 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
 
 This work is free. You can redistribute it and/or modify it under the terms of the Do What The Fuck You Want To Public License, Version 2.
 
