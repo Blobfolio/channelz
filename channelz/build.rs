@@ -25,14 +25,12 @@ pub fn main() {
 		r"
 /// # Match br/gz.
 pub(super) const fn match_br_gz(bytes: &[u8]) -> bool {{
-	let len = bytes.len();
-
-	if 4 < len && bytes[len - 3] == b'.' && ! matches!(bytes[len - 4], b'/' | b'\\') {{
-		let ext = u16::from_le_bytes([
-			bytes[len - 2].to_ascii_lowercase(),
-			bytes[len - 1].to_ascii_lowercase(),
-		]);
-		matches!(ext, {})
+	if let [.., x, b'.', a, b] = bytes {{
+		! matches!(*x, b'/' | b'\\') &&
+		matches!(
+			u16::from_le_bytes([a.to_ascii_lowercase(), b.to_ascii_lowercase()]),
+			{}
+		)
 	}}
 	else {{ false }}
 }}
