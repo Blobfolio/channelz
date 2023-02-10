@@ -113,6 +113,9 @@ mod tests {
 			// This should fail without the file bit.
 			let bad = [BASE, b".gz"].concat();
 			assert!(! match_br_gz(&bad));
+
+			let bad = [BASE, b".br"].concat();
+			assert!(! match_br_gz(&bad));
 		}
 
 		assert!(! match_br_gz(b"/foo/foo.js"));
