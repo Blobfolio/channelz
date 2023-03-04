@@ -93,7 +93,7 @@ ctrlc = "=3.2.5"
 dactyl = "0.4.*"
 dowser = "0.7.*"
 libdeflater = "=0.12.0"
-rayon = "=1.6.1"
+rayon = "1.7.*"
 write_atomic = "0.2.*"
 
 [dependencies.channelz_brotli]
