@@ -1,7 +1,7 @@
 # Project Dependencies
     Package:   channelz
-    Version:   0.6.11
-    Generated: 2023-04-04 17:31:06 UTC
+    Version:   0.6.12
+    Generated: 2023-05-07 06:07:52 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
@@ -9,8 +9,8 @@
 | [argyle](https://github.com/Blobfolio/argyle) | 0.6.7 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [bytecount](https://github.com/llogiq/bytecount) | 0.6.3 | [Andre Bogus](mailto:bogusandre@gmail.de) and [Joshua Landau](mailto:joshua@landau.ws) | Apache-2.0 or MIT |
 | [cfg-if](https://github.com/alexcrichton/cfg-if) | 1.0.0 | [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
-| [channelz_brotli](https://github.com/Blobfolio/channelz) | 0.6.11 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [crossbeam-channel](https://github.com/crossbeam-rs/crossbeam) | 0.5.7 |  | Apache-2.0 or MIT |
+| [channelz_brotli](https://github.com/Blobfolio/channelz) | 0.6.12 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [crossbeam-channel](https://github.com/crossbeam-rs/crossbeam) | 0.5.8 |  | Apache-2.0 or MIT |
 | [crossbeam-deque](https://github.com/crossbeam-rs/crossbeam) | 0.8.3 |  | Apache-2.0 or MIT |
 | [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.14 |  | Apache-2.0 or MIT |
 | [crossbeam-utils](https://github.com/crossbeam-rs/crossbeam) | 0.8.15 |  | Apache-2.0 or MIT |
@@ -19,9 +19,9 @@
 | [dowser](https://github.com/Blobfolio/dowser) | 0.7.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [either](https://github.com/bluss/either) | 1.8.1 | bluss | Apache-2.0 or MIT |
 | [fastrand](https://github.com/smol-rs/fastrand) | 1.9.0 | [Stjepan Glavina](mailto:stjepang@gmail.com) | Apache-2.0 or MIT |
-| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.10.7 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
-| [libdeflate-sys](https://github.com/adamkewley/libdeflater) | 0.13.0 | [Adam Kewley](mailto:contact@adamkewley.com) | Apache-2.0 |
-| [libdeflater](https://github.com/adamkewley/libdeflater) | 0.13.0 | [Adam Kewley](mailto:contact@adamkewley.com) | Apache-2.0 |
+| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.10.8 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [libdeflate-sys](https://github.com/adamkewley/libdeflater) | 0.14.0 | [Adam Kewley](mailto:contact@adamkewley.com) | Apache-2.0 |
+| [libdeflater](https://github.com/adamkewley/libdeflater) | 0.14.0 | [Adam Kewley](mailto:contact@adamkewley.com) | Apache-2.0 |
 | [memoffset](https://github.com/Gilnaa/memoffset) | 0.8.0 | [Gilad Naaman](mailto:gilad.naaman@gmail.com) | MIT |
 | [num-traits](https://github.com/rust-num/num-traits) | 0.2.15 | The Rust Project Developers | Apache-2.0 or MIT |
 | [num_cpus](https://github.com/seanmonstar/num_cpus) | 1.15.0 | [Sean McArthur](mailto:sean@seanmonstar.com) | Apache-2.0 or MIT |
