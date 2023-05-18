@@ -46,10 +46,11 @@ const fn match4(ext: u32) -> bool {{ matches!(ext, {}) }}
 		pat16(&["br", "gz"]),
 		pat16(&["js", "md"]),
 		pat32(&[
-			".bmp", ".css", ".eot", ".htc", ".htm", ".ico", ".ics", ".mjs", ".otf",
-			".rdf", ".rss", ".svg", ".ttf", ".txt", ".vcs", ".vtt", ".xml", ".xsl",
+			".bmp", ".css", ".csv", ".doc", ".eot", ".htc", ".htm", ".ico", ".ics",
+			".mjs", ".otf", ".pdf", ".rdf", ".rss", ".svg", ".ttf", ".txt", ".vcs",
+			".vtt", ".xml", ".xsl", ".xls", ".yml",
 		]),
-		pat32(&["atom", "html", "json", "wasm", "xhtm"]),
+		pat32(&["atom", "docx", "html", "json", "wasm", "xhtm", "xlsx", "yaml"]),
 	);
 
 	let out_path = std::fs::canonicalize(std::env::var("OUT_DIR").expect("Missing OUT_DIR."))
