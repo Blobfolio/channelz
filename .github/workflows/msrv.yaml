@@ -1,4 +1,4 @@
-name: Build
+name: MSRV
 
 on:
   push:
@@ -35,13 +35,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-
     - uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ matrix.target }}
-        components: clippy
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-msrv
 
     - name: Info
       run: |
@@ -49,16 +48,7 @@ jobs:
         cargo --version
         cargo clippy --version
 
-    - name: Build
+    - name: MSRV
       run: |
-        cargo build --bin channelz --target ${{ matrix.target }}
-        cargo build --bin channelz --release --target ${{ matrix.target }}
-
-    - name: Clippy
-      run: |
-        cargo clippy --release --target ${{ matrix.target }}
-
-    - name: Tests
-      run: |
-        cargo test --target ${{ matrix.target }}
-        cargo test --release --target ${{ matrix.target }}
+        cargo msrv --path channelz verify
+        cargo msrv --path channelz_brotli verify
