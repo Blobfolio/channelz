@@ -35,6 +35,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ matrix.target }}
@@ -50,5 +52,5 @@ jobs:
 
     - name: MSRV
       run: |
-        cargo msrv --log-target stdout --log-level debug --path channelz verify
-        cargo msrv --log-target stdout --log-level debug --path channelz_brotli verify
+        cargo msrv --path channelz verify
+        cargo msrv --path channelz_brotli verify
