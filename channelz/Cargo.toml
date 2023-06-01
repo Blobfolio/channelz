@@ -86,7 +86,7 @@ lines = [
 ]
 
 [build-dependencies]
-dactyl = "0.4.*"
+dactyl = "0.5.*"
 
 [dependencies]
 argyle = "0.6.*"
