@@ -2,11 +2,7 @@
 # `ChannelZ` Encoding
 */
 
-use std::{
-	ffi::OsStr,
-	os::unix::ffi::OsStrExt,
-	path::Path,
-};
+use std::path::Path;
 
 
 
@@ -35,13 +31,18 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 	// Do Gzip first because it will likely be bigger than Brotli, saving us
 	// the trouble of allocating additional buffer space down the road.
 	let mut buf: Vec<u8> = Vec::new();
-	let mut src: Vec<u8> = [src.as_os_str().as_bytes(), b".gz"].concat();
-	let len_gz = encode_gzip(&src, &raw, &mut buf).unwrap_or(len);
+	let mut src = src.to_path_buf(); // Own it for later.
+
+	// The output path.
+	let gz_dst = {
+		let mut tmp = src.clone();
+		tmp.as_mut_os_string().push(".gz");
+		tmp
+	};
+	let len_gz = encode_gzip(&gz_dst, &raw, &mut buf).unwrap_or(len);
 
 	// Change the output path, then do Brotli.
-	let src_len = src.len();
-	src[src_len - 2] = b'b';
-	src[src_len - 1] = b'r';
+	src.as_mut_os_string().push(".br");
 	let len_br = encode_brotli(&src, &raw, &mut buf).unwrap_or(len);
 
 	// Done!
@@ -52,10 +53,10 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 ///
 /// This will attempt to encode `raw` using Brotli, writing the result to disk
 /// if it is smaller than the original.
-fn encode_brotli(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
+fn encode_brotli(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 	if
 		channelz_brotli::encode(raw, buf) &&
-		write_atomic::write_file(OsStr::from_bytes(path), buf).is_ok()
+		write_atomic::write_file(path, buf).is_ok()
 	{
 		Some(buf.len())
 	}
@@ -70,7 +71,7 @@ fn encode_brotli(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 ///
 /// This will attempt to encode `raw` using Gzip, writing the result to disk
 /// if it is smaller than the original.
-fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
+fn encode_gzip(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 	use libdeflater::{
 		CompressionLvl,
 		Compressor,
@@ -83,7 +84,7 @@ fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 
 	// Encode!
 	if let Ok(len) = writer.gzip_compress(raw, buf) {
-		if 0 < len && len < old_len && write_atomic::write_file(OsStr::from_bytes(path), &buf[..len]).is_ok() {
+		if 0 < len && len < old_len && write_atomic::write_file(path, &buf[..len]).is_ok() {
 			return Some(len);
 		}
 	}
@@ -99,8 +100,7 @@ fn encode_gzip(path: &[u8], raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 /// the current encoding operation fails.
 ///
 /// We can't do anything if deletion fails, but at least we can say we tried.
-fn remove_if(path: &[u8]) {
-	let path = Path::new(OsStr::from_bytes(path));
+fn remove_if(path: &Path) {
 	if path.exists() {
 		let _res = std::fs::remove_file(path);
 	}

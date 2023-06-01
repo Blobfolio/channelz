@@ -2,7 +2,7 @@
 # `ChannelZ`
 */
 
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 #![warn(
 	clippy::filetype_is_file,
@@ -233,9 +233,9 @@ ARGS:
 
 Note: static copies will only be generated for files with these extensions:
 
-    appcache; atom; bmp; css; eot; geojson; htc; htm(l); ico; ics; js; json;
-    jsonld; manifest; md; mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt;
-    wasm; webmanifest; xhtm(l); xml; xsl
+    appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics;
+    js; json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt;
+    vcard; vcs; vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml
 "
 	));
 }

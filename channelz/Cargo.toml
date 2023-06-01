@@ -1,10 +1,10 @@
 [package]
 name = "channelz"
-version = "0.6.12"
+version = "0.7.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.70"
 description = "Fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 repository = "https://github.com/Blobfolio/channelz"
 readme = "../README.md"
@@ -22,8 +22,9 @@ extended-description = """\
 Point ChannelZ toward a single file to generate maximally-compressed Brotli- and Gzip-encoded copies, or point it toward a directory to recursively handle many files en masse.\n\
 .\n\
 Only files with the following extensions will be looked at:\n\
-atom; bmp; css; eot; (geo)json; htc; htm(l); ico; ics; js; manifest; md;\n\
-mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt; wasm; xhtm(l); xml; xsl"""
+appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics; js;\n\
+json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt; vcard; vcs;\n\
+vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml"""
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
     ["../release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
@@ -79,19 +80,19 @@ name = "FILE TYPES"
 inside = false
 lines = [
 	"Static copies will only be generated for files with these extensions:",
-	"appcache; atom; bmp; css; eot; geojson; htc; htm(l); ico; ics; js; json;",
-    "jsonld; manifest; md; mjs; otf; rdf; rss; svg; ttf; txt; vcard; vcs; vtt;",
-    "wasm; webmanifest; xhtm(l); xml; xsl",
+	"appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics; js;",
+	"json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt; vcard; vcs;",
+	"vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml",
 ]
 
 [build-dependencies]
-dactyl = "0.4.*"
+dactyl = "0.5.*"
 
 [dependencies]
 argyle = "0.6.*"
-ctrlc = "=3.2.5"
-dactyl = "0.4.*"
-dowser = "0.7.*"
+ctrlc = "=3.4.0"
+dactyl = "0.5.*"
+dowser = "0.8.*"
 libdeflater = "=0.14.0"
 rayon = "1.7.*"
 write_atomic = "0.3.*"
@@ -100,5 +101,5 @@ write_atomic = "0.3.*"
 path = "../channelz_brotli"
 
 [dependencies.fyi_msg]
-version = "0.10.*"
+version = "0.11.*"
 features = [ "progress" ]
