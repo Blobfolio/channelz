@@ -101,5 +101,5 @@ write_atomic = "0.3.*"
 path = "../channelz_brotli"
 
 [dependencies.fyi_msg]
-version = "0.10.*"
+version = "0.11.*"
 features = [ "progress" ]
