@@ -26,6 +26,8 @@ The "appropriate" file types are:
  * atom
  * bmp
  * css
+ * csv
+ * doc(x)
  * eot
  * geojson
  * htc
@@ -39,6 +41,7 @@ The "appropriate" file types are:
  * md
  * mjs
  * otf
+ * pdf
  * rdf
  * rss
  * svg
@@ -49,8 +52,10 @@ The "appropriate" file types are:
  * vtt
  * wasm
  * xhtm(l)
+ * xls(x)
  * xml
  * xsl
+ * y(a)ml
 
 
 
