@@ -7,7 +7,7 @@ edition = "2021"
 rust-version = "1.70"
 description = "Fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 repository = "https://github.com/Blobfolio/channelz"
-readme = "../README.md"
+readme = "./README.md"
 publish = false
 
 [package.metadata.deb]
@@ -26,16 +26,16 @@ appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics; js;\
 json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt; vcard; vcs;\n\
 vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml"""
 assets = [
-    ["../target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
-    ["../release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
-    ["../release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
+    ["./target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
+    ["./release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
+    ["./release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
 
 [package.metadata.bashman]
 name = "ChannelZ"
-bash-dir = "../release/completions"
-man-dir = "../release/man"
-credits-dir = "../"
+bash-dir = "./release/completions"
+man-dir = "./release/man"
+credits-dir = "./"
 
 [[package.metadata.bashman.switches]]
 long = "--clean"
