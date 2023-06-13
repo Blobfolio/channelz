@@ -17,8 +17,6 @@
 
 pkg_id      := "channelz"
 pkg_name    := "ChannelZ"
-pkg_dir1    := justfile_directory() + "/channelz"
-pkg_dir2    := justfile_directory() + "/channelz_brotli"
 
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
@@ -85,8 +83,6 @@ release_dir := justfile_directory() + "/release"
 	# But some Cargo apps place shit in subdirectories even if
 	# they place *other* shit in the designated target dir. Haha.
 	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
-	[ ! -d "{{ pkg_dir1 }}/target" ] || rm -rf "{{ pkg_dir1 }}/target"
-	[ ! -d "{{ pkg_dir2 }}/target" ] || rm -rf "{{ pkg_dir2 }}/target"
 
 
 # Clippy.
@@ -102,7 +98,7 @@ release_dir := justfile_directory() + "/release"
 # Generate CREDITS.
 @credits:
 	# Do completions/man.
-	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
+	cargo bashman -m "{{ justfile_directory() }}/Cargo.toml"
 	just _fix-chown "{{ justfile_directory() }}/CREDITS.md"
 
 
@@ -150,7 +146,7 @@ version:
 	#!/usr/bin/env bash
 
 	# Current version.
-	_ver1="$( toml get "{{ pkg_dir1 }}/Cargo.toml" package.version | \
+	_ver1="$( toml get "{{ justfile_directory() }}/Cargo.toml" package.version | \
 		sed 's/"//g' )"
 
 	# Find out if we want to bump it.
@@ -164,8 +160,7 @@ version:
 	fyi success "Setting version to $_ver2."
 
 	# Set the release version!
-	just _version "{{ pkg_dir1 }}" "$_ver2"
-	just _version "{{ pkg_dir2 }}" "$_ver2"
+	just _version "{{ justfile_directory() }}" "$_ver2"
 
 
 # Set version for real.

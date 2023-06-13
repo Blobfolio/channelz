@@ -1,3 +1,0 @@
-[submodule "channelz_brotli/vendor"]
-	path = channelz_brotli/vendor
-	url = https://github.com/google/brotli.git

@@ -52,5 +52,4 @@ jobs:
 
     - name: MSRV
       run: |
-        cargo msrv --path channelz verify
-        cargo msrv --path channelz_brotli verify
+        cargo msrv verify
