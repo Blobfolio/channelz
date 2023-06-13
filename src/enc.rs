@@ -2,7 +2,10 @@
 # `ChannelZ` Encoding
 */
 
-use std::path::Path;
+use std::{
+	io::Cursor,
+	path::Path,
+};
 
 
 
@@ -54,17 +57,22 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 /// This will attempt to encode `raw` using Brotli, writing the result to disk
 /// if it is smaller than the original.
 fn encode_brotli(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	if
-		channelz_brotli::encode(raw, buf) &&
-		write_atomic::write_file(path, buf).is_ok()
-	{
-		Some(buf.len())
-	}
-	else {
-		// Clean up.
+	use brotli::enc::{
+		BrotliCompress,
+		backward_references::BrotliEncoderParams,
+	};
+
+	buf.truncate(0);
+	let config = BrotliEncoderParams::default();
+	let size = BrotliCompress(&mut Cursor::new(raw), buf, &config).ok()?;
+	if size != 0 && size < raw.len() {
+		if write_atomic::write_file(path, &buf[..size]).is_ok() {
+			return Some(size);
+		}
 		remove_if(path);
-		None
 	}
+
+	None
 }
 
 /// # Encode Gzip.
