@@ -95,7 +95,7 @@ dactyl = "0.5.*"
 dowser = "0.8.*"
 libdeflater = "=0.14.0"
 rayon = "1.7.*"
-write_atomic = "0.3.*"
+write_atomic = "0.4.*"
 
 [dependencies.brotli]
 version = "=3.3.4"
