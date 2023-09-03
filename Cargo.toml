@@ -90,7 +90,7 @@ dactyl = "0.5.*"
 
 [dependencies]
 argyle = "0.6.*"
-ctrlc = "=3.4.0"
+ctrlc = "3.4.*"
 dactyl = "0.5.*"
 dowser = "0.8.*"
 libdeflater = "=0.14.0"
