@@ -93,7 +93,7 @@ argyle = "0.6.*"
 ctrlc = "3.4.*"
 dactyl = "0.5.*"
 dowser = "0.8.*"
-libdeflater = "=0.14.0"
+libdeflater = "=0.19.0"
 rayon = "1.8.*"
 write_atomic = "0.4.*"
 
