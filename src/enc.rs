@@ -1,5 +1,5 @@
 /*!
-# `ChannelZ` Encoding
+# ChannelZ: Encoding
 */
 
 use std::{

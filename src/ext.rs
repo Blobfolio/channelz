@@ -1,5 +1,5 @@
 /*!
-# `ChannelZ`: Extensions
+# ChannelZ: Extensions
 */
 
 use dowser::Extension;
