@@ -84,7 +84,7 @@ use std::{
 /// # Main.
 fn main() {
 	match _main() {
-		Ok(_) => {},
+		Ok(()) => {},
 		Err(ArgyleError::WantsVersion) => {
 			println!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
 		},
