@@ -1,10 +1,10 @@
 [package]
 name = "channelz"
-version = "0.7.2"
+version = "0.8.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.73"
 description = "Fast, multi-threaded static Gzip/Brotli encoding tool for the CLI."
 repository = "https://github.com/Blobfolio/channelz"
 readme = "./README.md"
@@ -90,15 +90,15 @@ dactyl = "0.5.*"
 
 [dependencies]
 argyle = "0.6.*"
-ctrlc = "=3.4.0"
+ctrlc = "3.4.*"
 dactyl = "0.5.*"
 dowser = "0.8.*"
-libdeflater = "=0.14.0"
-rayon = "1.7.*"
-write_atomic = "0.4.*"
+libdeflater = "=1.19.0"
+rayon = "1.8.*"
+write_atomic = "0.5.*"
 
 [dependencies.brotli]
-version = "=3.3.4"
+version = "=3.4.0"
 default-features = false
 features = [ "std" ]
 

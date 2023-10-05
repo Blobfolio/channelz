@@ -1,5 +1,5 @@
 /*!
-# `ChannelZ`
+# ChannelZ
 */
 
 #![forbid(unsafe_code)]
@@ -26,7 +26,10 @@
 	unused_import_braces,
 )]
 
-#![allow(clippy::redundant_pub_crate)]
+#![allow(
+	clippy::doc_markdown,
+	clippy::redundant_pub_crate,
+)]
 
 
 
@@ -81,7 +84,7 @@ use std::{
 /// # Main.
 fn main() {
 	match _main() {
-		Ok(_) => {},
+		Ok(()) => {},
 		Err(ArgyleError::WantsVersion) => {
 			println!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
 		},
