@@ -48,6 +48,7 @@ use argyle::{
 use dactyl::{
 	NiceU64,
 	NicePercent,
+	traits::IntDivFloat,
 };
 use dowser::Dowser;
 use fyi_msg::{
@@ -269,12 +270,12 @@ fn size_chart(src: u64, br: u64, gz: u64) {
 	let len = usize::max(usize::max(nice_src.len(), nice_br.len()), nice_gz.len());
 
 	// Figure out relative savings, if any.
-	let per_br: String = dactyl::int_div_float(br, src).map_or_else(
+	let per_br: String = br.div_float(src).map_or_else(
 			String::new,
 			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
 	);
 
-	let per_gz: String = dactyl::int_div_float(gz, src).map_or_else(
+	let per_gz: String = gz.div_float(src).map_or_else(
 			String::new,
 			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
 	);
