@@ -182,13 +182,6 @@ _bench-init:
 	cp -aR "{{ data_dir }}/raw" "{{ data_dir }}/test"
 
 
-# Init dependencies.
-@_init:
-	# We need beta until 1.51 is stable.
-	# env RUSTUP_PERMIT_COPY_RENAME=true rustup default beta
-	# env RUSTUP_PERMIT_COPY_RENAME=true rustup component add clippy
-
-
 # Fix file/directory permissions.
 @_fix-chmod PATH:
 	[ ! -e "{{ PATH }}" ] || find "{{ PATH }}" -type f -exec chmod 0644 {} +
