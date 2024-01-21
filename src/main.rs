@@ -205,7 +205,7 @@ fn helper() {
    `-( /    -=`\   |
  .==`=(  -= = _/   /`--.
 (M==M=M==M=M==M==M==M==M)
- \=N=N==N=N==N=N==N=NN=/   ", "\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r"
+ \=N=N==N=N==N=N==N=NN=/   ", "\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r#"
   \M==M=M==M=M==M===M=/    Fast, recursive, multi-threaded
    \N=N==N=N==N=NN=N=/     static Brotli and Gzip encoding.
     \M==M==M=M==M==M/
@@ -226,8 +226,10 @@ FLAGS:
     -V, --version     Print version information and exit.
 
 OPTIONS:
-    -l, --list <FILE> Read (absolute) file and/or directory paths from this
-                      text file, one entry per line.
+    -l, --list <FILE> Read (absolute) file and/or directory paths to compress
+                      from this text file — or STDIN if "-" — one entry per
+                      line, instead of or in addition to specifying <PATH(S)>
+                      directly at the end of the command.
 
 ARGS:
     <PATH(S)>...      One or more file and/or directory paths to compress
@@ -240,7 +242,7 @@ Note: static copies will only be generated for files with these extensions:
     appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics;
     js; json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt;
     vcard; vcs; vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml
-"
+"#
 	));
 }
 

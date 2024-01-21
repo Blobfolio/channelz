@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.8.1"
+version = "0.8.2"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -12,7 +12,7 @@ publish = false
 
 [package.metadata.deb]
 maintainer = "Josh Stoik <hello@blobfolio.com>"
-copyright = "2022, Blobfolio, LLC <hello@blobfolio.com>"
+copyright = "2024, Blobfolio, LLC <hello@blobfolio.com>"
 license-file = ["./LICENSE", "0"]
 revision = "1"
 depends = "$auto"
@@ -26,7 +26,7 @@ appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics; js;\
 json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt; vcard; vcs;\n\
 vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml"""
 assets = [
-    ["./target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
+    ["./target/release/channelz", "usr/bin/", "755"],
     ["./release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
     ["./release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
@@ -68,7 +68,7 @@ description = "Print version information and exit."
 short = "-l"
 long = "--list"
 label = "<FILE>"
-description = "Read (absolute) file and/or directory paths from this text file, one entry per line."
+description = "Read (absolute) file and/or directory paths to compress from this text file — or STDIN if '-' — one entry per line, instead of or in addition to specifying <PATH(S)> directly at the end of the command."
 path = true
 
 [[package.metadata.bashman.arguments]]
@@ -89,7 +89,7 @@ lines = [
 dactyl = "0.6.*"
 
 [dependencies]
-argyle = "0.6.*"
+argyle = "0.7.*"
 ctrlc = "3.4.*"
 dactyl = "0.6.*"
 dowser = "0.8.*"

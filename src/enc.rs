@@ -2,9 +2,20 @@
 # ChannelZ: Encoding
 */
 
+use brotli::enc::{
+	BrotliCompress,
+	backward_references::BrotliEncoderParams,
+};
+use libdeflater::{
+	CompressionLvl,
+	Compressor,
+};
 use std::{
 	io::Cursor,
-	path::Path,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 
 
@@ -26,27 +37,30 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 	let len = raw.len();
 
 	#[cfg(target_pointer_width = "128")]
-	if 0 == len || len > 18_446_744_073_709_551_615 { return None; }
+	if 0 == len || len > u128::from(u64::MAX) { return None; }
 
 	#[cfg(not(target_pointer_width = "128"))]
 	if len == 0 { return None; }
 
-	// Do Gzip first because it will likely be bigger than Brotli, saving us
-	// the trouble of allocating additional buffer space down the road.
+	// A shared buffer for our encoded copies.
 	let mut buf: Vec<u8> = Vec::new();
-	let mut src = src.to_path_buf(); // Own it for later.
 
-	// The output path.
-	let gz_dst = {
-		let mut tmp = src.clone();
-		tmp.as_mut_os_string().push(".gz");
-		tmp
-	};
-	let len_gz = encode_gzip(&gz_dst, &raw, &mut buf).unwrap_or(len);
+	// Start with gzip since it will likely be larger, saving us the trouble
+	// of having to increase the buffer size a second time.
+	let dst_gz = join_ext(src, ".gz");
+	let len_gz = encode_gzip(&dst_gz, &raw, &mut buf)
+		.unwrap_or_else(|| {
+			remove_if(&dst_gz);
+			len
+		});
 
-	// Change the output path, then do Brotli.
-	src.as_mut_os_string().push(".br");
-	let len_br = encode_brotli(&src, &raw, &mut buf).unwrap_or(len);
+	// Now brotli!
+	let dst_br = join_ext(src, ".br");
+	let len_br = encode_brotli(&dst_br, &raw, &mut buf)
+		.unwrap_or_else(|| {
+			remove_if(&dst_br);
+			len
+		});
 
 	// Done!
 	Some((len as u64, len_br as u64, len_gz as u64))
@@ -57,22 +71,13 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 /// This will attempt to encode `raw` using Brotli, writing the result to disk
 /// if it is smaller than the original.
 fn encode_brotli(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	use brotli::enc::{
-		BrotliCompress,
-		backward_references::BrotliEncoderParams,
-	};
-
 	buf.truncate(0);
 	let config = BrotliEncoderParams::default();
-	let size = BrotliCompress(&mut Cursor::new(raw), buf, &config).ok()?;
-	if size != 0 && size < raw.len() {
-		if write_atomic::write_file(path, &buf[..size]).is_ok() {
-			return Some(size);
-		}
-		remove_if(path);
+	let len = BrotliCompress(&mut Cursor::new(raw), buf, &config).ok()?;
+	if len != 0 && len < raw.len() && write_atomic::write_file(path, &buf[..len]).is_ok() {
+		Some(len)
 	}
-
-	None
+	else { None }
 }
 
 /// # Encode Gzip.
@@ -80,26 +85,25 @@ fn encode_brotli(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
 /// This will attempt to encode `raw` using Gzip, writing the result to disk
 /// if it is smaller than the original.
 fn encode_gzip(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	use libdeflater::{
-		CompressionLvl,
-		Compressor,
-	};
-
 	// Set up the buffer/writer.
-	let old_len = raw.len();
 	let mut writer = Compressor::new(CompressionLvl::best());
-	buf.resize(writer.gzip_compress_bound(old_len), 0);
+	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
 
 	// Encode!
-	if let Ok(len) = writer.gzip_compress(raw, buf) {
-		if 0 < len && len < old_len && write_atomic::write_file(path, &buf[..len]).is_ok() {
-			return Some(len);
-		}
+	let len = writer.gzip_compress(raw, buf).ok()?;
+	if len != 0 && len < raw.len() && write_atomic::write_file(path, &buf[..len]).is_ok() {
+		Some(len)
 	}
+	else { None }
+}
 
-	// Clean up.
-	remove_if(path);
-	None
+/// # Push Extension.
+///
+/// Create a new path by appending .gz/.br to it.
+fn join_ext(src: &Path, ext: &str) -> PathBuf {
+	let mut dst = src.to_path_buf();
+	dst.as_mut_os_string().push(ext);
+	dst
 }
 
 /// # Remove If It Exists.
