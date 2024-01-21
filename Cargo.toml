@@ -26,7 +26,7 @@ appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics; js;\
 json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt; vcard; vcs;\n\
 vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml"""
 assets = [
-    ["./target/x86_64-unknown-linux-gnu/release/channelz", "usr/bin/", "755"],
+    ["./target/release/channelz", "usr/bin/", "755"],
     ["./release/completions/channelz.bash", "etc/bash_completion.d/", "644"],
     ["./release/man/channelz.1.gz", "usr/share/man/man1/", "644"],
 ]
