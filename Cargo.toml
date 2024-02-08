@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.8.2"
+version = "0.8.3"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -86,12 +86,12 @@ lines = [
 ]
 
 [build-dependencies]
-dactyl = "0.6.*"
+dactyl = "0.7.*"
 
 [dependencies]
 argyle = "0.7.*"
 ctrlc = "3.4.*"
-dactyl = "0.6.*"
+dactyl = "0.7.*"
 dowser = "0.8.*"
 libdeflater = "=1.19.0"
 rayon = "1.8.*"
@@ -103,7 +103,7 @@ default-features = false
 features = [ "std" ]
 
 [dependencies.fyi_msg]
-version = "0.11.*"
+version = "0.12.*"
 features = [ "progress" ]
 
 [profile.release]
