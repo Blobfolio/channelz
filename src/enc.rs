@@ -48,19 +48,27 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 	// Start with gzip since it will likely be larger, saving us the trouble
 	// of having to increase the buffer size a second time.
 	let dst_gz = join_ext(src, ".gz");
-	let len_gz = encode_gzip(&dst_gz, &raw, &mut buf)
-		.unwrap_or_else(|| {
-			remove_if(&dst_gz);
-			len
-		});
+	let len_gz = encode_gzip(&raw, &mut buf)
+		.and_then(|()| write_atomic::write_file(&dst_gz, &buf).ok())
+		.map_or_else(
+			|| {
+				remove_if(&dst_gz);
+				len
+			},
+			|()| buf.len(),
+		);
 
 	// Now brotli!
 	let dst_br = join_ext(src, ".br");
-	let len_br = encode_brotli(&dst_br, &raw, &mut buf)
-		.unwrap_or_else(|| {
-			remove_if(&dst_br);
-			len
-		});
+	let len_br = encode_brotli(&raw, &mut buf)
+		.and_then(|()| write_atomic::write_file(&dst_br, &buf).ok())
+		.map_or_else(
+			|| {
+				remove_if(&dst_br);
+				len
+			},
+			|()| buf.len(),
+		);
 
 	// Done!
 	Some((len as u64, len_br as u64, len_gz as u64))
@@ -68,33 +76,44 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 
 /// # Encode Brotli.
 ///
-/// This will attempt to encode `raw` using Brotli, writing the result to disk
-/// if it is smaller than the original.
-fn encode_brotli(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
+/// Encode `raw` with Brotli and write the data into `buf`.
+///
+/// If there are problems or the result winds up bigger, `None` is
+/// returned.
+fn encode_brotli(raw: &[u8], buf: &mut Vec<u8>) -> Option<()> {
 	buf.truncate(0);
-	let config = BrotliEncoderParams::default();
+	let config = BrotliEncoderParams {
+		size_hint: raw.len(),
+		..BrotliEncoderParams::default()
+	};
 	let len = BrotliCompress(&mut Cursor::new(raw), buf, &config).ok()?;
-	if len != 0 && len < raw.len() && write_atomic::write_file(path, &buf[..len]).is_ok() {
-		Some(len)
-	}
-	else { None }
+
+	// The brotli encoder is supposed to handle resizing.
+	debug_assert_eq!(len, buf.len(), "Brotli buffer doesn't match length written.");
+
+	// We're good if the result is smaller.
+	if len == 0 || raw.len() < len { None }
+	else { Some(()) }
 }
 
 /// # Encode Gzip.
 ///
-/// This will attempt to encode `raw` using Gzip, writing the result to disk
-/// if it is smaller than the original.
-fn encode_gzip(path: &Path, raw: &[u8], buf: &mut Vec<u8>) -> Option<usize> {
-	// Set up the buffer/writer.
+/// Encode `raw` with Gzip and write the data into `buf`.
+///
+/// If there are problems or the result winds up bigger, `None` is
+/// returned.
+fn encode_gzip(raw: &[u8], buf: &mut Vec<u8>) -> Option<()> {
 	let mut writer = Compressor::new(CompressionLvl::best());
 	buf.resize(writer.gzip_compress_bound(raw.len()), 0);
-
-	// Encode!
 	let len = writer.gzip_compress(raw, buf).ok()?;
-	if len != 0 && len < raw.len() && write_atomic::write_file(path, &buf[..len]).is_ok() {
-		Some(len)
+
+	// We're good if the result is smaller.
+	if len == 0 || raw.len() < len { None }
+	else {
+		// The gzip writer doesn't handle resizing, so let's trim any excess.
+		buf.truncate(len);
+		Some(())
 	}
-	else { None }
 }
 
 /// # Push Extension.
@@ -115,5 +134,56 @@ fn join_ext(src: &Path, ext: &str) -> PathBuf {
 fn remove_if(path: &Path) {
 	if path.exists() {
 		let _res = std::fs::remove_file(path);
+	}
+}
+
+
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	const RAW: &str = r#"Björk Guðmundsdóttir OTF (/bjɜːrk/ BYURK, Icelandic: [pjœr̥k ˈkvʏðmʏntsˌtouhtɪr̥] ⓘ; born 21 November 1965) is an Icelandic singer, songwriter, composer, record producer, and actress. Noted for her distinct voice, three-octave vocal range, and sometimes eccentric public persona, she has developed an eclectic musical style over a career spanning four decades, drawing on electronic, pop, experimental, trip hop, classical, and avant-garde music."#;
+
+	#[test]
+	fn t_brotli() {
+		use std::io::Read;
+
+		let mut enc = Vec::new();
+		encode_brotli(RAW.as_bytes(), &mut enc).expect("Brotli encoding failed.");
+
+		let mut dec = Vec::new();
+		let mut r = brotli::Decompressor::new(enc.as_slice(), 4096);
+		r.read_to_end(&mut dec).expect("Brotli decoding failed.");
+		let dec = String::from_utf8(dec)
+			.expect("Brotli decoding is invalid UTF-8.");
+
+		assert_eq!(dec, RAW, "Brotli enc/dec doesn't match input.");
+	}
+
+	#[test]
+	fn t_gzip() {
+		let mut enc = Vec::new();
+		encode_gzip(RAW.as_bytes(), &mut enc)
+			.expect("Gzip encoding failed.");
+		let len = enc.len();
+		assert!(10 < len, "Gzip encoding is too small!");
+
+		let gz_isize = {
+			let mut ret = u32::from(enc[len - 4]);
+			ret |= u32::from(enc[len - 3]) << 8;
+			ret |= u32::from(enc[len - 2]) << 16;
+			ret |= u32::from(enc[len - 1]) << 24;
+			ret as usize
+		};
+
+		let mut r = libdeflater::Decompressor::new();
+		let mut dec = Vec::new();
+		dec.resize(gz_isize, 0);
+		r.gzip_decompress(&enc, &mut dec).expect("Gzip decoding failed.");
+		let dec = String::from_utf8(dec)
+			.expect("Gzip decoding is invalid UTF-8.");
+
+		assert_eq!(dec, RAW, "Gzip enc/dec doesn't match input.");
 	}
 }

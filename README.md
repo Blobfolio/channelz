@@ -91,8 +91,10 @@ The following flags and options are available:
 | Short | Long | Value | Description |
 | ----- | ---- | ----- | ----------- |
 | | `--clean` | | Remove all existing \*.gz \*.br files before starting. |
+| | `--clean-only` | | Same as `--clean`, but exit immediately afterward. |
+| | `--force` | | Try to encode **all** files regardless of file extension, except those already ending in `.br`/`.gz`. |
 | `-h` | `--help` | | Print help information and exit. |
-| `-l` | `--list` | `<FILE>` | Read (absolute) file and/or directory paths from this text file, one entry per line. |
+| `-l` | `--list` | `<FILE>` | Read (absolute) file and/or directory paths to compress from this text file — or STDIN if "-" — one entry per line, instead of or in addition to `<PATH(S)>`. |
 | `-p` | `--progress` | | Show progress bar while minifying. |
 | `-V` | `--version` | | Print program version and exit. |
 
