@@ -84,12 +84,13 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 
 	// Put it all together!
-	let paths: Vec<PathBuf> = Dowser::default()
+	let mut paths: Vec<PathBuf> = Dowser::default()
 		.with_paths(args.args_os())
 		.into_vec_filtered(
 			if args.switch(b"--force") { find_all }
 			else { find_default }
 		);
+	paths.sort();
 
 	// Sexy run-through.
 	if args.switch2(b"-p", b"--progress") {
