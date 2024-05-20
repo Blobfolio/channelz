@@ -92,7 +92,6 @@ argyle = "0.7.*"
 ctrlc = "=3.4.4"
 dactyl = "0.7.*"
 dowser = "0.9.*"
-libdeflater = "=1.20.0"
 rayon = "1.10.*"
 write_atomic = "0.5.*"
 
@@ -104,6 +103,10 @@ features = [ "std" ]
 [dependencies.fyi_msg]
 version = "0.13.*"
 features = [ "progress" ]
+
+[dependencies.libdeflater]
+version = "=1.20.0"
+features = [ "freestanding" ]
 
 [profile.release]
 lto = true
