@@ -35,6 +35,7 @@
 
 mod enc;
 mod ext;
+mod jobs;
 
 
 
@@ -45,38 +46,13 @@ use argyle::{
 	FLAG_REQUIRED,
 	FLAG_VERSION,
 };
-use dactyl::{
-	NiceU64,
-	NicePercent,
-	traits::IntDivFloat,
-};
 use dowser::Dowser;
-use fyi_msg::{
-	Msg,
-	MsgKind,
-	Progless,
-};
-use rayon::iter::{
-	IntoParallelRefIterator,
-	ParallelIterator,
-};
+use fyi_msg::Msg;
 use std::{
 	os::unix::ffi::OsStrExt,
 	path::{
 		Path,
 		PathBuf,
-	},
-	sync::{
-		Arc,
-		atomic::{
-			AtomicBool,
-			AtomicU64,
-			Ordering::{
-				Acquire,
-				Relaxed,
-				SeqCst,
-			},
-		},
 	},
 };
 
@@ -108,64 +84,19 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 
 	// Put it all together!
-	let paths: Vec<PathBuf> = Dowser::default()
+	let mut paths: Vec<PathBuf> = Dowser::default()
 		.with_paths(args.args_os())
 		.into_vec_filtered(
 			if args.switch(b"--force") { find_all }
 			else { find_default }
 		);
-
-	if paths.is_empty() {
-		return Err(ArgyleError::Custom("No encodeable files were found."));
-	}
-
-	// Watch for SIGINT so we can shut down cleanly.
-	let killed = Arc::from(AtomicBool::new(false));
+	paths.sort();
 
 	// Sexy run-through.
 	if args.switch2(b"-p", b"--progress") {
-		// Boot up a progress bar.
-		let progress = Progless::try_from(paths.len())
-			.map_err(|e| ArgyleError::Custom(e.as_str()))?
-			.with_reticulating_splines("ChannelZ");
-
-		let size_src = AtomicU64::new(0);
-		let size_br = AtomicU64::new(0);
-		let size_gz = AtomicU64::new(0);
-
-		// Process!
-		sigint(Arc::clone(&killed), Some(progress.clone()));
-		paths.par_iter().for_each(|x| {
-			if ! killed.load(Acquire) {
-				let tmp = x.to_string_lossy();
-				progress.add(&tmp);
-
-				if let Some((a, b, c)) = enc::encode(x) {
-					size_src.fetch_add(a, Relaxed);
-					size_br.fetch_add(b, Relaxed);
-					size_gz.fetch_add(c, Relaxed);
-				}
-
-				progress.remove(&tmp);
-			}
-		});
-
-		// Finish up.
-		progress.finish();
-		progress.summary(MsgKind::Crunched, "file", "files").print();
-		size_chart(size_src.into_inner(), size_br.into_inner(), size_gz.into_inner());
+		jobs::exec_pretty(&paths)
 	}
-	// Silent run-through.
-	else {
-		sigint(Arc::clone(&killed), None);
-		paths.par_iter().for_each(|x| if ! killed.load(Acquire) {
-			let _res = enc::encode(x);
-		});
-	}
-
-	// Early abort?
-	if killed.load(Acquire) { Err(ArgyleError::Custom("The process was aborted early.")) }
-	else { Ok(()) }
+	else { jobs::exec(&paths) }
 }
 
 /// # Clean.
@@ -244,56 +175,4 @@ Note: static copies will only be generated for files with these extensions:
     vcard; vcs; vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml
 "#
 	));
-}
-
-/// # Hook Up CTRL+C.
-///
-/// Once stops processing new items, twice forces immediate shutdown.
-fn sigint(killed: Arc<AtomicBool>, progress: Option<Progless>) {
-	let _res = ctrlc::set_handler(move ||
-		if killed.compare_exchange(false, true, SeqCst, Relaxed).is_ok() {
-			if let Some(p) = &progress { p.sigint(); }
-		}
-		else { std::process::exit(1); }
-	);
-}
-
-/// # Summarize Output Sizes.
-///
-/// This compares the original sources against their Brotli and Gzip
-/// counterparts.
-fn size_chart(src: u64, br: u64, gz: u64) {
-	// Add commas to the numbers.
-	let nice_src = NiceU64::from(src);
-	let nice_br = NiceU64::from(br);
-	let nice_gz = NiceU64::from(gz);
-
-	// Find the maximum byte length so we can pad nicely.
-	let len = usize::max(usize::max(nice_src.len(), nice_br.len()), nice_gz.len());
-
-	// Figure out relative savings, if any.
-	let per_br: String = br.div_float(src).map_or_else(
-			String::new,
-			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-	);
-
-	let per_gz: String = gz.div_float(src).map_or_else(
-			String::new,
-			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-	);
-
-	// Print the totals!
-	Msg::custom("  Source", 13, &format!("{}{} bytes", " ".repeat(len - nice_src.len()), nice_src.as_str()))
-		.with_newline(true)
-		.print();
-
-	Msg::custom("  Brotli", 13, &format!("{}{} bytes", " ".repeat(len - nice_br.len()), nice_br.as_str()))
-		.with_suffix(per_br)
-		.with_newline(true)
-		.print();
-
-	Msg::custom("    Gzip", 13, &format!("{}{} bytes", " ".repeat(len - nice_gz.len()), nice_gz.as_str()))
-		.with_suffix(per_gz)
-		.with_newline(true)
-		.print();
 }

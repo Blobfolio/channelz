@@ -3,8 +3,8 @@
 */
 
 use brotli::enc::{
-	BrotliCompress,
 	backward_references::BrotliEncoderParams,
+	BrotliCompress,
 };
 use libdeflater::{
 	CompressionLvl,
@@ -20,6 +20,7 @@ use std::{
 
 
 
+#[inline]
 /// # Encode File.
 ///
 /// This will attempt to encode the given file with both Brotli and Gzip, and
@@ -74,6 +75,7 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 	Some((len as u64, len_br as u64, len_gz as u64))
 }
 
+#[inline]
 /// # Encode Brotli.
 ///
 /// Encode `raw` with Brotli and write the data into `buf`.
@@ -96,6 +98,7 @@ fn encode_brotli(raw: &[u8], buf: &mut Vec<u8>) -> Option<()> {
 	else { Some(()) }
 }
 
+#[inline]
 /// # Encode Gzip.
 ///
 /// Encode `raw` with Gzip and write the data into `buf`.
@@ -116,6 +119,7 @@ fn encode_gzip(raw: &[u8], buf: &mut Vec<u8>) -> Option<()> {
 	}
 }
 
+#[inline]
 /// # Push Extension.
 ///
 /// Create a new path by appending .gz/.br to it.
@@ -125,6 +129,7 @@ fn join_ext(src: &Path, ext: &str) -> PathBuf {
 	dst
 }
 
+#[inline(never)]
 /// # Remove If It Exists.
 ///
 /// This method is used to clean up previously-encoded copies of a file when
