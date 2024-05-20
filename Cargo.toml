@@ -89,10 +89,10 @@ dactyl = "0.7.*"
 
 [dependencies]
 argyle = "0.7.*"
+crossbeam-channel = "=0.5.*"
 ctrlc = "=3.4.4"
 dactyl = "0.7.*"
 dowser = "0.9.*"
-rayon = "1.10.*"
 write_atomic = "0.5.*"
 
 [dependencies.brotli]
