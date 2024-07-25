@@ -36,11 +36,6 @@ pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
 	// and fits within `u64`.
 	let raw = std::fs::read(src).ok()?;
 	let len = raw.len();
-
-	#[cfg(target_pointer_width = "128")]
-	if 0 == len || len > u128::from(u64::MAX) { return None; }
-
-	#[cfg(not(target_pointer_width = "128"))]
 	if len == 0 { return None; }
 
 	// A shared buffer for our encoded copies.
