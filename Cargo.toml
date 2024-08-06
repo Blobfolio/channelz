@@ -105,7 +105,7 @@ version = "0.13.*"
 features = [ "progress" ]
 
 [dependencies.libdeflater]
-version = "=1.20.0"
+version = "=1.21.0"
 features = [ "freestanding" ]
 
 [profile.release]
