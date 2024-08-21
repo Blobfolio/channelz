@@ -27,12 +27,13 @@ use std::{
 /// This will attempt to encode the given file with both Brotli and Gzip, and
 /// return all three sizes (original, br, gz).
 ///
-/// If the file is unreadable, empty, or too big to represent as `u64`, `None`
-/// will be returned. If either Gzip or Brotli fail (or result in larger
-/// output), their "sizes" will actually represent the original input size.
-/// (We're looking for savings, and if we can't encode as .gz or whatever,
-/// there are effectively no savings.)
-pub(super) fn encode(src: &Path) -> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
+/// This returns `None` if the file is unreadable or empty, otherwise a triple
+/// containing the original, brotli, and gzip sizes (in that order).
+///
+/// Note that if an encoder fails or produces larger output, the disk copy will
+/// be deleted (if any) and its size will be adjusted to match the source to
+/// emphasize the lack of savings.
+pub(super) fn encode(src: &Path, buf: &mut Vec<u8>) -> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
 	// First things first, read the file and make sure its length is non-zero.
 	let raw = std::fs::read(src).ok()?;
 	let dst_gz = join_ext(src, ".gz");
@@ -43,21 +44,18 @@ pub(super) fn encode(src: &Path) -> Option<(NonZeroU64, NonZeroU64, NonZeroU64)>
 		return None;
 	};
 
-	// A temporary buffer for the encoded copies.
-	let mut buf: Vec<u8> = Vec::new();
-
 	// Start with gzip since it will likely be larger, saving us the trouble
 	// of having to increase the buffer size a second time.
-	let len_gz = encode_gzip(&raw, &mut buf)
-		.filter(|_| write_atomic::write_file(&dst_gz, &buf).is_ok())
+	let len_gz = encode_gzip(&raw, buf)
+		.filter(|_| write_atomic::write_file(&dst_gz, buf).is_ok())
 		.unwrap_or_else(|| {
 			remove_if(&dst_gz);
 			len
 		});
 
 	// Now brotli!
-	let len_br = encode_brotli(&raw, &mut buf)
-		.filter(|_| write_atomic::write_file(&dst_br, &buf).is_ok())
+	let len_br = encode_brotli(&raw, buf)
+		.filter(|_| write_atomic::write_file(&dst_br, buf).is_ok())
 		.unwrap_or_else(|| {
 			remove_if(&dst_br);
 			len
@@ -86,8 +84,8 @@ fn encode_brotli(raw: &[u8], buf: &mut Vec<u8>) -> Option<NonZeroU64> {
 	debug_assert_eq!(len, buf.len(), "Brotli buffer doesn't match length written.");
 
 	// We're good if the result is smaller.
-	if raw.len() < len { None }
-	else { NonZeroU64::new(len as u64) }
+	if len <= raw.len() { NonZeroU64::new(len as u64) }
+	else { None }
 }
 
 #[inline]
@@ -103,12 +101,12 @@ fn encode_gzip(raw: &[u8], buf: &mut Vec<u8>) -> Option<NonZeroU64> {
 	let len = writer.gzip_compress(raw, buf).ok()?;
 
 	// We're good if the result is smaller.
-	if raw.len() < len { None }
-	else {
-		// The gzip writer doesn't handle resizing, so let's trim any excess.
+	if len <= raw.len() {
+		// Trim to what was actually written.
 		buf.truncate(len);
 		NonZeroU64::new(len as u64)
 	}
+	else { None }
 }
 
 #[inline]
