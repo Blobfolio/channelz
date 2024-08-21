@@ -126,9 +126,9 @@ pub(super) fn exec_pretty(files: &[PathBuf]) -> Result<(), ArgyleError> {
 					progress.add(&name);
 
 					if let Some((a, b, c)) = encode(p) {
-						SIZE_RAW.fetch_add(a, Relaxed);
-						SIZE_BR.fetch_add(b, Relaxed);
-						SIZE_GZ.fetch_add(c, Relaxed);
+						SIZE_RAW.fetch_add(a.get(), Relaxed);
+						SIZE_BR.fetch_add(b.get(), Relaxed);
+						SIZE_GZ.fetch_add(c.get(), Relaxed);
 					}
 
 					progress.remove(&name);

@@ -12,6 +12,7 @@ use libdeflater::{
 };
 use std::{
 	io::Cursor,
+	num::NonZeroU64,
 	path::{
 		Path,
 		PathBuf,
@@ -31,43 +32,42 @@ use std::{
 /// output), their "sizes" will actually represent the original input size.
 /// (We're looking for savings, and if we can't encode as .gz or whatever,
 /// there are effectively no savings.)
-pub(super) fn encode(src: &Path) -> Option<(u64, u64, u64)> {
+pub(super) fn encode(src: &Path) -> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
 	// First things first, read the file and make sure its length is non-zero
 	// and fits within `u64`.
 	let raw = std::fs::read(src).ok()?;
-	let len = raw.len();
-	if len == 0 { return None; }
+	let dst_gz = join_ext(src, ".gz");
+	let dst_br = join_ext(src, ".br");
+	let Some(len) = NonZeroU64::new(raw.len() as u64) else {
+		remove_if(&dst_gz);
+		remove_if(&dst_br);
+		return None;
+	};
 
 	// A shared buffer for our encoded copies.
 	let mut buf: Vec<u8> = Vec::new();
 
 	// Start with gzip since it will likely be larger, saving us the trouble
 	// of having to increase the buffer size a second time.
-	let dst_gz = join_ext(src, ".gz");
 	let len_gz = encode_gzip(&raw, &mut buf)
 		.and_then(|()| write_atomic::write_file(&dst_gz, &buf).ok())
-		.map_or_else(
-			|| {
-				remove_if(&dst_gz);
-				len
-			},
-			|()| buf.len(),
-		);
+		.and_then(|()| NonZeroU64::new(buf.len() as u64))
+		.unwrap_or_else(|| {
+			remove_if(&dst_gz);
+			len
+		});
 
 	// Now brotli!
-	let dst_br = join_ext(src, ".br");
 	let len_br = encode_brotli(&raw, &mut buf)
 		.and_then(|()| write_atomic::write_file(&dst_br, &buf).ok())
-		.map_or_else(
-			|| {
-				remove_if(&dst_br);
-				len
-			},
-			|()| buf.len(),
-		);
+		.and_then(|()| NonZeroU64::new(buf.len() as u64))
+		.unwrap_or_else(|| {
+			remove_if(&dst_br);
+			len
+		});
 
 	// Done!
-	Some((len as u64, len_br as u64, len_gz as u64))
+	Some((len, len_br, len_gz))
 }
 
 #[inline]
