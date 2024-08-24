@@ -2,7 +2,7 @@
 # ChannelZ
 */
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 #![warn(
 	clippy::filetype_is_file,
@@ -212,12 +212,12 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 /// file paths and crunches them — and updates the progress bar, etc. —
 /// then quits when the work has dried up.
 fn crunch_pretty(rx: &Receiver::<&Path>, progress: &Progless) {
-	let mut buf = Vec::new();
+	let mut enc = enc::Encoder::new();
 	while let Ok(p) = rx.recv() {
 		let name = p.to_string_lossy();
 		progress.add(&name);
 
-		if let Some((a, b, c)) = enc::encode(p, &mut buf) {
+		if let Some((a, b, c)) = enc.encode(p) {
 			SIZE_RAW.fetch_add(a.get(), Relaxed);
 			SIZE_BR.fetch_add(b.get(), Relaxed);
 			SIZE_GZ.fetch_add(c.get(), Relaxed);
@@ -233,8 +233,8 @@ fn crunch_pretty(rx: &Receiver::<&Path>, progress: &Progless) {
 /// This is the worker callback for quiet crunching. It listens for "new"
 /// file paths and crunches them, then quits when the work has dried up.
 fn crunch_quiet(rx: &Receiver::<&Path>) {
-	let mut buf = Vec::new();
-	while let Ok(p) = rx.recv() { let _res = enc::encode(p, &mut buf); }
+	let mut enc = enc::Encoder::new();
+	while let Ok(p) = rx.recv() { let _res = enc.encode(p); }
 }
 
 #[cold]
