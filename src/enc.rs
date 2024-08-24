@@ -34,10 +34,16 @@ use std::{
 /// be deleted (if any) and its size will be adjusted to match the source to
 /// emphasize the lack of savings.
 pub(super) fn encode(src: &Path, buf: &mut Vec<u8>) -> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
-	// First things first, read the file and make sure its length is non-zero.
-	let raw = std::fs::read(src).ok()?;
+	// Destination paths.
 	let dst_gz = join_ext(src, ".gz");
 	let dst_br = join_ext(src, ".br");
+
+	// First things first, read the file and make sure its length is non-zero.
+	let Ok(raw) = std::fs::read(src) else {
+		remove_if(&dst_gz);
+		remove_if(&dst_br);
+		return None;
+	};
 	let Some(len) = NonZeroU64::new(raw.len() as u64) else {
 		remove_if(&dst_gz);
 		remove_if(&dst_br);
