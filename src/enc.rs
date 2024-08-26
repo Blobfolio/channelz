@@ -27,13 +27,13 @@ use std::{
 
 /// # Encoder.
 ///
-/// This re-usable (per-thread) structure holds the uncompressed source data
-/// and a data buffer/path for the encoded copies (which we handle one at a
-/// time, hence there being only one of each).
+/// This re-usable (per-thread) structure holds the uncompressed source data,
+/// a buffer for encoding, and output paths for the encoded versions.
 pub(super) struct Encoder {
 	src: Vec<u8>,      // Buffer for source data.
 	dst_buf: Vec<u8>,  // Buffer for encoded data.
-	dst_path: Vec<u8>, // Output path for encoded copies.
+	dst_br: Vec<u8>,   // Output paths for encoded versions.
+	dst_gz: Vec<u8>,
 }
 
 impl Encoder {
@@ -44,14 +44,15 @@ impl Encoder {
 		Self {
 			src: Vec::new(),
 			dst_buf: Vec::new(),
-			dst_path: Vec::new(),
+			dst_br: Vec::new(),
+			dst_gz: Vec::new(),
 		}
 	}
 
 	#[inline(always)]
 	/// # Encode.
 	///
-	/// This method attempts to read `raw` and re-encode it with gzip and
+	/// This method attempts to read `src` and re-encode it with gzip and
 	/// brotli, saving each copy if they offer any improvement, or removing
 	/// previous instances if not.
 	///
@@ -61,34 +62,29 @@ impl Encoder {
 	///
 	/// If an encoding fails, the source size will be returned in its place
 	/// (regardless of how big the encoded version wound up).
-	pub(super) fn encode(&mut self, raw: &Path)
+	pub(super) fn encode(&mut self, src: &Path)
 	-> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
-		// Start by establishing the destination path for the gzip-encoded copy
-		// (since we'll do that one first). The ergonomics of Pathbuf/OsString
-		// suck, but thankfully we're targeting unix so can work with bytes
-		// instead!
-		let raw_bytes = raw.as_os_str().as_bytes();
-		self.dst_path.truncate(0);
-		self.dst_path.extend_from_slice(raw_bytes);
-		self.dst_path.extend_from_slice(b".gz");
+		// First, let's update the destination paths.
+		self.set_dst_paths(src);
 
 		// Now try to read the source.
-		let Some(len_src) = self.read_source(raw) else {
-			self.remove_both();
+		let Some(len_src) = self.read_source(src) else {
+			self.remove_br();
+			self.remove_gz();
 			return None;
 		};
 
 		// Try to encode it with gzip! This version is done first because it
 		// will likely be bigger, saving brotli the trouble of reallocating.
 		let len_gz = self.gzip().unwrap_or_else(|| {
-			self.remove_if();
+			self.remove_gz();
 			len_src
 		});
 
 		// And now do the same with brotli… (Note: this method updates the
 		// destination path accordingly.)
 		let len_br = self.brotli().unwrap_or_else(|| {
-			self.remove_if();
+			self.remove_br();
 			len_src
 		});
 
@@ -105,10 +101,6 @@ impl Encoder {
 	/// or the result cannot be written to disk, otherwise the length of the
 	/// encoded copy.
 	fn brotli(&mut self) -> Option<NonZeroU64> {
-		// Swap the trailing "gz" in the output path with "br". Isn't it nice
-		// that both extensions have the same size?!
-		self.set_path_br();
-
 		// Sliceify the source to make life easier.
 		let raw = self.src.as_slice();
 
@@ -125,11 +117,15 @@ impl Encoder {
 			let len = NonZeroU64::new(len as u64)?;
 
 			// Write the contents and return the length.
-			if self.save() { Some(len) }
+			if write_atomic::write_file(self.brotli_path(), &self.dst_buf).is_ok() { Some(len) }
 			else { None }
 		}
 		else { None }
 	}
+
+	#[inline(always)]
+	/// # Brotli Path.
+	fn brotli_path(&self) -> &OsStr { OsStr::from_bytes(&self.dst_br) }
 
 	#[inline(always)]
 	/// # Encode With Gzip.
@@ -152,11 +148,15 @@ impl Encoder {
 			let len = NonZeroU64::new(len as u64)?;
 
 			// Write the contents and return the length.
-			if self.save() { Some(len) }
+			if write_atomic::write_file(self.gzip_path(), &self.dst_buf).is_ok() { Some(len) }
 			else { None }
 		}
 		else { None }
 	}
+
+	#[inline(always)]
+	/// # Gzip Path.
+	fn gzip_path(&self) -> &OsStr { OsStr::from_bytes(&self.dst_gz) }
 }
 
 impl Encoder {
@@ -186,56 +186,47 @@ impl Encoder {
 	}
 
 	#[cold]
-	/// # Remove Brotli/Gzip Encodings (if they exist).
-	///
-	/// In cases where a source file is unreadable or empty, this method is
-	/// called to remove any previously-generated gzip/brotli copies.
-	fn remove_both(&mut self) {
-		self.remove_if();
-		self.set_path_br();
-		self.remove_if();
-	}
-
-	#[cold]
-	/// # Remove Encoding (if it exists).
+	/// # Remove Brotli Copy (if it exists)
 	///
 	/// In cases where encoding can't be run or failed, this method is called
 	/// to remove any previously-generated copy of the encoded content.
-	fn remove_if(&self) {
-		let path: &Path = OsStr::from_bytes(&self.dst_path).as_ref();
+	fn remove_br(&self) {
+		let path: &Path = self.brotli_path().as_ref();
+		if path.exists() {
+			let _res = std::fs::remove_file(path);
+		}
+	}
+
+	#[cold]
+	/// # Remove Gzip Copy (if it exists)
+	///
+	/// In cases where encoding can't be run or failed, this method is called
+	/// to remove any previously-generated copy of the encoded content.
+	fn remove_gz(&self) {
+		let path: &Path = self.gzip_path().as_ref();
 		if path.exists() {
 			let _res = std::fs::remove_file(path);
 		}
 	}
 
 	#[inline(always)]
-	/// # Save Output.
+	/// # Set Destination Paths.
 	///
-	/// Write the contents of the destination buffer to the destination path,
-	/// returning `true` on success, `false` on failure.
-	fn save(&self) -> bool {
-		write_atomic::write_file(OsStr::from_bytes(&self.dst_path), &self.dst_buf).is_ok()
-	}
+	/// This rebuilds the struct's destination paths to match the source path
+	/// (with the extra `.br`/`.gz` suffixes).
+	fn set_dst_paths(&mut self, src: &Path) {
+		// Working with bytes is a little strange, but noticeably more
+		// performant than sticking with PathBuf. As this app only supports
+		// Unix platforms, we have the option, so might as well take it.
+		let raw_bytes = src.as_os_str().as_bytes();
 
-	#[allow(unsafe_code)]
-	#[inline(always)]
-	/// # Update Path (to Brotli).
-	///
-	/// The destination path is initialized with the gzip extension; this
-	/// method switches the last two bytes to the brotli extension.
-	fn set_path_br(&mut self) {
-		let slice = self.dst_path.as_mut_slice();
-		let ptr = slice.as_mut_ptr();
+		self.dst_br.truncate(0);
+		self.dst_br.extend_from_slice(raw_bytes);
+		self.dst_br.extend_from_slice(b".br");
 
-		// Safety: there is always a path ending in .gz when this method is
-		// called.
-		unsafe {
-			std::ptr::copy_nonoverlapping(
-				b"br".as_ptr(),
-				ptr.add(slice.len() - 2),
-				2,
-			);
-		}
+		self.dst_gz.truncate(0);
+		self.dst_gz.extend_from_slice(raw_bytes);
+		self.dst_gz.extend_from_slice(b".gz");
 	}
 }
 
@@ -280,7 +271,7 @@ mod test {
 	/// # Decode Gzip.
 	fn decode_gzip(src: &Path) {
 		// Load the encoded content.
-		let enc = std::fs::read(src).expect("Missing brotli copy.");
+		let enc = std::fs::read(src).expect("Missing gzip copy.");
 		let len = enc.len();
 		assert!(10 < len, "Gzip encoding is too small!");
 
@@ -314,6 +305,10 @@ mod test {
 		// Encode it!
 		let mut encoder = Encoder::new();
 		encoder.encode(&src).expect("Encoding failed!");
+
+		// Check the paths.
+		assert_eq!(src_br, encoder.brotli_path());
+		assert_eq!(src_gz, encoder.gzip_path());
 
 		// Decode both encoded copies and compare them to the original.
 		decode_brotli(&src_br);
