@@ -4,32 +4,55 @@
 
 #![forbid(unsafe_code)]
 
+#![deny(
+	clippy::allow_attributes_without_reason,
+	clippy::correctness,
+	unreachable_pub,
+)]
+
 #![warn(
-	clippy::filetype_is_file,
-	clippy::integer_division,
-	clippy::needless_borrow,
+	clippy::complexity,
 	clippy::nursery,
 	clippy::pedantic,
 	clippy::perf,
-	clippy::suboptimal_flops,
+	clippy::style,
+
+	clippy::allow_attributes,
+	clippy::clone_on_ref_ptr,
+	clippy::create_dir,
+	clippy::filetype_is_file,
+	clippy::format_push_string,
+	clippy::get_unwrap,
+	clippy::impl_trait_in_params,
+	clippy::lossy_float_literal,
+	clippy::missing_assert_message,
+	clippy::missing_docs_in_private_items,
+	clippy::needless_raw_strings,
+	clippy::panic_in_result_fn,
+	clippy::pub_without_shorthand,
+	clippy::rest_pat_in_fully_bound_structs,
+	clippy::semicolon_inside_block,
+	clippy::str_to_string,
+	clippy::string_to_string,
+	clippy::todo,
+	clippy::undocumented_unsafe_blocks,
 	clippy::unneeded_field_pattern,
+	clippy::unseparated_literal_suffix,
+	clippy::unwrap_in_result,
+
 	macro_use_extern_crate,
 	missing_copy_implementations,
-	missing_debug_implementations,
 	missing_docs,
 	non_ascii_idents,
 	trivial_casts,
 	trivial_numeric_casts,
-	unreachable_pub,
 	unused_crate_dependencies,
 	unused_extern_crates,
 	unused_import_braces,
 )]
 
-#![allow(
-	clippy::doc_markdown,
-	clippy::redundant_pub_crate,
-)]
+#![expect(clippy::doc_markdown, reason = "`ChannelZ` makes this annoying.")]
+#![expect(clippy::redundant_pub_crate, reason = "Unresolvable.")]
 
 
 
@@ -81,13 +104,19 @@ use std::{
 
 
 
-/// # Progress Counters.
+/// # Progress Counters: Total Uncompressed Size.
 static SIZE_RAW: AtomicU64 = AtomicU64::new(0);
+
+/// # Progress Counters: Total Brotli Size.
 static SIZE_BR: AtomicU64 = AtomicU64::new(0);
+
+/// # Progress Counters: Total Gzip Size.
 static SIZE_GZ: AtomicU64 = AtomicU64::new(0);
 
-/// # Error Constants.
+/// # Error: Abort.
 const ERROR_KILLED: ArgyleError = ArgyleError::Custom("The process was aborted early.");
+
+/// # Error: No files.
 const ERROR_NO_FILES: ArgyleError = ArgyleError::Custom("No encodeable files were found.");
 
 
@@ -147,7 +176,7 @@ fn _main() -> Result<(), ArgyleError> {
 	sigint(Arc::clone(&killed), progress.clone());
 
 	// Thread business!
-	let (tx, rx) = crossbeam_channel::bounded::<&PathBuf>(threads.get());
+	let (tx, rx) = crossbeam_channel::bounded::<&Path>(threads.get());
 	thread::scope(#[inline(always)] |s| {
 		// Set up the worker threads.
 		let mut workers = Vec::with_capacity(threads.get());
@@ -211,7 +240,7 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 /// This is the worker callback for pretty crunching. It listens for "new"
 /// file paths and crunches them — and updates the progress bar, etc. —
 /// then quits when the work has dried up.
-fn crunch_pretty(rx: &Receiver::<&PathBuf>, progress: &Progless) {
+fn crunch_pretty(rx: &Receiver::<&Path>, progress: &Progless) {
 	let mut enc = enc::Encoder::default();
 	while let Ok(p) = rx.recv() {
 		let name = p.to_string_lossy();
@@ -232,7 +261,7 @@ fn crunch_pretty(rx: &Receiver::<&PathBuf>, progress: &Progless) {
 ///
 /// This is the worker callback for quiet crunching. It listens for "new"
 /// file paths and crunches them, then quits when the work has dried up.
-fn crunch_quiet(rx: &Receiver::<&PathBuf>) {
+fn crunch_quiet(rx: &Receiver::<&Path>) {
 	let mut enc = enc::Encoder::default();
 	while let Ok(p) = rx.recv() { let _res = enc.encode(p); }
 }

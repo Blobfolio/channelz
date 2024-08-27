@@ -2,9 +2,7 @@
 # ChannelZ: Encoding
 */
 
-// Performance is a lot better when the encoding pieces are kept together. The
-// caller is #[inline(never)], so the trail won't be too long.
-#![allow(clippy::inline_always)]
+#![expect(clippy::inline_always, reason = "For performance.")]
 
 use brotli::enc::{
 	backward_references::BrotliEncoderParams,
@@ -32,9 +30,16 @@ use std::{
 /// This re-usable (per-thread) structure holds the uncompressed source data,
 /// a buffer for encoding, and output paths for the encoded versions.
 pub(super) struct Encoder {
-	src: Vec<u8>,      // Buffer for source data.
-	dst_buf: Vec<u8>,  // Buffer for encoded data.
-	dst_br: PathBuf,   // Output paths for encoded versions.
+	/// # Buffer (Source Data).
+	src: Vec<u8>,
+
+	/// # Buffer (Encoded Data).
+	dst_buf: Vec<u8>,
+
+	/// # Output Path (Brotli).
+	dst_br: PathBuf,
+
+	/// # Output Path (Gzip).
 	dst_gz: PathBuf,
 }
 
@@ -52,12 +57,12 @@ impl Encoder {
 	///
 	/// If an encoding fails, the source size will be returned in its place
 	/// (regardless of how big the encoded version wound up).
-	pub(super) fn encode(&mut self, src: &PathBuf)
+	pub(super) fn encode(&mut self, src: &Path)
 	-> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
 		// First, let's update the destination paths.
-		self.dst_br.clone_from(src);
+		src.clone_into(&mut self.dst_br);
 		self.dst_br.as_mut_os_string().push(".br");
-		self.dst_gz.clone_from(src);
+		src.clone_into(&mut self.dst_gz);
 		self.dst_gz.as_mut_os_string().push(".gz");
 
 		// Now try to read the source.
@@ -145,7 +150,7 @@ impl Encoder {
 }
 
 impl Encoder {
-	#[allow(clippy::cast_possible_truncation)]
+	#[expect(clippy::cast_possible_truncation, reason = "False positive.")]
 	#[inline(always)]
 	/// # Read Source.
 	///
@@ -200,7 +205,7 @@ mod test {
 	use super::*;
 	use std::path::PathBuf;
 
-	const RAW: &str = r#"Björk Guðmundsdóttir OTF (/bjɜːrk/ BYURK, Icelandic: [pjœr̥k ˈkvʏðmʏntsˌtouhtɪr̥] ⓘ; born 21 November 1965) is an Icelandic singer, songwriter, composer, record producer, and actress. Noted for her distinct voice, three-octave vocal range, and sometimes eccentric public persona, she has developed an eclectic musical style over a career spanning four decades, drawing on electronic, pop, experimental, trip hop, classical, and avant-garde music."#;
+	const RAW: &str = "Björk Guðmundsdóttir OTF (/bjɜːrk/ BYURK, Icelandic: [pjœr̥k ˈkvʏðmʏntsˌtouhtɪr̥] ⓘ; born 21 November 1965) is an Icelandic singer, songwriter, composer, record producer, and actress. Noted for her distinct voice, three-octave vocal range, and sometimes eccentric public persona, she has developed an eclectic musical style over a career spanning four decades, drawing on electronic, pop, experimental, trip hop, classical, and avant-garde music.";
 	const NAME_RAW: &str = "channelz.txt";
 	const NAME_BR: &str = "channelz.txt.br";
 	const NAME_GZ: &str = "channelz.txt.gz";
@@ -248,8 +253,7 @@ mod test {
 
 		// Decode it.
 		let mut r = libdeflater::Decompressor::new();
-		let mut dec = Vec::new();
-		dec.resize(gz_isize, 0);
+		let mut dec = vec![0_u8; gz_isize];
 		r.gzip_decompress(&enc, &mut dec).expect("Gzip decoding failed.");
 		let dec = String::from_utf8(dec)
 			.expect("Gzip decoding is invalid UTF-8.");
