@@ -15,16 +15,18 @@ use libdeflater::{
 	Compressor,
 };
 use std::{
-	ffi::OsStr,
 	fs::File,
 	io::Cursor,
 	num::NonZeroU64,
-	os::unix::ffi::OsStrExt,
-	path::Path,
+	path::{
+		Path,
+		PathBuf,
+	},
 };
 
 
 
+#[derive(Default)]
 /// # Encoder.
 ///
 /// This re-usable (per-thread) structure holds the uncompressed source data,
@@ -32,23 +34,11 @@ use std::{
 pub(super) struct Encoder {
 	src: Vec<u8>,      // Buffer for source data.
 	dst_buf: Vec<u8>,  // Buffer for encoded data.
-	dst_br: Vec<u8>,   // Output paths for encoded versions.
-	dst_gz: Vec<u8>,
+	dst_br: PathBuf,   // Output paths for encoded versions.
+	dst_gz: PathBuf,
 }
 
 impl Encoder {
-	/// # New.
-	///
-	/// This returns a new empty instance.
-	pub(super) const fn new() -> Self {
-		Self {
-			src: Vec::new(),
-			dst_buf: Vec::new(),
-			dst_br: Vec::new(),
-			dst_gz: Vec::new(),
-		}
-	}
-
 	#[inline(always)]
 	/// # Encode.
 	///
@@ -62,10 +52,13 @@ impl Encoder {
 	///
 	/// If an encoding fails, the source size will be returned in its place
 	/// (regardless of how big the encoded version wound up).
-	pub(super) fn encode(&mut self, src: &Path)
+	pub(super) fn encode(&mut self, src: &PathBuf)
 	-> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
 		// First, let's update the destination paths.
-		self.set_dst_paths(src);
+		self.dst_br.clone_from(src);
+		self.dst_br.as_mut_os_string().push(".br");
+		self.dst_gz.clone_from(src);
+		self.dst_gz.as_mut_os_string().push(".gz");
 
 		// Now try to read the source.
 		let Some(len_src) = self.read_source(src) else {
@@ -117,15 +110,11 @@ impl Encoder {
 			let len = NonZeroU64::new(len as u64)?;
 
 			// Write the contents and return the length.
-			if write_atomic::write_file(self.brotli_path(), &self.dst_buf).is_ok() { Some(len) }
+			if write_atomic::write_file(&self.dst_br, &self.dst_buf).is_ok() { Some(len) }
 			else { None }
 		}
 		else { None }
 	}
-
-	#[inline(always)]
-	/// # Brotli Path.
-	fn brotli_path(&self) -> &OsStr { OsStr::from_bytes(&self.dst_br) }
 
 	#[inline(always)]
 	/// # Encode With Gzip.
@@ -148,15 +137,11 @@ impl Encoder {
 			let len = NonZeroU64::new(len as u64)?;
 
 			// Write the contents and return the length.
-			if write_atomic::write_file(self.gzip_path(), &self.dst_buf).is_ok() { Some(len) }
+			if write_atomic::write_file(&self.dst_gz, &self.dst_buf).is_ok() { Some(len) }
 			else { None }
 		}
 		else { None }
 	}
-
-	#[inline(always)]
-	/// # Gzip Path.
-	fn gzip_path(&self) -> &OsStr { OsStr::from_bytes(&self.dst_gz) }
 }
 
 impl Encoder {
@@ -191,9 +176,8 @@ impl Encoder {
 	/// In cases where encoding can't be run or failed, this method is called
 	/// to remove any previously-generated copy of the encoded content.
 	fn remove_br(&self) {
-		let path: &Path = self.brotli_path().as_ref();
-		if path.exists() {
-			let _res = std::fs::remove_file(path);
+		if self.dst_br.exists() {
+			let _res = std::fs::remove_file(&self.dst_br);
 		}
 	}
 
@@ -203,30 +187,9 @@ impl Encoder {
 	/// In cases where encoding can't be run or failed, this method is called
 	/// to remove any previously-generated copy of the encoded content.
 	fn remove_gz(&self) {
-		let path: &Path = self.gzip_path().as_ref();
-		if path.exists() {
-			let _res = std::fs::remove_file(path);
+		if self.dst_gz.exists() {
+			let _res = std::fs::remove_file(&self.dst_gz);
 		}
-	}
-
-	#[inline(always)]
-	/// # Set Destination Paths.
-	///
-	/// This rebuilds the struct's destination paths to match the source path
-	/// (with the extra `.br`/`.gz` suffixes).
-	fn set_dst_paths(&mut self, src: &Path) {
-		// Working with bytes is a little strange, but noticeably more
-		// performant than sticking with PathBuf. As this app only supports
-		// Unix platforms, we have the option, so might as well take it.
-		let raw_bytes = src.as_os_str().as_bytes();
-
-		self.dst_br.truncate(0);
-		self.dst_br.extend_from_slice(raw_bytes);
-		self.dst_br.extend_from_slice(b".br");
-
-		self.dst_gz.truncate(0);
-		self.dst_gz.extend_from_slice(raw_bytes);
-		self.dst_gz.extend_from_slice(b".gz");
 	}
 }
 
@@ -303,12 +266,12 @@ mod test {
 		write_atomic::write_file(&src, RAW.as_bytes()).expect("Unable to save source file.");
 
 		// Encode it!
-		let mut encoder = Encoder::new();
+		let mut encoder = Encoder::default();
 		encoder.encode(&src).expect("Encoding failed!");
 
 		// Check the paths.
-		assert_eq!(src_br, encoder.brotli_path());
-		assert_eq!(src_gz, encoder.gzip_path());
+		assert_eq!(src_br, encoder.dst_br);
+		assert_eq!(src_gz, encoder.dst_gz);
 
 		// Decode both encoded copies and compare them to the original.
 		decode_brotli(&src_br);

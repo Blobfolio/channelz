@@ -147,7 +147,7 @@ fn _main() -> Result<(), ArgyleError> {
 	sigint(Arc::clone(&killed), progress.clone());
 
 	// Thread business!
-	let (tx, rx) = crossbeam_channel::bounded::<&Path>(threads.get());
+	let (tx, rx) = crossbeam_channel::bounded::<&PathBuf>(threads.get());
 	thread::scope(#[inline(always)] |s| {
 		// Set up the worker threads.
 		let mut workers = Vec::with_capacity(threads.get());
@@ -211,8 +211,8 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 /// This is the worker callback for pretty crunching. It listens for "new"
 /// file paths and crunches them — and updates the progress bar, etc. —
 /// then quits when the work has dried up.
-fn crunch_pretty(rx: &Receiver::<&Path>, progress: &Progless) {
-	let mut enc = enc::Encoder::new();
+fn crunch_pretty(rx: &Receiver::<&PathBuf>, progress: &Progless) {
+	let mut enc = enc::Encoder::default();
 	while let Ok(p) = rx.recv() {
 		let name = p.to_string_lossy();
 		progress.add(&name);
@@ -232,8 +232,8 @@ fn crunch_pretty(rx: &Receiver::<&Path>, progress: &Progless) {
 ///
 /// This is the worker callback for quiet crunching. It listens for "new"
 /// file paths and crunches them, then quits when the work has dried up.
-fn crunch_quiet(rx: &Receiver::<&Path>) {
-	let mut enc = enc::Encoder::new();
+fn crunch_quiet(rx: &Receiver::<&PathBuf>) {
+	let mut enc = enc::Encoder::default();
 	while let Ok(p) = rx.recv() { let _res = enc.encode(p); }
 }
 
