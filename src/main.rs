@@ -57,6 +57,7 @@
 
 
 mod enc;
+mod err;
 mod ext;
 
 
@@ -75,6 +76,7 @@ use dactyl::{
 	traits::IntDivFloat,
 };
 use dowser::Dowser;
+use err::ChannelZError;
 use fyi_msg::{
 	Msg,
 	MsgKind,
@@ -113,29 +115,23 @@ static SIZE_BR: AtomicU64 = AtomicU64::new(0);
 /// # Progress Counters: Total Gzip Size.
 static SIZE_GZ: AtomicU64 = AtomicU64::new(0);
 
-/// # Error: Abort.
-const ERROR_KILLED: ArgyleError = ArgyleError::Custom("The process was aborted early.");
-
-/// # Error: No files.
-const ERROR_NO_FILES: ArgyleError = ArgyleError::Custom("No encodeable files were found.");
-
 
 
 /// # Main.
 fn main() {
 	match _main() {
 		Ok(()) => {},
-		Err(ArgyleError::WantsVersion) => {
+		Err(ChannelZError::Argue(ArgyleError::WantsVersion)) => {
 			println!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
 		},
-		Err(ArgyleError::WantsHelp) => { helper(); },
-		Err(e) => { Msg::error(e).die(1); },
+		Err(ChannelZError::Argue(ArgyleError::WantsHelp)) => { helper(); },
+		Err(e) => { Msg::error(e.as_str()).die(1); },
 	}
 }
 
 #[inline]
 /// # Actual Main.
-fn _main() -> Result<(), ArgyleError> {
+fn _main() -> Result<(), ChannelZError> {
 	// Parse CLI arguments.
 	let args = Argue::new(FLAG_HELP | FLAG_REQUIRED | FLAG_VERSION)?
 		.with_list();
@@ -153,7 +149,7 @@ fn _main() -> Result<(), ArgyleError> {
 			if args.switch(b"--force") { find_all }
 			else { find_default }
 		);
-	let total = NonZeroUsize::new(paths.len()).ok_or(ERROR_NO_FILES)?;
+	let total = NonZeroUsize::new(paths.len()).ok_or(ChannelZError::NoFiles)?;
 	paths.sort();
 
 	// How many threads?
@@ -210,7 +206,7 @@ fn _main() -> Result<(), ArgyleError> {
 	}
 
 	// Early abort?
-	if killed.load(Acquire) { Err(ERROR_KILLED) }
+	if killed.load(Acquire) { Err(ChannelZError::Killed) }
 	else { Ok(()) }
 }
 
