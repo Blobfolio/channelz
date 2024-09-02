@@ -264,9 +264,21 @@ fn crunch_quiet(rx: &Receiver::<&Path>) {
 
 #[cold]
 /// # Find Non-GZ/BR.
+///
+/// This is a callback for `Dowser`. That library ensures the paths passed will
+/// be valid, canonical _files_; all we need to do is check the extensions.
+///
+/// For this variation, everything is fair game so long as it isn't already
+/// `gz`/`br`-encoded.
 fn find_all(p: &Path) -> bool { ! ext::match_br_gz(p.as_os_str().as_bytes()) }
 
 /// # Find Default.
+///
+/// This is a callback for `Dowser`. That library ensures the paths passed will
+/// be valid, canonical _files_; all we need to do is check the extensions.
+///
+/// For this variation, we're looking for all the hard-coded "default" types.
+/// Refer to the main documentation or help screen for that list.
 fn find_default(p: &Path) -> bool { ext::match_extension(p.as_os_str().as_bytes()) }
 
 #[cold]
