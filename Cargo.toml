@@ -101,7 +101,7 @@ default-features = false
 features = [ "std" ]
 
 [dependencies.fyi_msg]
-version = "0.13.*"
+version = "0.14.*"
 features = [ "progress" ]
 
 [dependencies.libdeflater]
