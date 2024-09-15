@@ -8,6 +8,10 @@ use brotli::enc::{
 	backward_references::BrotliEncoderParams,
 	BrotliCompress,
 };
+use crate::{
+	FLAG_BR,
+	FLAG_GZ,
+};
 use libdeflater::{
 	CompressionLvl,
 	Compressor,
@@ -24,7 +28,6 @@ use std::{
 
 
 
-#[derive(Default)]
 /// # Encoder.
 ///
 /// This re-usable (per-thread) structure holds the uncompressed source data,
@@ -41,6 +44,30 @@ pub(super) struct Encoder {
 
 	/// # Output Path (Gzip).
 	dst_gz: PathBuf,
+
+	/// # Formats.
+	kinds: u8,
+}
+
+impl Encoder {
+	/// # New Instance.
+	///
+	/// Return a new re-usable encoder instance for the given format(s).
+	pub(super) fn new(kinds: u8) -> Self {
+		Self {
+			src: Vec::new(),
+			dst_buf: Vec::new(),
+			dst_br: PathBuf::new(),
+			dst_gz: PathBuf::new(),
+			kinds,
+		}
+	}
+
+	/// # Has Brotli?
+	const fn has_br(&self) -> bool { FLAG_BR == self.kinds & FLAG_BR }
+
+	/// # Has Gzip?
+	const fn has_gz(&self) -> bool { FLAG_GZ == self.kinds & FLAG_GZ }
 }
 
 impl Encoder {
@@ -58,12 +85,16 @@ impl Encoder {
 	/// If an encoding fails, the source size will be returned in its place
 	/// (regardless of how big the encoded version wound up).
 	pub(super) fn encode(&mut self, src: &Path)
-	-> Option<(NonZeroU64, NonZeroU64, NonZeroU64)> {
+	-> Option<[NonZeroU64; 3]> {
 		// First, let's update the destination paths.
-		src.clone_into(&mut self.dst_br);
-		self.dst_br.as_mut_os_string().push(".br");
-		src.clone_into(&mut self.dst_gz);
-		self.dst_gz.as_mut_os_string().push(".gz");
+		if self.has_br() {
+			src.clone_into(&mut self.dst_br);
+			self.dst_br.as_mut_os_string().push(".br");
+		}
+		if self.has_gz() {
+			src.clone_into(&mut self.dst_gz);
+			self.dst_gz.as_mut_os_string().push(".gz");
+		}
 
 		// Now try to read the source.
 		let Some(len_src) = self.read_source(src) else {
@@ -71,23 +102,24 @@ impl Encoder {
 			self.remove_gz();
 			return None;
 		};
+		let mut len = [len_src; 3];
 
 		// Try to encode it with gzip! This version is done first because it
 		// will likely be bigger, saving brotli the trouble of reallocating.
-		let len_gz = self.gzip().unwrap_or_else(|| {
-			self.remove_gz();
-			len_src
-		});
+		if self.has_gz() {
+			if let Some(l) = self.gzip() { len[2] = l; }
+			else { self.remove_gz(); }
+		}
 
 		// And now do the same with brotli… (Note: this method updates the
 		// destination path accordingly.)
-		let len_br = self.brotli().unwrap_or_else(|| {
-			self.remove_br();
-			len_src
-		});
+		if self.has_br() {
+			if let Some(l) = self.brotli() { len[1] = l; }
+			else { self.remove_br(); }
+		}
 
 		// Done!
-		Some((len_src, len_br, len_gz))
+		Some(len)
 	}
 }
 
@@ -181,7 +213,7 @@ impl Encoder {
 	/// In cases where encoding can't be run or failed, this method is called
 	/// to remove any previously-generated copy of the encoded content.
 	fn remove_br(&self) {
-		if self.dst_br.exists() {
+		if self.has_br() && self.dst_br.exists() {
 			let _res = std::fs::remove_file(&self.dst_br);
 		}
 	}
@@ -192,7 +224,7 @@ impl Encoder {
 	/// In cases where encoding can't be run or failed, this method is called
 	/// to remove any previously-generated copy of the encoded content.
 	fn remove_gz(&self) {
-		if self.dst_gz.exists() {
+		if self.has_gz() && self.dst_gz.exists() {
 			let _res = std::fs::remove_file(&self.dst_gz);
 		}
 	}
@@ -270,7 +302,7 @@ mod test {
 		write_atomic::write_file(&src, RAW.as_bytes()).expect("Unable to save source file.");
 
 		// Encode it!
-		let mut encoder = Encoder::default();
+		let mut encoder = Encoder::new(crate::FLAG_ALL);
 		encoder.encode(&src).expect("Encoding failed!");
 
 		// Check the paths.
@@ -285,5 +317,20 @@ mod test {
 		let _res = std::fs::remove_file(&src);
 		let _res = std::fs::remove_file(&src_br);
 		let _res = std::fs::remove_file(&src_gz);
+	}
+
+	#[test]
+	fn t_encode_kinds() {
+		let enc = Encoder::new(FLAG_BR);
+		assert!(enc.has_br());
+		assert!(! enc.has_gz());
+
+		let enc = Encoder::new(FLAG_GZ);
+		assert!(! enc.has_br());
+		assert!(enc.has_gz());
+
+		let enc = Encoder::new(crate::FLAG_ALL);
+		assert!(enc.has_br());
+		assert!(enc.has_gz());
 	}
 }

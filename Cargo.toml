@@ -54,6 +54,14 @@ long = "--help"
 description = "Print help information and exit."
 
 [[package.metadata.bashman.switches]]
+long = "--no-br"
+description = "Skip Brotli encoding."
+
+[[package.metadata.bashman.switches]]
+long = "--no-gz"
+description = "Skip Gzip encoding."
+
+[[package.metadata.bashman.switches]]
 short = "-p"
 long = "--progress"
 description = "Show progress bar while minifying."

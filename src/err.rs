@@ -15,6 +15,7 @@ use std::fmt;
 pub(super) enum ChannelZError {
 	Argue(ArgyleError),
 	Killed,
+	NoEncoders,
 	NoFiles,
 }
 
@@ -38,6 +39,7 @@ impl ChannelZError {
 		match self {
 			Self::Argue(e) => e.as_str(),
 			Self::Killed => "The process was aborted early.",
+			Self::NoEncoders => "At least one encoder needs to be enabled.",
 			Self::NoFiles => "No encodeable files were found.",
 		}
 	}

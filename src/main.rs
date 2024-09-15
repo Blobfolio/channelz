@@ -115,6 +115,21 @@ static SIZE_BR: AtomicU64 = AtomicU64::new(0);
 /// # Progress Counters: Total Gzip Size.
 static SIZE_GZ: AtomicU64 = AtomicU64::new(0);
 
+/// # Flag: Brotli Enabled.
+const FLAG_BR: u8 =  0b0001;
+
+/// # Flag: Gzip Enabled.
+const FLAG_GZ: u8 =  0b0010;
+
+/// # Flag: All Encoders Enabled.
+const FLAG_ALL: u8 = 0b0011;
+
+/// # Extension: Brotli.
+const EXT_BR: u16 = u16::from_le_bytes([b'b', b'r']);
+
+/// # Extension: Gzip.
+const EXT_GZ: u16 = u16::from_le_bytes([b'g', b'z']);
+
 
 
 /// # Main.
@@ -136,9 +151,16 @@ fn _main() -> Result<(), ChannelZError> {
 	let args = Argue::new(FLAG_HELP | FLAG_REQUIRED | FLAG_VERSION)?
 		.with_list();
 
+	let kinds: u8 = match (args.switch2(b"--no-br", b"--no-brotli"), args.switch2(b"--no-gz", b"--no-gzip")) {
+		(false, false) => FLAG_ALL,
+		(false, true) => FLAG_BR,
+		(true, false) => FLAG_GZ,
+		(true, true) => return Err(ChannelZError::NoEncoders),
+	};
+
 	// Clean first?
 	if args.switch2(b"--clean", b"--clean-only") {
-		clean(args.args_os());
+		clean(args.args_os(), kinds);
 		if args.switch(b"--clean-only") { return Ok(()); }
 	}
 
@@ -178,12 +200,12 @@ fn _main() -> Result<(), ChannelZError> {
 		let mut workers = Vec::with_capacity(threads.get());
 		if let Some(p) = progress.as_ref() {
 			for _ in 0..threads.get() {
-				workers.push(s.spawn(#[inline(always)] || crunch_pretty(&rx, p)));
+				workers.push(s.spawn(#[inline(always)] || crunch_pretty(&rx, kinds, p)));
 			}
 		}
 		else {
 			for _ in 0..threads.get() {
-				workers.push(s.spawn(#[inline(always)] || crunch_quiet(&rx)));
+				workers.push(s.spawn(#[inline(always)] || crunch_quiet(&rx, kinds)));
 			}
 		}
 
@@ -202,7 +224,7 @@ fn _main() -> Result<(), ChannelZError> {
 	if let Some(progress) = progress {
 		progress.finish();
 		progress.summary(MsgKind::Crunched, "file", "files").print();
-		size_chart();
+		size_chart(kinds);
 	}
 
 	// Early abort?
@@ -213,16 +235,18 @@ fn _main() -> Result<(), ChannelZError> {
 /// # Clean.
 ///
 /// This will run a separate search over the specified paths with the sole
-/// purpose of removing `*.gz` and `*.br` files.
-fn clean<P, I>(paths: I)
+/// purpose of removing `*.gz` and/or `*.br` files.
+fn clean<P, I>(paths: I, kinds: u8)
 where P: AsRef<Path>, I: IntoIterator<Item=P> {
+	let has_br = FLAG_BR == kinds & FLAG_BR;
+	let has_gz = FLAG_GZ == kinds & FLAG_GZ;
+
 	for p in Dowser::default().with_paths(paths) {
-		let bytes = p.as_os_str().as_bytes();
-		let len = bytes.len();
+		let [rest @ .., b'.', y, z] = p.as_os_str().as_bytes() else { continue; };
+		let ext = u16::from_le_bytes([y.to_ascii_lowercase(), z.to_ascii_lowercase()]);
 		if
-			3 < len &&
-			ext::match_br_gz(bytes) &&
-			ext::match_extension(&bytes[..len - 3]) &&
+			((has_br && ext == EXT_BR) || (has_gz && ext == EXT_GZ)) &&
+			ext::match_extension(rest) &&
 			std::fs::remove_file(&p).is_err()
 		{
 			Msg::warning(format!("Unable to delete {p:?}")).eprint();
@@ -236,13 +260,13 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 /// This is the worker callback for pretty crunching. It listens for "new"
 /// file paths and crunches them — and updates the progress bar, etc. —
 /// then quits when the work has dried up.
-fn crunch_pretty(rx: &Receiver::<&Path>, progress: &Progless) {
-	let mut enc = enc::Encoder::default();
+fn crunch_pretty(rx: &Receiver::<&Path>, kinds: u8, progress: &Progless) {
+	let mut enc = enc::Encoder::new(kinds);
 	while let Ok(p) = rx.recv() {
 		let name = p.to_string_lossy();
 		progress.add(&name);
 
-		if let Some((a, b, c)) = enc.encode(p) {
+		if let Some([a, b, c]) = enc.encode(p) {
 			SIZE_RAW.fetch_add(a.get(), Relaxed);
 			SIZE_BR.fetch_add(b.get(), Relaxed);
 			SIZE_GZ.fetch_add(c.get(), Relaxed);
@@ -257,8 +281,8 @@ fn crunch_pretty(rx: &Receiver::<&Path>, progress: &Progless) {
 ///
 /// This is the worker callback for quiet crunching. It listens for "new"
 /// file paths and crunches them, then quits when the work has dried up.
-fn crunch_quiet(rx: &Receiver::<&Path>) {
-	let mut enc = enc::Encoder::default();
+fn crunch_quiet(rx: &Receiver::<&Path>, kinds: u8) {
+	let mut enc = enc::Encoder::new(kinds);
 	while let Ok(p) = rx.recv() { let _res = enc.encode(p); }
 }
 
@@ -304,13 +328,16 @@ USAGE:
     channelz [FLAGS] [OPTIONS] <PATH(S)>...
 
 FLAGS:
-        --clean       Remove all existing *.gz *.br files (of types ChannelZ
-                      would encode) before starting.
+        --clean       Remove all existing *.gz / *.br files (of types ChannelZ
+                      would encode) before starting, unless --no-gz or --no-br
+                      are also set, respectively.
         --clean-only  Same as --clean, but exit immediately afterward.
         --force       Try to encode ALL files passed to ChannelZ, regardless of
                       file extension (except those already ending in .br/.gz).
                       Be careful with this!
     -h, --help        Print help information and exit.
+        --no-br       Skip Brotli encoding.
+        --no-gz       Skip Gzip encoding.
     -p, --progress    Show progress bar while minifying.
     -V, --version     Print version information and exit.
 
@@ -351,11 +378,15 @@ fn sigint(killed: Arc<AtomicBool>, progress: Option<Progless>) {
 ///
 /// This compares the original sources against their Brotli and Gzip
 /// counterparts.
-fn size_chart() {
+fn size_chart(kinds: u8) {
+	// What formats were we doing?
+	let has_br = FLAG_BR == kinds & FLAG_BR;
+	let has_gz = FLAG_GZ == kinds & FLAG_GZ;
+
 	// Grab the totals.
 	let src = SIZE_RAW.load(Acquire);
-	let br = SIZE_BR.load(Acquire);
-	let gz = SIZE_GZ.load(Acquire);
+	let br = if has_br { SIZE_BR.load(Acquire) } else { 0 };
+	let gz = if has_gz { SIZE_GZ.load(Acquire) } else { 0 };
 
 	// Add commas to the numbers.
 	let nice_src = NiceU64::from(src);
@@ -366,28 +397,38 @@ fn size_chart() {
 	let len = usize::max(usize::max(nice_src.len(), nice_br.len()), nice_gz.len());
 
 	// Figure out relative savings, if any.
-	let per_br: String = br.div_float(src).map_or_else(
-		String::new,
-		|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-	);
+	let per_br: String = if has_br {
+		br.div_float(src).map_or_else(
+			String::new,
+			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
+		)
+	}
+	else { String::new() };
 
-	let per_gz: String = gz.div_float(src).map_or_else(
-		String::new,
-		|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-	);
+	let per_gz: String = if has_gz {
+		gz.div_float(src).map_or_else(
+			String::new,
+			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
+		)
+	}
+	else { String::new() };
 
 	// Print the totals!
 	Msg::custom("  Source", 13, &format!("{}{} bytes", " ".repeat(len - nice_src.len()), nice_src.as_str()))
 		.with_newline(true)
 		.print();
 
-	Msg::custom("  Brotli", 13, &format!("{}{} bytes", " ".repeat(len - nice_br.len()), nice_br.as_str()))
-		.with_suffix(per_br)
-		.with_newline(true)
-		.print();
+	if has_br {
+		Msg::custom("  Brotli", 13, &format!("{}{} bytes", " ".repeat(len - nice_br.len()), nice_br.as_str()))
+			.with_suffix(per_br)
+			.with_newline(true)
+			.print();
+	}
 
-	Msg::custom("    Gzip", 13, &format!("{}{} bytes", " ".repeat(len - nice_gz.len()), nice_gz.as_str()))
-		.with_suffix(per_gz)
-		.with_newline(true)
-		.print();
+	if has_gz {
+		Msg::custom("    Gzip", 13, &format!("{}{} bytes", " ".repeat(len - nice_gz.len()), nice_gz.as_str()))
+			.with_suffix(per_gz)
+			.with_newline(true)
+			.print();
+	}
 }
