@@ -161,7 +161,7 @@ fn _main() -> Result<(), ChannelZError> {
 	// Boot up a progress bar, if desired.
 	let progress =
 		if args.switch2(b"-p", b"--progress") {
-			Progless::try_from(total.get())
+			Progless::try_from(total)
 				.ok()
 				.map(|p| p.with_reticulating_splines("ChannelZ"))
 		}
