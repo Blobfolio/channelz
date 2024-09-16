@@ -159,8 +159,9 @@ fn _main() -> Result<(), ChannelZError> {
 	};
 
 	// Clean first?
+	let progress = args.switch2(b"-p", b"--progress");
 	if args.switch2(b"--clean", b"--clean-only") {
-		clean(args.args_os(), kinds);
+		clean(args.args_os(), progress, kinds);
 		if args.switch(b"--clean-only") { return Ok(()); }
 	}
 
@@ -182,7 +183,7 @@ fn _main() -> Result<(), ChannelZError> {
 
 	// Boot up a progress bar, if desired.
 	let progress =
-		if args.switch2(b"-p", b"--progress") {
+		if progress {
 			Progless::try_from(total)
 				.ok()
 				.map(|p| p.with_reticulating_splines("ChannelZ"))
@@ -236,21 +237,39 @@ fn _main() -> Result<(), ChannelZError> {
 ///
 /// This will run a separate search over the specified paths with the sole
 /// purpose of removing `*.gz` and/or `*.br` files.
-fn clean<P, I>(paths: I, kinds: u8)
+fn clean<P, I>(paths: I, summary: bool, kinds: u8)
 where P: AsRef<Path>, I: IntoIterator<Item=P> {
 	let has_br = FLAG_BR == kinds & FLAG_BR;
 	let has_gz = FLAG_GZ == kinds & FLAG_GZ;
 
+	let mut cleaned = 0_u64;
 	for p in Dowser::default().with_paths(paths) {
 		let [rest @ .., b'.', y, z] = p.as_os_str().as_bytes() else { continue; };
 		let ext = u16::from_le_bytes([y.to_ascii_lowercase(), z.to_ascii_lowercase()]);
 		if
 			((has_br && ext == EXT_BR) || (has_gz && ext == EXT_GZ)) &&
-			ext::match_extension(rest) &&
-			std::fs::remove_file(&p).is_err()
+			ext::match_extension(rest)
 		{
-			Msg::warning(format!("Unable to delete {p:?}")).eprint();
+			if std::fs::remove_file(&p).is_ok() { cleaned += 1; }
+			else {
+				Msg::warning(format!("Unable to delete {p:?}")).eprint();
+			}
 		}
+	}
+
+	if summary {
+		if cleaned == 0 { Msg::info("There was nothing to clean.") }
+		else {
+			Msg::success(format!(
+				"Removed {} old {}-encoded {}.",
+				NiceU64::from(cleaned),
+				if has_br && has_gz { "br/gz" }
+				else if has_br { "br" }
+				else { "gz" },
+				if cleaned == 1 { "copy" } else { "copies" },
+			))
+		}
+		.print();
 	}
 }
 
