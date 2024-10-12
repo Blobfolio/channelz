@@ -99,51 +99,34 @@ impl ThreadTotals {
 	/// # Summarize.
 	///
 	/// Print a nice summary of the work done.
-	pub(super) fn summarize(mut self, kinds: u8) {
-		// What formats were we doing?
-		let has_br = FLAG_BR == kinds & FLAG_BR;
-		let has_gz = FLAG_GZ == kinds & FLAG_GZ;
-
-		// Grab the totals.
-		if ! has_br { self.br = 0 };
-		if ! has_gz { self.gz = 0 };
-
-		// Add commas to the numbers.
+	pub(super) fn summarize(self, kinds: u8) {
+		// Print the original raw total with commas in all the right places.
 		let nice_raw = NiceU64::from(self.raw);
 		let nice_len = nice_raw.len();
-
-		// Print the raw total!
 		Msg::custom("  Source", 13, &format!("{nice_raw} bytes"))
 			.with_newline(true)
 			.print();
 
-		// Print the brotli total if enabled.
-		if has_br {
-			let nice_br = NiceU64::from(self.br);
-			let mut msg = Msg::custom("  Brotli", 13, &format!(
+		// Now do the same for each of the (enabled) encoded variants.
+		let encoded: [(u64, &str, bool); 2] = [
+			(self.br,  "  Brotli", FLAG_BR == kinds & FLAG_BR),
+			(self.gz,  "    Gzip", FLAG_GZ == kinds & FLAG_GZ),
+		];
+
+		for (total, label, enabled) in encoded {
+			if ! enabled || total == 0 { continue; }
+
+			let nice = NiceU64::from(total);
+			let mut msg = Msg::custom(label, 13, &format!(
 				"{:>nice_len$} bytes",
-				nice_br.as_str(),
+				nice.as_str(),
 			))
 				.with_newline(true);
 
-			if let Ok(nice_per) = NicePercent::try_from((self.raw - self.br, self.raw)) {
-				msg.set_suffix(format!(" \x1b[2m(Saved {nice_per}.)\x1b[0m"));
-			}
-
-			msg.print();
-		}
-
-		// And lastly print the gzip total if enabled.
-		if has_gz {
-			let nice_gz = NiceU64::from(self.gz);
-			let mut msg = Msg::custom("    Gzip", 13, &format!(
-				"{:>nice_len$} bytes",
-				nice_gz.as_str(),
-			))
-				.with_newline(true);
-
-			if let Ok(nice_per) = NicePercent::try_from((self.raw - self.gz, self.raw)) {
-				msg.set_suffix(format!(" \x1b[2m(Saved {nice_per}.)\x1b[0m"));
+			if total < self.raw {
+				if let Ok(nice_per) = NicePercent::try_from((self.raw - total, self.raw)) {
+					msg.set_suffix(format!(" \x1b[2m(Saved {nice_per}.)\x1b[0m"));
+				}
 			}
 
 			msg.print();
