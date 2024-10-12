@@ -24,7 +24,7 @@ pub fn main() {
 	let out = format!(
 		r"
 /// # Match br/gz.
-pub(super) const fn match_br_gz(bytes: &[u8]) -> bool {{
+pub(super) const fn match_encoded(bytes: &[u8]) -> bool {{
 	if let [.., 0..=46 | 48..=91 | 93..=255, b'.', a, b] = bytes {{
 		matches!(
 			u16::from_le_bytes([a.to_ascii_lowercase(), b.to_ascii_lowercase()]),

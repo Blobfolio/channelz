@@ -310,7 +310,7 @@ fn crunch_quiet(rx: &Receiver::<&Path>, kinds: u8) -> ThreadTotals {
 ///
 /// For this variation, everything is fair game so long as it isn't already
 /// `gz`/`br`-encoded.
-fn find_all(p: &Path) -> bool { ! ext::match_br_gz(p.as_os_str().as_bytes()) }
+fn find_all(p: &Path) -> bool { ! ext::match_encoded(p.as_os_str().as_bytes()) }
 
 /// # Find Default.
 ///
