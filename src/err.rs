@@ -14,6 +14,7 @@ use std::fmt;
 /// This is the binary's obligatory custom error type.
 pub(super) enum ChannelZError {
 	Argue(ArgyleError),
+	Jobserver,
 	Killed,
 	NoEncoders,
 	NoFiles,
@@ -38,6 +39,7 @@ impl ChannelZError {
 	pub(super) const fn as_str(self) -> &'static str {
 		match self {
 			Self::Argue(e) => e.as_str(),
+			Self::Jobserver => "One or more threads terminated early; please try again.",
 			Self::Killed => "The process was aborted early.",
 			Self::NoEncoders => "At least one encoder needs to be enabled.",
 			Self::NoFiles => "No encodeable files were found.",

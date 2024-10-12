@@ -56,12 +56,17 @@
 
 
 
+mod abacus;
 mod enc;
 mod err;
 mod ext;
 
 
 
+use abacus::{
+	EncoderTotals,
+	ThreadTotals,
+};
 use argyle::{
 	Argue,
 	ArgyleError,
@@ -70,11 +75,7 @@ use argyle::{
 	FLAG_VERSION,
 };
 use crossbeam_channel::Receiver;
-use dactyl::{
-	NiceU64,
-	NicePercent,
-	traits::IntDivFloat,
-};
+use dactyl::NiceU64;
 use dowser::Dowser;
 use err::ChannelZError;
 use fyi_msg::{
@@ -93,7 +94,6 @@ use std::{
 		Arc,
 		atomic::{
 			AtomicBool,
-			AtomicU64,
 			Ordering::{
 				Acquire,
 				Relaxed,
@@ -105,15 +105,6 @@ use std::{
 };
 
 
-
-/// # Progress Counters: Total Uncompressed Size.
-static SIZE_RAW: AtomicU64 = AtomicU64::new(0);
-
-/// # Progress Counters: Total Brotli Size.
-static SIZE_BR: AtomicU64 = AtomicU64::new(0);
-
-/// # Progress Counters: Total Gzip Size.
-static SIZE_GZ: AtomicU64 = AtomicU64::new(0);
 
 /// # Flag: Brotli Enabled.
 const FLAG_BR: u8 =  0b0001;
@@ -196,7 +187,7 @@ fn _main() -> Result<(), ChannelZError> {
 
 	// Thread business!
 	let (tx, rx) = crossbeam_channel::bounded::<&Path>(threads.get());
-	thread::scope(#[inline(always)] |s| {
+	let len = thread::scope(#[inline(always)] |s| {
 		// Set up the worker threads.
 		let mut workers = Vec::with_capacity(threads.get());
 		if let Some(p) = progress.as_ref() {
@@ -216,16 +207,21 @@ fn _main() -> Result<(), ChannelZError> {
 		}
 		drop(tx);
 
-		// Wait for the threads to finish!
-		for worker in workers { let _res = worker.join(); }
-	});
+		// Sum the totals as each thread finishes.
+		// TODO: prefer try_reduce() when stable.
+		workers.into_iter()
+			.try_fold(ThreadTotals::new(), |acc, worker|
+				worker.join().map(|len2| acc + len2)
+			)
+			.map_err(|_| ChannelZError::Jobserver)
+	})?;
 	drop(rx);
 
 	// Summarize?
 	if let Some(progress) = progress {
 		progress.finish();
 		progress.summary(MsgKind::Crunched, "file", "files").print();
-		size_chart(kinds);
+		len.summarize(kinds);
 	}
 
 	// Early abort?
@@ -279,20 +275,20 @@ where P: AsRef<Path>, I: IntoIterator<Item=P> {
 /// This is the worker callback for pretty crunching. It listens for "new"
 /// file paths and crunches them — and updates the progress bar, etc. —
 /// then quits when the work has dried up.
-fn crunch_pretty(rx: &Receiver::<&Path>, kinds: u8, progress: &Progless) {
+fn crunch_pretty(rx: &Receiver::<&Path>, kinds: u8, progress: &Progless) -> ThreadTotals {
 	let mut enc = enc::Encoder::new(kinds);
+
+	let mut len = ThreadTotals::new();
 	while let Ok(p) = rx.recv() {
 		let name = p.to_string_lossy();
 		progress.add(&name);
 
-		if let Some([a, b, c]) = enc.encode(p) {
-			SIZE_RAW.fetch_add(a.get(), Relaxed);
-			SIZE_BR.fetch_add(b.get(), Relaxed);
-			SIZE_GZ.fetch_add(c.get(), Relaxed);
-		}
+		if let Some(len2) = enc.encode(p) { len += len2; }
 
 		progress.remove(&name);
 	}
+
+	len
 }
 
 #[inline(never)]
@@ -300,9 +296,10 @@ fn crunch_pretty(rx: &Receiver::<&Path>, kinds: u8, progress: &Progless) {
 ///
 /// This is the worker callback for quiet crunching. It listens for "new"
 /// file paths and crunches them, then quits when the work has dried up.
-fn crunch_quiet(rx: &Receiver::<&Path>, kinds: u8) {
+fn crunch_quiet(rx: &Receiver::<&Path>, kinds: u8) -> ThreadTotals {
 	let mut enc = enc::Encoder::new(kinds);
 	while let Ok(p) = rx.recv() { let _res = enc.encode(p); }
+	ThreadTotals::new() // We aren't keeping track in this mode.
 }
 
 #[cold]
@@ -391,63 +388,4 @@ fn sigint(killed: Arc<AtomicBool>, progress: Option<Progless>) {
 		}
 		else { std::process::exit(1); }
 	);
-}
-
-/// # Summarize Output Sizes.
-///
-/// This compares the original sources against their Brotli and Gzip
-/// counterparts.
-fn size_chart(kinds: u8) {
-	// What formats were we doing?
-	let has_br = FLAG_BR == kinds & FLAG_BR;
-	let has_gz = FLAG_GZ == kinds & FLAG_GZ;
-
-	// Grab the totals.
-	let src = SIZE_RAW.load(Acquire);
-	let br = if has_br { SIZE_BR.load(Acquire) } else { 0 };
-	let gz = if has_gz { SIZE_GZ.load(Acquire) } else { 0 };
-
-	// Add commas to the numbers.
-	let nice_src = NiceU64::from(src);
-	let nice_br = NiceU64::from(br);
-	let nice_gz = NiceU64::from(gz);
-
-	// Find the maximum byte length so we can pad nicely.
-	let len = usize::max(usize::max(nice_src.len(), nice_br.len()), nice_gz.len());
-
-	// Figure out relative savings, if any.
-	let per_br: String = if has_br {
-		br.div_float(src).map_or_else(
-			String::new,
-			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-		)
-	}
-	else { String::new() };
-
-	let per_gz: String = if has_gz {
-		gz.div_float(src).map_or_else(
-			String::new,
-			|x| format!(" \x1b[2m(Saved {}.)\x1b[0m", NicePercent::from(1.0 - x).as_str())
-		)
-	}
-	else { String::new() };
-
-	// Print the totals!
-	Msg::custom("  Source", 13, &format!("{}{} bytes", " ".repeat(len - nice_src.len()), nice_src.as_str()))
-		.with_newline(true)
-		.print();
-
-	if has_br {
-		Msg::custom("  Brotli", 13, &format!("{}{} bytes", " ".repeat(len - nice_br.len()), nice_br.as_str()))
-			.with_suffix(per_br)
-			.with_newline(true)
-			.print();
-	}
-
-	if has_gz {
-		Msg::custom("    Gzip", 13, &format!("{}{} bytes", " ".repeat(len - nice_gz.len()), nice_gz.as_str()))
-			.with_suffix(per_gz)
-			.with_newline(true)
-			.print();
-	}
 }

@@ -9,6 +9,7 @@ use brotli::enc::{
 	BrotliCompress,
 };
 use crate::{
+	EncoderTotals,
 	FLAG_BR,
 	FLAG_GZ,
 };
@@ -84,8 +85,7 @@ impl Encoder {
 	///
 	/// If an encoding fails, the source size will be returned in its place
 	/// (regardless of how big the encoded version wound up).
-	pub(super) fn encode(&mut self, src: &Path)
-	-> Option<[NonZeroU64; 3]> {
+	pub(super) fn encode(&mut self, src: &Path) -> Option<EncoderTotals> {
 		// First, let's update the destination paths.
 		if self.has_br() {
 			src.clone_into(&mut self.dst_br);
@@ -102,19 +102,19 @@ impl Encoder {
 			self.remove_gz();
 			return None;
 		};
-		let mut len = [len_src; 3];
+		let mut len = EncoderTotals::new(len_src);
 
 		// Try to encode it with gzip! This version is done first because it
 		// will likely be bigger, saving brotli the trouble of reallocating.
 		if self.has_gz() {
-			if let Some(l) = self.gzip() { len[2] = l; }
+			if let Some(l) = self.gzip() { len.set_gz(l); }
 			else { self.remove_gz(); }
 		}
 
 		// And now do the same with brotli… (Note: this method updates the
 		// destination path accordingly.)
 		if self.has_br() {
-			if let Some(l) = self.brotli() { len[1] = l; }
+			if let Some(l) = self.brotli() { len.set_br(l); }
 			else { self.remove_br(); }
 		}
 
