@@ -67,13 +67,7 @@ use abacus::{
 	EncoderTotals,
 	ThreadTotals,
 };
-use argyle::{
-	Argue,
-	ArgyleError,
-	FLAG_HELP,
-	FLAG_REQUIRED,
-	FLAG_VERSION,
-};
+use argyle::Argument;
 use crossbeam_channel::Receiver;
 use dactyl::NiceU64;
 use dowser::Dowser;
@@ -107,13 +101,19 @@ use std::{
 
 
 /// # Flag: Brotli Enabled.
-const FLAG_BR: u8 =  0b0001;
+const FLAG_BR: u8 =         0b0000_0001;
 
 /// # Flag: Gzip Enabled.
-const FLAG_GZ: u8 =  0b0010;
+const FLAG_GZ: u8 =         0b0000_0010;
 
 /// # Flag: All Encoders Enabled.
-const FLAG_ALL: u8 = 0b0011;
+const FLAG_ALL: u8 =        0b0000_0011;
+
+/// # Flag: Clean.
+const FLAG_CLEAN: u8 =      0b0100_0000;
+
+/// # Flag: Clean (Only).
+const FLAG_CLEAN_ONLY: u8 = 0b1100_0000;
 
 /// # Extension: Brotli.
 const EXT_BR: u16 = u16::from_le_bytes([b'b', b'r']);
@@ -127,10 +127,9 @@ const EXT_GZ: u16 = u16::from_le_bytes([b'g', b'z']);
 fn main() {
 	match _main() {
 		Ok(()) => {},
-		Err(ChannelZError::Argue(ArgyleError::WantsVersion)) => {
-			println!(concat!("ChannelZ v", env!("CARGO_PKG_VERSION")));
+		Err(e @ (ChannelZError::PrintHelp | ChannelZError::PrintVersion)) => {
+			println!("{e}");
 		},
-		Err(ChannelZError::Argue(ArgyleError::WantsHelp)) => { helper(); },
 		Err(e) => { Msg::error(e.as_str()).die(1); },
 	}
 }
@@ -138,31 +137,57 @@ fn main() {
 #[inline]
 /// # Actual Main.
 fn _main() -> Result<(), ChannelZError> {
-	// Parse CLI arguments.
-	let args = Argue::new(FLAG_HELP | FLAG_REQUIRED | FLAG_VERSION)?
-		.with_list();
+	let args = argyle::args()
+		.with_keywords(include!(concat!(env!("OUT_DIR"), "/argyle.rs")));
 
-	let kinds: u8 = match (args.switch2(b"--no-br", b"--no-brotli"), args.switch2(b"--no-gz", b"--no-gzip")) {
-		(false, false) => FLAG_ALL,
-		(false, true) => FLAG_BR,
-		(true, false) => FLAG_GZ,
-		(true, true) => return Err(ChannelZError::NoEncoders),
-	};
+	let mut force = false;
+	let mut kinds: u8 = FLAG_ALL;
+	let mut paths = Dowser::default();
+	let mut progress = false;
+	for arg in args {
+		match arg {
+			Argument::Key("--clean") => { kinds |= FLAG_CLEAN; },
+			Argument::Key("--clean-only") => { kinds |= FLAG_CLEAN_ONLY; },
+			Argument::Key("--force") => { force = true; },
+			Argument::Key("--no-br") => { kinds &= ! FLAG_BR; },
+			Argument::Key("--no-gz") => { kinds &= ! FLAG_GZ; },
+			Argument::Key("-p" | "--progress") => { progress = true; },
+
+			Argument::Key("-h" | "--help") => return Err(ChannelZError::PrintHelp),
+			Argument::Key("-V" | "--version") => return Err(ChannelZError::PrintVersion),
+
+			Argument::KeyWithValue("-l" | "--list", s) =>
+				if let Ok(raw) = std::fs::read_to_string(s) {
+					paths = paths.with_paths(raw.lines().filter_map(|line| {
+						let line = line.trim();
+						if line.is_empty() { None }
+						else { Some(line) }
+					}));
+				},
+
+			// Assume paths.
+			Argument::Other(s) => { paths = paths.with_path(s); },
+			Argument::InvalidUtf8(s) => { paths = paths.with_path(s); },
+
+			// Nothing else is expected.
+			_ => {},
+		}
+	}
+
+	// Nothing?
+	if 0 == kinds & FLAG_ALL { return Err(ChannelZError::NoEncoders); }
 
 	// Clean first?
-	let progress = args.switch2(b"-p", b"--progress");
-	if args.switch2(b"--clean", b"--clean-only") {
-		clean(args.args_os(), progress, kinds);
-		if args.switch(b"--clean-only") { return Ok(()); }
+	if FLAG_CLEAN == kinds & FLAG_CLEAN {
+		clean(paths.clone(), progress, kinds);
+		if FLAG_CLEAN_ONLY == kinds & FLAG_CLEAN_ONLY { return Ok(()); }
 	}
 
 	// Put it all together!
-	let mut paths: Vec<PathBuf> = Dowser::default()
-		.with_paths(args.args_os())
-		.into_vec_filtered(
-			if args.switch(b"--force") { find_all }
-			else { find_default }
-		);
+	let mut paths: Vec<PathBuf> = paths.into_vec_filtered(
+		if force { find_all }
+		else { find_default }
+	);
 	let total = NonZeroUsize::new(paths.len()).ok_or(ChannelZError::NoFiles)?;
 	paths.sort();
 
@@ -233,13 +258,12 @@ fn _main() -> Result<(), ChannelZError> {
 ///
 /// This will run a separate search over the specified paths with the sole
 /// purpose of removing `*.gz` and/or `*.br` files.
-fn clean<P, I>(paths: I, summary: bool, kinds: u8)
-where P: AsRef<Path>, I: IntoIterator<Item=P> {
+fn clean(paths: Dowser, summary: bool, kinds: u8) {
 	let has_br = FLAG_BR == kinds & FLAG_BR;
 	let has_gz = FLAG_GZ == kinds & FLAG_GZ;
 
 	let mut cleaned = 0_u64;
-	for p in Dowser::default().with_paths(paths) {
+	for p in paths {
 		let [rest @ .., b'.', y, z] = p.as_os_str().as_bytes() else { continue; };
 		let ext = u16::from_le_bytes([y.to_ascii_lowercase(), z.to_ascii_lowercase()]);
 		if
@@ -320,63 +344,6 @@ fn find_all(p: &Path) -> bool { ! ext::match_encoded(p.as_os_str().as_bytes()) }
 /// For this variation, we're looking for all the hard-coded "default" types.
 /// Refer to the main documentation or help screen for that list.
 fn find_default(p: &Path) -> bool { ext::match_extension(p.as_os_str().as_bytes()) }
-
-#[cold]
-/// # Print Help.
-fn helper() {
-	println!(concat!(
-		r"
-                  ,.
-                 (\(\)
- ,_              ;  o >
-  (`-.          /  (_)
-  `=(\`-._____/`   |
-   `-( /    -=`\   |
- .==`=(  -= = _/   /`--.
-(M==M=M==M=M==M==M==M==M)
- \=N=N==N=N==N=N==N=NN=/   ", "\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r#"
-  \M==M=M==M=M==M===M=/    Fast, recursive, multi-threaded
-   \N=N==N=N==N=NN=N=/     static Brotli and Gzip encoding.
-    \M==M==M=M==M==M/
-     `-------------'
-
-USAGE:
-    channelz [FLAGS] [OPTIONS] <PATH(S)>...
-
-FLAGS:
-        --clean       Remove all existing *.gz / *.br files (of types ChannelZ
-                      would encode) before starting, unless --no-gz or --no-br
-                      are also set, respectively.
-        --clean-only  Same as --clean, but exit immediately afterward.
-        --force       Try to encode ALL files passed to ChannelZ, regardless of
-                      file extension (except those already ending in .br/.gz).
-                      Be careful with this!
-    -h, --help        Print help information and exit.
-        --no-br       Skip Brotli encoding.
-        --no-gz       Skip Gzip encoding.
-    -p, --progress    Show progress bar while minifying.
-    -V, --version     Print version information and exit.
-
-OPTIONS:
-    -l, --list <FILE> Read (absolute) file and/or directory paths to compress
-                      from this text file — or STDIN if "-" — one entry per
-                      line, instead of or in addition to specifying <PATH(S)>
-                      directly at the end of the command.
-
-ARGS:
-    <PATH(S)>...      One or more file and/or directory paths to compress
-                      and/or (recursively) crawl.
-
----
-
-Note: static copies will only be generated for files with these extensions:
-
-    appcache; atom; bmp; css; csv; doc(x); eot; geojson; htc; htm(l); ico; ics;
-    js; json; jsonld; manifest; md; mjs; otf; pdf; rdf; rss; svg; ttf; txt;
-    vcard; vcs; vtt; wasm; webmanifest; xhtm(l); xls(x); xml; xsl; y(a)ml
-"#
-	));
-}
 
 /// # Hook Up CTRL+C.
 ///
