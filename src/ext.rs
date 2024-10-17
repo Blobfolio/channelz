@@ -97,27 +97,27 @@ mod tests {
 	fn t_br_gz() {
 		for ext in EXTS {
 			let mut fine = [BASE, FILE, ext, b".gz"].concat();
-			assert!(match_br_gz(&fine));
+			assert!(match_encoded(&fine));
 
 			fine.make_ascii_uppercase();
-			assert!(match_br_gz(&fine));
+			assert!(match_encoded(&fine));
 
 			let len = fine.len();
 			fine[len - 2] = b'B';
 			fine[len - 1] = b'R';
-			assert!(match_br_gz(&fine));
+			assert!(match_encoded(&fine));
 
 			fine.make_ascii_lowercase();
-			assert!(match_br_gz(&fine));
+			assert!(match_encoded(&fine));
 
 			// This should fail without the file bit.
 			let bad = [BASE, b".gz"].concat();
-			assert!(! match_br_gz(&bad));
+			assert!(! match_encoded(&bad));
 
 			let bad = [BASE, b".br"].concat();
-			assert!(! match_br_gz(&bad));
+			assert!(! match_encoded(&bad));
 		}
 
-		assert!(! match_br_gz(b"/foo/foo.js"));
+		assert!(! match_encoded(b"/foo/foo.js"));
 	}
 }

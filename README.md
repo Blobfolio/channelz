@@ -67,7 +67,7 @@ This application is written in [Rust](https://www.rust-lang.org/) and can altern
 
 ```bash
 # Clone the source.
-git clone --recurse-submodules https://github.com/Blobfolio/channelz.git
+git clone https://github.com/Blobfolio/channelz.git
 
 # Go to it.
 cd channelz
@@ -90,11 +90,13 @@ The following flags and options are available:
 
 | Short | Long | Value | Description |
 | ----- | ---- | ----- | ----------- |
-| | `--clean` | | Remove all existing \*.gz \*.br files before starting. |
+| | `--clean` | | Remove all existing \*.br \*.gz files before starting. |
 | | `--clean-only` | | Same as `--clean`, but exit immediately afterward. |
-| | `--force` | | Try to encode **all** files regardless of file extension, except those already ending in `.br`/`.gz`. |
+| | `--force` | | Try to encode **all** files regardless of file extension, except those already ending in .br/.gz. |
 | `-h` | `--help` | | Print help information and exit. |
 | `-l` | `--list` | `<FILE>` | Read (absolute) file and/or directory paths to compress from this text file — or STDIN if "-" — one entry per line, instead of or in addition to `<PATH(S)>`. |
+| | `--no-br` | | Skip Brotli encoding. |
+| | `--no-gz` | | Skip Gzip encoding. |
 | `-p` | `--progress` | | Show progress bar while minifying. |
 | `-V` | `--version` | | Print program version and exit. |
 

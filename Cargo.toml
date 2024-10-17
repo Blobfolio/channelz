@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.9.2"
+version = "0.9.3"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -54,6 +54,14 @@ long = "--help"
 description = "Print help information and exit."
 
 [[package.metadata.bashman.switches]]
+long = "--no-br"
+description = "Skip Brotli encoding."
+
+[[package.metadata.bashman.switches]]
+long = "--no-gz"
+description = "Skip Gzip encoding."
+
+[[package.metadata.bashman.switches]]
 short = "-p"
 long = "--progress"
 description = "Show progress bar while minifying."
@@ -85,10 +93,11 @@ lines = [
 ]
 
 [build-dependencies]
+argyle = "0.10.*"
 dactyl = "0.7.*"
 
 [dependencies]
-argyle = "0.8.*"
+argyle = "0.10.*"
 crossbeam-channel = "=0.5.*"
 ctrlc = "=3.4.5"
 dactyl = "0.7.*"
@@ -96,16 +105,16 @@ dowser = "0.9.*"
 write_atomic = "0.5.*"
 
 [dependencies.brotli]
-version = "=6.0.0"
+version = "=7.0.0"
 default-features = false
 features = [ "std" ]
 
 [dependencies.fyi_msg]
-version = "0.14.*"
+version = "1.1.*"
 features = [ "progress" ]
 
 [dependencies.libdeflater]
-version = "=1.21.0"
+version = "=1.22.0"
 features = [ "freestanding" ]
 
 [profile.release]
