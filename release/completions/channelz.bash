@@ -11,6 +11,8 @@ _basher___channelz() {
 		opts+=("-h")
 		opts+=("--help")
 	fi
+	[[ " ${COMP_LINE} " =~ " --no-br " ]] || opts+=("--no-br")
+	[[ " ${COMP_LINE} " =~ " --no-gz " ]] || opts+=("--no-gz")
 	if [[ ! " ${COMP_LINE} " =~ " -p " ]] && [[ ! " ${COMP_LINE} " =~ " --progress " ]]; then
 		opts+=("-p")
 		opts+=("--progress")
@@ -29,7 +31,7 @@ _basher___channelz() {
 		return 0
 	fi
 	case "${prev}" in
-		-l|--list)
+		--list|-l)
 			if [ -z "$( declare -f _filedir )" ]; then
 				COMPREPLY=( $( compgen -f "${cur}" ) )
 			else
