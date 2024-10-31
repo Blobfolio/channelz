@@ -78,7 +78,7 @@ export CXXFLAGS := "-Wall -Wextra -flto -march=x86-64-v3"
 # Generate CREDITS.
 @credits:
 	# Do completions/man.
-	cargo bashman -m "{{ justfile_directory() }}/Cargo.toml"
+	cargo bashman -m "{{ justfile_directory() }}/Cargo.toml" -t x86_64-unknown-linux-gnu
 	just _fix-chown "{{ justfile_directory() }}/CREDITS.md"
 
 
