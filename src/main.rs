@@ -125,7 +125,7 @@ const EXT_GZ: u16 = u16::from_le_bytes([b'g', b'z']);
 
 /// # Main.
 fn main() {
-	match _main() {
+	match main__() {
 		Ok(()) => {},
 		Err(e @ (ChannelZError::PrintHelp | ChannelZError::PrintVersion)) => {
 			println!("{e}");
@@ -136,7 +136,7 @@ fn main() {
 
 #[inline]
 /// # Actual Main.
-fn _main() -> Result<(), ChannelZError> {
+fn main__() -> Result<(), ChannelZError> {
 	let args = argyle::args()
 		.with_keywords(include!(concat!(env!("OUT_DIR"), "/argyle.rs")));
 
