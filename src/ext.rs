@@ -16,7 +16,7 @@ include!(concat!(env!("OUT_DIR"), "/channelz-matchers.rs"));
 /// This checks that the path (as a byte slice) ends with one of the supported
 /// extensions.
 pub(super) fn match_extension(ext: &[u8]) -> bool {
-	Extension::slice_ext(ext).map_or(false, |ext|
+	Extension::slice_ext(ext).is_some_and(|ext|
 		match ext.len() {
 			2 => match2(u16::from_le_bytes([
 				ext[0].to_ascii_lowercase(),

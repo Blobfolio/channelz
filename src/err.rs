@@ -70,6 +70,7 @@ Note: static copies will only be generated for files with these extensions:
 pub(super) enum ChannelZError {
 	Jobserver,
 	Killed,
+	ListFile,
 	NoEncoders,
 	NoFiles,
 	PrintHelp,
@@ -91,6 +92,7 @@ impl ChannelZError {
 		match self {
 			Self::Jobserver => "One or more threads terminated early; please try again.",
 			Self::Killed => "The process was aborted early.",
+			Self::ListFile => "Invalid -l/--list text file.",
 			Self::NoEncoders => "At least one encoder needs to be enabled.",
 			Self::NoFiles => "No encodeable files were found.",
 			Self::PrintHelp => HELP,

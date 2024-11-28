@@ -25,6 +25,8 @@ use std::{
 /// There are a few other, longer extensions that aren't worth optimizing in
 /// this way. They're just dealt with inline in `ext.rs`.
 pub fn main() {
+	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
+
 	// CLI Arguments.
 	write_cli();
 

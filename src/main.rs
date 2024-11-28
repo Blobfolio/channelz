@@ -125,7 +125,7 @@ const EXT_GZ: u16 = u16::from_le_bytes([b'g', b'z']);
 
 /// # Main.
 fn main() {
-	match _main() {
+	match main__() {
 		Ok(()) => {},
 		Err(e @ (ChannelZError::PrintHelp | ChannelZError::PrintVersion)) => {
 			println!("{e}");
@@ -136,7 +136,7 @@ fn main() {
 
 #[inline]
 /// # Actual Main.
-fn _main() -> Result<(), ChannelZError> {
+fn main__() -> Result<(), ChannelZError> {
 	let args = argyle::args()
 		.with_keywords(include!(concat!(env!("OUT_DIR"), "/argyle.rs")));
 
@@ -156,14 +156,9 @@ fn _main() -> Result<(), ChannelZError> {
 			Argument::Key("-h" | "--help") => return Err(ChannelZError::PrintHelp),
 			Argument::Key("-V" | "--version") => return Err(ChannelZError::PrintVersion),
 
-			Argument::KeyWithValue("-l" | "--list", s) =>
-				if let Ok(raw) = std::fs::read_to_string(s) {
-					paths = paths.with_paths(raw.lines().filter_map(|line| {
-						let line = line.trim();
-						if line.is_empty() { None }
-						else { Some(line) }
-					}));
-				},
+			Argument::KeyWithValue("-l" | "--list", s) => {
+				paths.read_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
+			},
 
 			// Assume paths.
 			Argument::Other(s) => { paths = paths.with_path(s); },
