@@ -123,7 +123,7 @@ fn main() -> ExitCode {
 			ExitCode::SUCCESS
 		},
 		Err(e) => {
-			Msg::error(e.as_str()).eprint();
+			Msg::error(e.to_string()).eprint();
 			ExitCode::FAILURE
 		},
 	}
@@ -156,8 +156,11 @@ fn main__() -> Result<(), ChannelZError> {
 			},
 
 			// Assume paths.
-			Argument::Other(s) => { paths = paths.with_path(s); },
-			Argument::InvalidUtf8(s) => { paths = paths.with_path(s); },
+			Argument::Path(s) => { paths = paths.with_path(s); },
+
+			// Mistakes?
+			Argument::Other(s) => return Err(ChannelZError::InvalidCli(s)),
+			Argument::InvalidUtf8(s) => return Err(ChannelZError::InvalidCli(s.to_string_lossy().into_owned())),
 
 			// Nothing else is expected.
 			_ => {},
