@@ -84,6 +84,7 @@ use std::{
 		Path,
 		PathBuf,
 	},
+	process::ExitCode,
 	sync::atomic::Ordering::SeqCst,
 	thread,
 };
@@ -114,13 +115,17 @@ const EXT_GZ: u16 = u16::from_le_bytes([b'g', b'z']);
 
 
 /// # Main.
-fn main() {
+fn main() -> ExitCode {
 	match main__() {
-		Ok(()) => {},
+		Ok(()) => ExitCode::SUCCESS,
 		Err(e @ (ChannelZError::PrintHelp | ChannelZError::PrintVersion)) => {
 			println!("{e}");
+			ExitCode::SUCCESS
 		},
-		Err(e) => { Msg::error(e.as_str()).die(1); },
+		Err(e) => {
+			Msg::error(e.as_str()).eprint();
+			ExitCode::FAILURE
+		},
 	}
 }
 
