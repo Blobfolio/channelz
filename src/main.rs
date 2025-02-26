@@ -84,6 +84,7 @@ use std::{
 		Path,
 		PathBuf,
 	},
+	process::ExitCode,
 	sync::atomic::Ordering::SeqCst,
 	thread,
 };
@@ -114,13 +115,17 @@ const EXT_GZ: u16 = u16::from_le_bytes([b'g', b'z']);
 
 
 /// # Main.
-fn main() {
+fn main() -> ExitCode {
 	match main__() {
-		Ok(()) => {},
+		Ok(()) => ExitCode::SUCCESS,
 		Err(e @ (ChannelZError::PrintHelp | ChannelZError::PrintVersion)) => {
 			println!("{e}");
+			ExitCode::SUCCESS
 		},
-		Err(e) => { Msg::error(e.as_str()).die(1); },
+		Err(e) => {
+			Msg::error(e.to_string()).eprint();
+			ExitCode::FAILURE
+		},
 	}
 }
 
@@ -151,8 +156,11 @@ fn main__() -> Result<(), ChannelZError> {
 			},
 
 			// Assume paths.
-			Argument::Other(s) => { paths = paths.with_path(s); },
-			Argument::InvalidUtf8(s) => { paths = paths.with_path(s); },
+			Argument::Path(s) => { paths = paths.with_path(s); },
+
+			// Mistakes?
+			Argument::Other(s) => return Err(ChannelZError::InvalidCli(s)),
+			Argument::InvalidUtf8(s) => return Err(ChannelZError::InvalidCli(s.to_string_lossy().into_owned())),
 
 			// Nothing else is expected.
 			_ => {},
@@ -169,10 +177,9 @@ fn main__() -> Result<(), ChannelZError> {
 	}
 
 	// Put it all together!
-	let mut paths: Vec<PathBuf> = paths.into_vec_filtered(
-		if force { find_all }
-		else { find_default }
-	);
+	let mut paths: Vec<PathBuf> =
+		if force { paths.filter(find_all).collect() }
+		else { paths.filter(find_default).collect() };
 	let total = NonZeroUsize::new(paths.len()).ok_or(ChannelZError::NoFiles)?;
 	paths.sort();
 
@@ -311,6 +318,7 @@ fn crunch_quiet(rx: &Receiver::<&Path>, kinds: u8) -> ThreadTotals {
 }
 
 #[cold]
+#[expect(clippy::ptr_arg, reason = "Needs to match filter() signature.")]
 /// # Find Non-GZ/BR.
 ///
 /// This is a callback for `Dowser`. That library ensures the paths passed will
@@ -318,8 +326,9 @@ fn crunch_quiet(rx: &Receiver::<&Path>, kinds: u8) -> ThreadTotals {
 ///
 /// For this variation, everything is fair game so long as it isn't already
 /// `gz`/`br`-encoded.
-fn find_all(p: &Path) -> bool { ! ext::match_encoded(p.as_os_str().as_bytes()) }
+fn find_all(p: &PathBuf) -> bool { ! ext::match_encoded(p.as_os_str().as_bytes()) }
 
+#[expect(clippy::ptr_arg, reason = "Needs to match filter() signature.")]
 /// # Find Default.
 ///
 /// This is a callback for `Dowser`. That library ensures the paths passed will
@@ -327,4 +336,4 @@ fn find_all(p: &Path) -> bool { ! ext::match_encoded(p.as_os_str().as_bytes()) }
 ///
 /// For this variation, we're looking for all the hard-coded "default" types.
 /// Refer to the main documentation or help screen for that list.
-fn find_default(p: &Path) -> bool { ext::match_extension(p.as_os_str().as_bytes()) }
+fn find_default(p: &PathBuf) -> bool { ext::match_extension(p.as_os_str().as_bytes()) }

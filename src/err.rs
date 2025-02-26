@@ -63,11 +63,12 @@ Note: static copies will only be generated for files with these extensions:
 
 
 #[expect(clippy::missing_docs_in_private_items, reason = "Self-explanatory.")]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 /// # Errors.
 ///
 /// This is the binary's obligatory custom error type.
 pub(super) enum ChannelZError {
+	InvalidCli(String),
 	Jobserver,
 	Killed,
 	ListFile,
@@ -82,14 +83,19 @@ impl std::error::Error for ChannelZError {}
 impl fmt::Display for ChannelZError {
 	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str(self.as_str())
+		let prefix = self.as_str();
+		match self {
+			Self::InvalidCli(s) => write!(f, "{prefix} \x1b[2m{s}\x1b[0m"),
+			_ => f.write_str(prefix),
+		}
 	}
 }
 
 impl ChannelZError {
 	/// # As String Slice.
-	pub(super) const fn as_str(self) -> &'static str {
+	pub(super) const fn as_str(&self) -> &'static str {
 		match self {
+			Self::InvalidCli(_) => "Invalid/unknown argument:",
 			Self::Jobserver => "One or more threads terminated early; please try again.",
 			Self::Killed => "The process was aborted early.",
 			Self::ListFile => "Invalid -l/--list text file.",
