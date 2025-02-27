@@ -206,15 +206,8 @@ fn main__() -> Result<(), ChannelZError> {
 	let len = thread::scope(#[inline(always)] |s| {
 		// Set up the worker threads.
 		let mut workers = Vec::with_capacity(threads.get());
-		if let Some(p) = progress.as_ref() {
-			for _ in 0..threads.get() {
-				workers.push(s.spawn(#[inline(always)] || crunch_pretty(&rx, kinds, p)));
-			}
-		}
-		else {
-			for _ in 0..threads.get() {
-				workers.push(s.spawn(#[inline(always)] || crunch_quiet(&rx, kinds)));
-			}
+		for _ in 0..threads.get() {
+			workers.push(s.spawn(#[inline(always)] || crunch(&rx, kinds, progress.as_ref())));
 		}
 
 		// Push all the files to it, then drop the sender to disconnect.
@@ -285,15 +278,20 @@ fn clean(paths: Dowser, summary: bool, kinds: u8) {
 }
 
 #[inline(never)]
-/// # Worker Callback (Pretty).
+/// # Worker Callback.
 ///
-/// This is the worker callback for pretty crunching. It listens for "new"
-/// file paths and crunches them — and updates the progress bar, etc. —
-/// then quits when the work has dried up.
-fn crunch_pretty(rx: &Receiver::<&Path>, kinds: u8, progress: &Progless) -> ThreadTotals {
+/// This is the worker callback for crunching. It listens for "new" file paths
+/// and crunches them — and maybe updates the progress bar, etc. — then quits
+/// as soon as the work has dried up.
+fn crunch(rx: &Receiver::<&Path>, kinds: u8, progress: Option<&Progless>) -> ThreadTotals {
 	let mut enc = enc::Encoder::new(kinds);
-
 	let mut len = ThreadTotals::new();
+
+	let Some(progress) = progress else {
+		while let Ok(p) = rx.recv() { let _res = enc.encode(p); }
+		return len;
+	};
+
 	while let Ok(p) = rx.recv() {
 		let name = p.to_string_lossy();
 		progress.add(&name);
@@ -304,17 +302,6 @@ fn crunch_pretty(rx: &Receiver::<&Path>, kinds: u8, progress: &Progless) -> Thre
 	}
 
 	len
-}
-
-#[inline(never)]
-/// # Worker Callback (Quiet).
-///
-/// This is the worker callback for quiet crunching. It listens for "new"
-/// file paths and crunches them, then quits when the work has dried up.
-fn crunch_quiet(rx: &Receiver::<&Path>, kinds: u8) -> ThreadTotals {
-	let mut enc = enc::Encoder::new(kinds);
-	while let Ok(p) = rx.recv() { let _res = enc.encode(p); }
-	ThreadTotals::new() // We aren't keeping track in this mode.
 }
 
 #[cold]
