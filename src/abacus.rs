@@ -5,10 +5,7 @@ This module helps tidy up the file sizes being passed back and forth all over
 the place.
 */
 
-use crate::{
-	FLAG_BR,
-	FLAG_GZ,
-};
+use crate::Flags;
 use dactyl::{
 	NiceU64,
 	NicePercent,
@@ -99,7 +96,7 @@ impl ThreadTotals {
 	/// # Summarize.
 	///
 	/// Print a nice summary of the work done.
-	pub(super) fn summarize(self, kinds: u8) {
+	pub(super) fn summarize(self, kinds: Flags) {
 		// Print the original raw total with commas in all the right places.
 		let nice_raw = NiceU64::from(self.raw);
 		let nice_len = nice_raw.len();
@@ -109,8 +106,8 @@ impl ThreadTotals {
 
 		// Now do the same for each of the (enabled) encoded variants.
 		let encoded: [(u64, &str, bool); 2] = [
-			(self.br,  "  Brotli", FLAG_BR == kinds & FLAG_BR),
-			(self.gz,  "    Gzip", FLAG_GZ == kinds & FLAG_GZ),
+			(self.br,  "  Brotli", kinds.contains(Flags::Brotli)),
+			(self.gz,  "    Gzip", kinds.contains(Flags::Gzip)),
 		];
 
 		for (total, label, enabled) in encoded {
