@@ -128,11 +128,11 @@ fn main__() -> Result<(), ChannelZError> {
 	let mut progress = false;
 	for arg in args {
 		match arg {
-			Argument::Key("--clean") => { kinds |= Flags::Clean; },
-			Argument::Key("--clean-only") => { kinds |= Flags::CleanOnly; },
-			Argument::Key("--force") => { kinds |= Flags::Force; },
-			Argument::Key("--no-br") => { kinds = kinds.without(Flags::Brotli); },
-			Argument::Key("--no-gz") => { kinds = kinds.without(Flags::Gzip); },
+			Argument::Key("--clean") => { kinds.set(Flags::Clean); },
+			Argument::Key("--clean-only") => { kinds.set(Flags::CleanOnly); },
+			Argument::Key("--force") => { kinds.set(Flags::Force); },
+			Argument::Key("--no-br") => { kinds.unset(Flags::Brotli); },
+			Argument::Key("--no-gz") => { kinds.unset(Flags::Gzip); },
 			Argument::Key("-p" | "--progress") => { progress = true; },
 
 			Argument::Key("-h" | "--help") => return Err(ChannelZError::PrintHelp),
