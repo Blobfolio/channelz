@@ -5,15 +5,15 @@ This module helps tidy up the file sizes being passed back and forth all over
 the place.
 */
 
-use crate::{
-	FLAG_BR,
-	FLAG_GZ,
-};
+use crate::Flags;
 use dactyl::{
 	NiceU64,
 	NicePercent,
 };
-use fyi_msg::Msg;
+use fyi_msg::{
+	AnsiColor,
+	Msg,
+};
 use std::{
 	num::NonZeroU64,
 	ops::{
@@ -99,25 +99,25 @@ impl ThreadTotals {
 	/// # Summarize.
 	///
 	/// Print a nice summary of the work done.
-	pub(super) fn summarize(self, kinds: u8) {
+	pub(super) fn summarize(self, kinds: Flags) {
 		// Print the original raw total with commas in all the right places.
 		let nice_raw = NiceU64::from(self.raw);
 		let nice_len = nice_raw.len();
-		Msg::custom("  Source", 13, &format!("{nice_raw} bytes"))
+		Msg::new(("  Source", AnsiColor::LightMagenta), format!("{nice_raw} bytes"))
 			.with_newline(true)
 			.print();
 
 		// Now do the same for each of the (enabled) encoded variants.
 		let encoded: [(u64, &str, bool); 2] = [
-			(self.br,  "  Brotli", FLAG_BR == kinds & FLAG_BR),
-			(self.gz,  "    Gzip", FLAG_GZ == kinds & FLAG_GZ),
+			(self.br,  "  Brotli", kinds.contains(Flags::Brotli)),
+			(self.gz,  "    Gzip", kinds.contains(Flags::Gzip)),
 		];
 
 		for (total, label, enabled) in encoded {
 			if ! enabled || total == 0 { continue; }
 
 			let nice = NiceU64::from(total);
-			let mut msg = Msg::custom(label, 13, &format!(
+			let mut msg = Msg::new((label, AnsiColor::LightMagenta), format!(
 				"{:>nice_len$} bytes",
 				nice.as_str(),
 			))

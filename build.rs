@@ -2,7 +2,10 @@
 # `ChannelZ`
 */
 
-use argyle::KeyWordsBuilder;
+use argyle::{
+	FlagsBuilder,
+	KeyWordsBuilder,
+};
 use dactyl::{
 	NiceU16,
 	NiceU32,
@@ -29,6 +32,9 @@ pub fn main() {
 
 	// CLI Arguments.
 	write_cli();
+
+	// Flags.
+	write_flags();
 
 	let out = format!(
 		r"
@@ -137,4 +143,17 @@ fn write_cli() {
 	]);
 	builder.push_keys_with_values(["-l", "--list"]);
 	builder.save(out_path("argyle.rs"));
+}
+
+/// # Write Flags.
+fn write_flags() {
+	FlagsBuilder::new("Flags")
+		.private()
+		.with_flag("Brotli", None)
+		.with_flag("Gzip", None)
+		.with_alias("All", ["Brotli", "Gzip"], Some("# All Encoders."))
+		.with_flag("Clean", Some("# Clean Old Br/Gz First."))
+		.with_complex_flag("CleanOnly", ["Clean"], Some("# Clean Old Br/Gz and Exit."))
+		.with_flag("Force", Some("# Crunch All Files.\n\nIgnore the built-in extension times and crunch all the files found."))
+		.save(out_path("flags.rs"));
 }

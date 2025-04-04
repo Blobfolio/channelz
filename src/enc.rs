@@ -10,8 +10,7 @@ use brotli::enc::{
 };
 use crate::{
 	EncoderTotals,
-	FLAG_BR,
-	FLAG_GZ,
+	Flags,
 };
 use libdeflater::{
 	CompressionLvl,
@@ -47,14 +46,14 @@ pub(super) struct Encoder {
 	dst_gz: PathBuf,
 
 	/// # Formats.
-	kinds: u8,
+	kinds: Flags,
 }
 
 impl Encoder {
 	/// # New Instance.
 	///
 	/// Return a new re-usable encoder instance for the given format(s).
-	pub(super) fn new(kinds: u8) -> Self {
+	pub(super) fn new(kinds: Flags) -> Self {
 		Self {
 			src: Vec::new(),
 			dst_buf: Vec::new(),
@@ -65,10 +64,10 @@ impl Encoder {
 	}
 
 	/// # Has Brotli?
-	const fn has_br(&self) -> bool { FLAG_BR == self.kinds & FLAG_BR }
+	const fn has_br(&self) -> bool { self.kinds.contains(Flags::Brotli) }
 
 	/// # Has Gzip?
-	const fn has_gz(&self) -> bool { FLAG_GZ == self.kinds & FLAG_GZ }
+	const fn has_gz(&self) -> bool { self.kinds.contains(Flags::Gzip) }
 }
 
 impl Encoder {
@@ -302,7 +301,7 @@ mod test {
 		write_atomic::write_file(&src, RAW.as_bytes()).expect("Unable to save source file.");
 
 		// Encode it!
-		let mut encoder = Encoder::new(crate::FLAG_ALL);
+		let mut encoder = Encoder::new(Flags::All);
 		encoder.encode(&src).expect("Encoding failed!");
 
 		// Check the paths.
@@ -321,15 +320,15 @@ mod test {
 
 	#[test]
 	fn t_encode_kinds() {
-		let enc = Encoder::new(FLAG_BR);
+		let enc = Encoder::new(Flags::Brotli);
 		assert!(enc.has_br());
 		assert!(! enc.has_gz());
 
-		let enc = Encoder::new(FLAG_GZ);
+		let enc = Encoder::new(Flags::Gzip);
 		assert!(! enc.has_br());
 		assert!(enc.has_gz());
 
-		let enc = Encoder::new(crate::FLAG_ALL);
+		let enc = Encoder::new(Flags::All);
 		assert!(enc.has_br());
 		assert!(enc.has_gz());
 	}
