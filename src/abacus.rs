@@ -10,7 +10,10 @@ use dactyl::{
 	NiceU64,
 	NicePercent,
 };
-use fyi_msg::Msg;
+use fyi_msg::{
+	AnsiColor,
+	Msg,
+};
 use std::{
 	num::NonZeroU64,
 	ops::{
@@ -100,7 +103,7 @@ impl ThreadTotals {
 		// Print the original raw total with commas in all the right places.
 		let nice_raw = NiceU64::from(self.raw);
 		let nice_len = nice_raw.len();
-		Msg::custom("  Source", 13, &format!("{nice_raw} bytes"))
+		Msg::new(("  Source", AnsiColor::LightMagenta), format!("{nice_raw} bytes"))
 			.with_newline(true)
 			.print();
 
@@ -114,7 +117,7 @@ impl ThreadTotals {
 			if ! enabled || total == 0 { continue; }
 
 			let nice = NiceU64::from(total);
-			let mut msg = Msg::custom(label, 13, &format!(
+			let mut msg = Msg::new((label, AnsiColor::LightMagenta), format!(
 				"{:>nice_len$} bytes",
 				nice.as_str(),
 			))
