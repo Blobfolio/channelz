@@ -2,6 +2,11 @@
 # ChannelZ: Errors
 */
 
+use fyi_ansi::{
+	ansi,
+	csi,
+	dim,
+};
 use std::fmt;
 
 
@@ -17,7 +22,7 @@ const HELP: &str = concat!(
    `-( /    -=`\   |
  .==`=(  -= = _/   /`--.
 (M==M=M==M=M==M==M==M==M)
- \=N=N==N=N==N=N==N=NN=/   ", "\x1b[38;5;199mChannelZ\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r#"
+ \=N=N==N=N==N=N==N=NN=/   ", csi!(199), "ChannelZ", ansi!((cornflower_blue) " v", env!("CARGO_PKG_VERSION")), r#"
   \M==M=M==M=M==M===M=/    Fast, recursive, multi-threaded
    \N=N==N=N==N=NN=N=/     static Brotli and Gzip encoding.
     \M==M==M=M==M==M/
@@ -85,7 +90,12 @@ impl fmt::Display for ChannelZError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let prefix = self.as_str();
 		match self {
-			Self::InvalidCli(s) => write!(f, "{prefix} \x1b[2m{s}\x1b[0m"),
+			Self::InvalidCli(s) => write!(
+				f,
+				concat!("{} ", dim!("{}")),
+				prefix,
+				s,
+			),
 			_ => f.write_str(prefix),
 		}
 	}
