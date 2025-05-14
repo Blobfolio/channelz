@@ -116,7 +116,7 @@ version = "2.0.*"
 features = [ "signals" ]
 
 [dependencies.libdeflater]
-version = "=1.23.1"
+version = "=1.24.0"
 features = [ "freestanding" ]
 
 [profile.release]
