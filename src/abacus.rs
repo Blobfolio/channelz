@@ -10,6 +10,7 @@ use dactyl::{
 	NiceU64,
 	NicePercent,
 };
+use fyi_ansi::dim;
 use fyi_msg::{
 	AnsiColor,
 	Msg,
@@ -125,7 +126,7 @@ impl ThreadTotals {
 
 			if total < self.raw {
 				if let Ok(nice_per) = NicePercent::try_from((self.raw - total, self.raw)) {
-					msg.set_suffix(format!(" \x1b[2m(Saved {nice_per}.)\x1b[0m"));
+					msg.set_suffix(format!(dim!(" (Saved {}.)"), nice_per));
 				}
 			}
 
