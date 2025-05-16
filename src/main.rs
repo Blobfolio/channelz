@@ -72,6 +72,7 @@ use crossbeam_channel::Receiver;
 use dactyl::NiceU64;
 use dowser::Dowser;
 use err::ChannelZError;
+use fyi_ansi::dim;
 use fyi_msg::{
 	Msg,
 	MsgKind,
@@ -243,7 +244,10 @@ fn clean(paths: Dowser, summary: bool, kinds: Flags) {
 		{
 			if std::fs::remove_file(&p).is_ok() { cleaned += 1; }
 			else {
-				Msg::warning(format!("Unable to delete {p:?}")).eprint();
+				Msg::warning(format!(
+					concat!("Unable to delete ", dim!("{p}")),
+					p=p.display(),
+				)).eprint();
 			}
 		}
 	}
