@@ -48,8 +48,8 @@ FLAGS:
 OPTIONS:
     -l, --list <FILE> Read (absolute) file and/or directory paths to compress
                       from this text file — or STDIN if "-" — one entry per
-                      line, instead of or in addition to specifying <PATH(S)>
-                      directly at the end of the command.
+                      line, instead of or in addition to any trailing
+                      <PATH(S)>.
 
 ARGS:
     <PATH(S)>...      One or more file and/or directory paths to compress
