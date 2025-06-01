@@ -93,11 +93,11 @@ lines = [
 
 [build-dependencies]
 argyle = "0.12.*"
-dactyl = "0.11.*"
+dactyl = "0.12.*"
 
 [dependencies]
 crossbeam-channel = "=0.5.*"
-dactyl = "0.11.*"
+dactyl = "0.12.*"
 dowser = "0.14.*"
 fyi_ansi = "2.1.*"
 write_atomic = "0.7.*"
