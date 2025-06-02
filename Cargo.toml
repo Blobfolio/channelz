@@ -99,7 +99,6 @@ dactyl = "0.12.*"
 crossbeam-channel = "=0.5.*"
 dactyl = "0.12.*"
 dowser = "0.14.*"
-fyi_ansi = "2.1.*"
 write_atomic = "0.7.*"
 
 [dependencies.argyle]
@@ -112,7 +111,7 @@ default-features = false
 features = [ "std" ]
 
 [dependencies.fyi_msg]
-version = "2.1.*"
+version = "2.2.*"
 features = [ "signals" ]
 
 [dependencies.libdeflater]

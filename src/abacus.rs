@@ -10,8 +10,8 @@ use dactyl::{
 	NiceU64,
 	NicePercent,
 };
-use fyi_ansi::dim;
 use fyi_msg::{
+	fyi_ansi::dim,
 	AnsiColor,
 	Msg,
 };
