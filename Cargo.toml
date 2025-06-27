@@ -111,7 +111,7 @@ default-features = false
 features = [ "std" ]
 
 [dependencies.fyi_msg]
-version = "2.2.*"
+version = "2.3.*"
 features = [ "signals" ]
 
 [dependencies.libdeflater]
