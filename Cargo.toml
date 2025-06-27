@@ -98,7 +98,7 @@ dactyl = "0.12.*"
 [dependencies]
 crossbeam-channel = "=0.5.*"
 dactyl = "0.12.*"
-dowser = "0.14.*"
+dowser = "0.15.*"
 write_atomic = "0.7.*"
 
 [dependencies.argyle]
