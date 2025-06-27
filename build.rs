@@ -7,6 +7,7 @@ use argyle::{
 	KeyWordsBuilder,
 };
 use dactyl::{
+	NiceSeparator,
 	NiceU16,
 	NiceU32,
 };
@@ -27,7 +28,7 @@ use std::{
 ///
 /// There are a few other, longer extensions that aren't worth optimizing in
 /// this way. They're just dealt with inline in `ext.rs`.
-pub fn main() {
+fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 
 	// CLI Arguments.
@@ -91,7 +92,7 @@ fn pat16(ext: &[&str]) -> String {
 		assert_eq!(i.len(), 2);
 		let num = NiceU16::with_separator(
 			u16::from_le_bytes([i[0], i[1]]),
-			b'_',
+			NiceSeparator::Underscore,
 		);
 		out.push(num);
 	}
@@ -113,7 +114,7 @@ fn pat32(ext: &[&str]) -> String {
 		assert_eq!(i.len(), 4);
 		let num = NiceU32::with_separator(
 			u32::from_le_bytes([i[0], i[1], i[2], i[3]]),
-			b'_',
+			NiceSeparator::Underscore,
 		);
 		out.push(num);
 	}

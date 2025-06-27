@@ -72,8 +72,8 @@ use crossbeam_channel::Receiver;
 use dactyl::NiceU64;
 use dowser::Dowser;
 use err::ChannelZError;
-use fyi_ansi::dim;
 use fyi_msg::{
+	fyi_ansi::dim,
 	Msg,
 	MsgKind,
 	Progless,
@@ -284,12 +284,9 @@ fn crunch(rx: &Receiver::<&Path>, kinds: Flags, progress: Option<&Progless>) -> 
 	};
 
 	while let Ok(p) = rx.recv() {
-		let name = p.to_string_lossy();
-		progress.add(&name);
-
+		let task = progress.task(p.to_string_lossy());
 		if let Some(len2) = enc.encode(p) { len += len2; }
-
-		progress.remove(&name);
+		drop(task);
 	}
 
 	len

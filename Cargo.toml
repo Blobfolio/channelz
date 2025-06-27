@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.11.2"
+version = "0.11.3"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -74,7 +74,7 @@ description = "Print version information and exit."
 short = "-l"
 long = "--list"
 label = "<FILE>"
-description = "Read (absolute) file and/or directory paths to compress from this text file — or STDIN if '-' — one entry per line, instead of or in addition to specifying <PATH(S)> directly at the end of the command."
+description = "Read (absolute) file and/or directory paths to compress from this text file — or STDIN if '-' — one entry per line, instead of or in addition to any trailing <PATH(S)>."
 path = true
 
 [[package.metadata.bashman.arguments]]
@@ -92,18 +92,17 @@ lines = [
 ]
 
 [build-dependencies]
-argyle = "0.12.*"
-dactyl = "0.10.*"
+argyle = "0.13.*"
+dactyl = "0.13.*"
 
 [dependencies]
 crossbeam-channel = "=0.5.*"
-dactyl = "0.10.*"
-dowser = "0.13.*"
-fyi_ansi = "2.1.*"
-write_atomic = "0.6.*"
+dactyl = "0.13.*"
+dowser = "0.15.*"
+write_atomic = "0.7.*"
 
 [dependencies.argyle]
-version = "0.12.*"
+version = "0.13.*"
 features = [ "try_paths" ]
 
 [dependencies.brotli]
@@ -112,7 +111,7 @@ default-features = false
 features = [ "std" ]
 
 [dependencies.fyi_msg]
-version = "2.1.*"
+version = "2.3.*"
 features = [ "signals" ]
 
 [dependencies.libdeflater]
