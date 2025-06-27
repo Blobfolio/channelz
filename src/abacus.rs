@@ -125,9 +125,8 @@ impl ThreadTotals {
 				.with_newline(true);
 
 			if total < self.raw {
-				if let Ok(nice_per) = NicePercent::try_from((self.raw - total, self.raw)) {
-					msg.set_suffix(format!(dim!(" (Saved {}.)"), nice_per));
-				}
+				let nice_per = NicePercent::from((self.raw - total, self.raw));
+				msg.set_suffix(format!(dim!(" (Saved {}.)"), nice_per));
 			}
 
 			msg.print();
