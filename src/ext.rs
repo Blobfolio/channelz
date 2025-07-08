@@ -6,42 +6,94 @@ use dowser::Extension;
 
 
 
-// See build.rs.
-include!(concat!(env!("OUT_DIR"), "/channelz-matchers.rs"));
+/// # Helper: Define Extensions.
+macro_rules! ext {
+	($($v:ident $ext:literal),+ $(,)?) => (
+		$(
+			#[doc = concat!("# Extension (`", $ext, "`).")]
+			const $v: Extension = Extension::new($ext).unwrap();
+		)+
 
-
-
-/// # Match Extension.
-///
-/// This checks that the path (as a byte slice) ends with one of the supported
-/// extensions.
-pub(super) fn match_extension(ext: &[u8]) -> bool {
-	Extension::slice_ext(ext).is_some_and(|ext|
-		match ext.len() {
-			2 => match2(u16::from_le_bytes([
-				ext[0].to_ascii_lowercase(),
-				ext[1].to_ascii_lowercase(),
-			])),
-			3 => match3(u32::from_le_bytes([
-				b'.',
-				ext[0].to_ascii_lowercase(),
-				ext[1].to_ascii_lowercase(),
-				ext[2].to_ascii_lowercase(),
-			])),
-			4 => match4(u32::from_le_bytes([
-				ext[0].to_ascii_lowercase(),
-				ext[1].to_ascii_lowercase(),
-				ext[2].to_ascii_lowercase(),
-				ext[3].to_ascii_lowercase(),
-			])),
-			5 => ext.eq_ignore_ascii_case(b"vcard") || ext.eq_ignore_ascii_case(b"xhtml"),
-			6 => ext.eq_ignore_ascii_case(b"jsonld"),
-			7 => ext.eq_ignore_ascii_case(b"geojson"),
-			8 => ext.eq_ignore_ascii_case(b"appcache") || ext.eq_ignore_ascii_case(b"manifest"),
-			11 => ext.eq_ignore_ascii_case(b"webmanifest"),
-			_ => false,
+		/// # Match Extension.
+		///
+		/// This checks that the path (as a byte slice) ends with one of the
+		/// supported extensions.
+		pub(super) const fn match_extension(ext: &[u8]) -> bool {
+			if let Some(ext) = Extension::from_path_slice(ext) {
+				matches!(ext, $($v) |+)
+			}
+			else {
+				13 <= ext.len() &&
+				matches!(
+					ext,
+					[
+						.., 0..=46 | 48..=91 | 93..=255, b'.',
+						b'W' | b'w',
+						b'E' | b'e',
+						b'B' | b'b',
+						b'M' | b'm',
+						b'A' | b'a',
+						b'N' | b'n',
+						b'I' | b'i',
+						b'F' | b'f',
+						b'E' | b'e',
+						b'S' | b's',
+						b'T' | b't',
+					]
+				)
+			}
 		}
-	)
+	);
+}
+
+/// # Extension (`br`).
+const EXT_BR: Extension = Extension::new("br").unwrap();
+
+/// # Extension (`gz`).
+const EXT_GZ: Extension = Extension::new("gz").unwrap();
+
+ext!{
+	EXT_JS       "js",
+	EXT_MD       "md",
+	EXT_BMP      "bmp",
+	EXT_CSS      "css",
+	EXT_EOT      "eot",
+	EXT_HTC      "htc",
+	EXT_HTM      "htm",
+	EXT_ICO      "ico",
+	EXT_ICS      "ics",
+	EXT_MJS      "mjs",
+	EXT_OTF      "otf",
+	EXT_RDF      "rdf",
+	EXT_RSS      "rss",
+	EXT_SVG      "svg",
+	EXT_TTF      "ttf",
+	EXT_TXT      "txt",
+	EXT_VCS      "vcs",
+	EXT_VTT      "vtt",
+	EXT_XML      "xml",
+	EXT_XSL      "xsl",
+	EXT_ATOM     "atom",
+	EXT_HTML     "html",
+	EXT_JSON     "json",
+	EXT_WASM     "wasm",
+	EXT_XHTM     "xhtm",
+	EXT_VCARD    "vcard",
+	EXT_XHTML    "xhtml",
+	EXT_JSONLD   "jsonld",
+	EXT_GEOJSON  "geojson",
+	EXT_APPCACHE "appcache",
+	EXT_MANIFEST "manifest",
+}
+
+
+
+/// # Match br/gz.
+pub(super) const fn match_encoded(bytes: &[u8]) -> bool {
+	if let [.., 0..=46 | 48..=91 | 93..=255, b'.', a, b] = bytes {
+		matches!(Extension::new_slice(&[*a, *b]), Some(EXT_BR | EXT_GZ))
+	}
+	else { false }
 }
 
 
