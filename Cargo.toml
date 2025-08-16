@@ -105,7 +105,7 @@ version = "0.13.*"
 features = [ "try_paths" ]
 
 [dependencies.brotli]
-version = "=8.0.1"
+version = "=8.0.2"
 default-features = false
 features = [ "std" ]
 
