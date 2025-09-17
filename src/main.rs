@@ -68,7 +68,7 @@ use abacus::{
 	ThreadTotals,
 };
 use argyle::Argument;
-use crossbeam_channel::Receiver;
+use flume::Receiver;
 use dactyl::NiceU64;
 use dowser::Dowser;
 use err::ChannelZError;
@@ -190,7 +190,7 @@ fn main__() -> Result<(), ChannelZError> {
 		else { None };
 
 	// Thread business!
-	let (tx, rx) = crossbeam_channel::bounded::<&Path>(threads.get());
+	let (tx, rx) = flume::bounded::<&Path>(threads.get());
 	let len = thread::scope(#[inline(always)] |s| {
 		// Set up the worker threads.
 		let mut workers = Vec::with_capacity(threads.get());

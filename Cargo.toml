@@ -95,7 +95,6 @@ lines = [
 argyle = "0.13.*"
 
 [dependencies]
-crossbeam-channel = "=0.5.*"
 dactyl = "0.13.*"
 dowser = "0.16.*"
 write_atomic = "0.7.*"
@@ -108,6 +107,10 @@ features = [ "try_paths" ]
 version = "=8.0.2"
 default-features = false
 features = [ "std" ]
+
+[dependencies.flume]
+version = "0.11.*"
+default-features = false
 
 [dependencies.fyi_msg]
 version = "2.3.*"
