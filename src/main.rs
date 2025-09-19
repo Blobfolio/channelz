@@ -140,7 +140,7 @@ fn main__() -> Result<(), ChannelZError> {
 			Argument::Key("-V" | "--version") => return Err(ChannelZError::PrintVersion),
 
 			Argument::KeyWithValue("-l" | "--list", s) => {
-				paths.read_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
+				paths.push_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
 			},
 
 			// Assume paths.

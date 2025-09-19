@@ -96,7 +96,7 @@ argyle = "0.13.*"
 
 [dependencies]
 dactyl = "0.13.*"
-dowser = "0.16.*"
+dowser = "0.17.*"
 write_atomic = "0.7.*"
 
 [dependencies.argyle]
