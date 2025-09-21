@@ -67,7 +67,6 @@ use abacus::{
 	EncoderTotals,
 	ThreadTotals,
 };
-use argyle::Argument;
 use flume::Receiver;
 use dactyl::NiceU64;
 use dowser::Dowser;
@@ -121,25 +120,39 @@ fn main() -> ExitCode {
 #[inline]
 /// # Actual Main.
 fn main__() -> Result<(), ChannelZError> {
-	let args = argyle::args()
-		.with_keywords(include!(concat!(env!("OUT_DIR"), "/argyle.rs")));
+	argyle::argue! {
+		Clean         "--clean",
+		CleanOnly     "--clean-only",
+		Force         "--force",
+		NoBr          "--no-br",
+		NoGz          "--no-gz",
+		Progress "-p" "--progress",
+		Help     "-h" "--help",
+		Version  "-V" "--version",
 
+		@options
+		List     "-l" "--list",
+
+		@catchall-paths Path,
+	}
+
+	// Parse CLI arguments.
 	let mut kinds = Flags::All;
 	let mut paths = Dowser::default();
 	let mut progress = false;
-	for arg in args {
+	for arg in Argument::args_os() {
 		match arg {
-			Argument::Key("--clean") => { kinds.set(Flags::Clean); },
-			Argument::Key("--clean-only") => { kinds.set(Flags::CleanOnly); },
-			Argument::Key("--force") => { kinds.set(Flags::Force); },
-			Argument::Key("--no-br") => { kinds.unset(Flags::Brotli); },
-			Argument::Key("--no-gz") => { kinds.unset(Flags::Gzip); },
-			Argument::Key("-p" | "--progress") => { progress = true; },
+			Argument::Clean => { kinds.set(Flags::Clean); },
+			Argument::CleanOnly => { kinds.set(Flags::CleanOnly); },
+			Argument::Force => { kinds.set(Flags::Force); },
+			Argument::NoBr => { kinds.unset(Flags::Brotli); },
+			Argument::NoGz => { kinds.unset(Flags::Gzip); },
+			Argument::Progress => { progress = true; },
 
-			Argument::Key("-h" | "--help") => return Err(ChannelZError::PrintHelp),
-			Argument::Key("-V" | "--version") => return Err(ChannelZError::PrintVersion),
+			Argument::Help => return Err(ChannelZError::PrintHelp),
+			Argument::Version => return Err(ChannelZError::PrintVersion),
 
-			Argument::KeyWithValue("-l" | "--list", s) => {
+			Argument::List(s) => {
 				paths.push_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
 			},
 
@@ -147,11 +160,8 @@ fn main__() -> Result<(), ChannelZError> {
 			Argument::Path(s) => { paths = paths.with_path(s); },
 
 			// Mistakes?
-			Argument::Other(s) => return Err(ChannelZError::InvalidCli(s)),
-			Argument::InvalidUtf8(s) => return Err(ChannelZError::InvalidCli(s.to_string_lossy().into_owned())),
-
-			// Nothing else is expected.
-			_ => {},
+			Argument::Other(s) =>   return Err(ChannelZError::InvalidCli(s)),
+			Argument::OtherOs(s) => return Err(ChannelZError::InvalidCli(s.to_string_lossy().into_owned())),
 		}
 	}
 

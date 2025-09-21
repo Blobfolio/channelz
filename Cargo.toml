@@ -92,16 +92,13 @@ lines = [
 ]
 
 [build-dependencies]
-argyle = "0.13.*"
+argyle = "0.14.*"
 
 [dependencies]
+argyle = "0.14.*"
 dactyl = "0.13.*"
 dowser = "0.17.*"
 write_atomic = "0.7.*"
-
-[dependencies.argyle]
-version = "0.13.*"
-features = [ "try_paths" ]
 
 [dependencies.brotli]
 version = "=8.0.2"
