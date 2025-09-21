@@ -152,9 +152,11 @@ fn main__() -> Result<(), ChannelZError> {
 			Argument::Help => return Err(ChannelZError::PrintHelp),
 			Argument::Version => return Err(ChannelZError::PrintVersion),
 
-			Argument::List(s) => {
-				paths.push_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
-			},
+			Argument::List(s) =>
+				if s == "-" { paths.push_paths_from_stdin(); }
+				else {
+					paths.push_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
+				},
 
 			// Assume paths.
 			Argument::Path(s) => { paths = paths.with_path(s); },
