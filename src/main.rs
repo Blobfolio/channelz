@@ -207,8 +207,10 @@ fn main__() -> Result<(), ChannelZError> {
 		// Set up the worker threads.
 		let mut workers = Vec::with_capacity(threads.get());
 		for _ in 0..threads.get() {
-			workers.push(s.spawn(#[inline(always)] || crunch(&rx, kinds, progress.as_ref())));
+			let rx2 = rx.clone();
+			workers.push(s.spawn(#[inline(always)] || crunch(rx2, kinds, progress.as_ref())));
 		}
+		drop(rx);
 
 		// Push all the files to it, then drop the sender to disconnect.
 		for path in &paths {
@@ -224,7 +226,6 @@ fn main__() -> Result<(), ChannelZError> {
 			)
 			.map_err(|_| ChannelZError::Jobserver)
 	})?;
-	drop(rx);
 
 	// Summarize?
 	if let Some(progress) = progress {
@@ -280,13 +281,14 @@ fn clean(paths: Dowser, summary: bool, kinds: Flags) {
 	}
 }
 
+#[expect(clippy::needless_pass_by_value, reason = "For drop.")]
 #[inline(never)]
 /// # Worker Callback.
 ///
 /// This is the worker callback for crunching. It listens for "new" file paths
 /// and crunches them — and maybe updates the progress bar, etc. — then quits
 /// as soon as the work has dried up.
-fn crunch(rx: &Receiver::<&Path>, kinds: Flags, progress: Option<&Progless>) -> ThreadTotals {
+fn crunch(rx: Receiver::<&Path>, kinds: Flags, progress: Option<&Progless>) -> ThreadTotals {
 	let mut enc = enc::Encoder::new(kinds);
 	let mut len = ThreadTotals::new();
 
