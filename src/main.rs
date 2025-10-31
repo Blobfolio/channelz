@@ -24,6 +24,7 @@
 	clippy::format_push_string,
 	clippy::get_unwrap,
 	clippy::impl_trait_in_params,
+	clippy::implicit_clone,
 	clippy::lossy_float_literal,
 	clippy::missing_assert_message,
 	clippy::missing_docs_in_private_items,
@@ -33,7 +34,6 @@
 	clippy::rest_pat_in_fully_bound_structs,
 	clippy::semicolon_inside_block,
 	clippy::str_to_string,
-	clippy::string_to_string,
 	clippy::todo,
 	clippy::undocumented_unsafe_blocks,
 	clippy::unneeded_field_pattern,
@@ -67,7 +67,6 @@ use abacus::{
 	EncoderTotals,
 	ThreadTotals,
 };
-use argyle::Argument;
 use flume::Receiver;
 use dactyl::NiceU64;
 use dowser::Dowser;
@@ -121,37 +120,50 @@ fn main() -> ExitCode {
 #[inline]
 /// # Actual Main.
 fn main__() -> Result<(), ChannelZError> {
-	let args = argyle::args()
-		.with_keywords(include!(concat!(env!("OUT_DIR"), "/argyle.rs")));
+	argyle::argue! {
+		Clean         "--clean",
+		CleanOnly     "--clean-only",
+		Force         "--force",
+		NoBr          "--no-br",
+		NoGz          "--no-gz",
+		Progress "-p" "--progress",
+		Help     "-h" "--help",
+		Version  "-V" "--version",
 
+		@options
+		List     "-l" "--list",
+
+		@catchall-paths Path,
+	}
+
+	// Parse CLI arguments.
 	let mut kinds = Flags::All;
 	let mut paths = Dowser::default();
 	let mut progress = false;
-	for arg in args {
+	for arg in Argument::args_os() {
 		match arg {
-			Argument::Key("--clean") => { kinds.set(Flags::Clean); },
-			Argument::Key("--clean-only") => { kinds.set(Flags::CleanOnly); },
-			Argument::Key("--force") => { kinds.set(Flags::Force); },
-			Argument::Key("--no-br") => { kinds.unset(Flags::Brotli); },
-			Argument::Key("--no-gz") => { kinds.unset(Flags::Gzip); },
-			Argument::Key("-p" | "--progress") => { progress = true; },
+			Argument::Clean => { kinds.set(Flags::Clean); },
+			Argument::CleanOnly => { kinds.set(Flags::CleanOnly); },
+			Argument::Force => { kinds.set(Flags::Force); },
+			Argument::NoBr => { kinds.unset(Flags::Brotli); },
+			Argument::NoGz => { kinds.unset(Flags::Gzip); },
+			Argument::Progress => { progress = true; },
 
-			Argument::Key("-h" | "--help") => return Err(ChannelZError::PrintHelp),
-			Argument::Key("-V" | "--version") => return Err(ChannelZError::PrintVersion),
+			Argument::Help => return Err(ChannelZError::PrintHelp),
+			Argument::Version => return Err(ChannelZError::PrintVersion),
 
-			Argument::KeyWithValue("-l" | "--list", s) => {
-				paths.push_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
-			},
+			Argument::List(s) =>
+				if s == "-" { paths.push_paths_from_stdin(); }
+				else {
+					paths.push_paths_from_file(s).map_err(|_| ChannelZError::ListFile)?;
+				},
 
 			// Assume paths.
 			Argument::Path(s) => { paths = paths.with_path(s); },
 
 			// Mistakes?
-			Argument::Other(s) => return Err(ChannelZError::InvalidCli(s)),
-			Argument::InvalidUtf8(s) => return Err(ChannelZError::InvalidCli(s.to_string_lossy().into_owned())),
-
-			// Nothing else is expected.
-			_ => {},
+			Argument::Other(s) =>   return Err(ChannelZError::InvalidCli(s)),
+			Argument::OtherOs(s) => return Err(ChannelZError::InvalidCli(s.to_string_lossy().into_owned())),
 		}
 	}
 
@@ -195,8 +207,10 @@ fn main__() -> Result<(), ChannelZError> {
 		// Set up the worker threads.
 		let mut workers = Vec::with_capacity(threads.get());
 		for _ in 0..threads.get() {
-			workers.push(s.spawn(#[inline(always)] || crunch(&rx, kinds, progress.as_ref())));
+			let rx2 = rx.clone();
+			workers.push(s.spawn(#[inline(always)] || crunch(rx2, kinds, progress.as_ref())));
 		}
+		drop(rx);
 
 		// Push all the files to it, then drop the sender to disconnect.
 		for path in &paths {
@@ -212,7 +226,6 @@ fn main__() -> Result<(), ChannelZError> {
 			)
 			.map_err(|_| ChannelZError::Jobserver)
 	})?;
-	drop(rx);
 
 	// Summarize?
 	if let Some(progress) = progress {
@@ -268,13 +281,14 @@ fn clean(paths: Dowser, summary: bool, kinds: Flags) {
 	}
 }
 
+#[expect(clippy::needless_pass_by_value, reason = "For drop.")]
 #[inline(never)]
 /// # Worker Callback.
 ///
 /// This is the worker callback for crunching. It listens for "new" file paths
 /// and crunches them — and maybe updates the progress bar, etc. — then quits
 /// as soon as the work has dried up.
-fn crunch(rx: &Receiver::<&Path>, kinds: Flags, progress: Option<&Progless>) -> ThreadTotals {
+fn crunch(rx: Receiver::<&Path>, kinds: Flags, progress: Option<&Progless>) -> ThreadTotals {
 	let mut enc = enc::Encoder::new(kinds);
 	let mut len = ThreadTotals::new();
 

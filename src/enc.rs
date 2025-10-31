@@ -53,7 +53,7 @@ impl Encoder {
 	/// # New Instance.
 	///
 	/// Return a new re-usable encoder instance for the given format(s).
-	pub(super) fn new(kinds: Flags) -> Self {
+	pub(super) const fn new(kinds: Flags) -> Self {
 		Self {
 			src: Vec::new(),
 			dst_buf: Vec::new(),
