@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.12.3"
+version = "0.12.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -92,10 +92,10 @@ lines = [
 ]
 
 [build-dependencies]
-argyle = "0.14.*"
+argyle = "0.15.*"
 
 [dependencies]
-argyle = "0.14.*"
+argyle = "0.15.*"
 dactyl = "0.13.*"
 dowser = "0.18.*"
 write_atomic = "0.7.*"
