@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.12.4"
+version = "0.12.5"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -110,11 +110,11 @@ version = "0.12.*"
 default-features = false
 
 [dependencies.fyi_msg]
-version = "2.4.*"
+version = "2.5.*"
 features = [ "signals" ]
 
 [dependencies.libdeflater]
-version = "=1.25.0"
+version = "=1.25.2"
 features = [ "freestanding" ]
 
 [profile.release]
