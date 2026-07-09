@@ -95,10 +95,10 @@ use std::{
 include!(concat!(env!("OUT_DIR"), "/flags.rs"));
 
 /// # Extension: Brotli.
-const EXT_BR: u16 = u16::from_le_bytes([b'b', b'r']);
+const EXT_BR: u16 = u16::from_le_bytes(*b"br");
 
 /// # Extension: Gzip.
-const EXT_GZ: u16 = u16::from_le_bytes([b'g', b'z']);
+const EXT_GZ: u16 = u16::from_le_bytes(*b"gz");
 
 
 
