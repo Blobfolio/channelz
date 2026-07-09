@@ -134,7 +134,7 @@ impl Encoder {
 		let raw = self.src.as_slice();
 
 		// Reset the buffer and encode!
-		self.dst_buf.truncate(0);
+		self.dst_buf.clear();
 		let config = BrotliEncoderParams {
 			size_hint: raw.len(),
 			..BrotliEncoderParams::default()
@@ -196,7 +196,7 @@ impl Encoder {
 		let Ok(mut file) = File::open(raw) else { return None; };
 		let Ok(meta) = file.metadata() else { return None; };
 
-		self.src.truncate(0);
+		self.src.clear();
 		let len = meta.len();
 		if len == 0 || self.src.try_reserve_exact(len as usize).is_err() { return None; }
 
