@@ -97,8 +97,7 @@ argyle = "0.16.*"
 [dependencies]
 argyle = "0.16.*"
 dactyl = "0.14.*"
-dactyl = "0.13.*"
-dowser = "0.18.*"
+dowser = "0.19.*"
 write_atomic = "0.9.*"
 
 [dependencies.brotli]
