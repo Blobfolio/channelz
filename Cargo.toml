@@ -92,10 +92,10 @@ lines = [
 ]
 
 [build-dependencies]
-argyle = "0.15.*"
+argyle = "0.16.*"
 
 [dependencies]
-argyle = "0.15.*"
+argyle = "0.16.*"
 dactyl = "0.13.*"
 dowser = "0.18.*"
 write_atomic = "0.9.*"
