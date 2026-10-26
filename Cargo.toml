@@ -101,7 +101,7 @@ dowser = "0.19.*"
 write_atomic = "0.9.*"
 
 [dependencies.brotli]
-version = "=9.0.0"
+version = "=9.1.0"
 default-features = false
 features = [ "std" ]
 
