@@ -61,15 +61,39 @@ The "appropriate" file types are:
 
 ## Installation
 
-Debian and Ubuntu users can just grab the pre-built `.deb` package from the [latest release](https://github.com/Blobfolio/channelz/releases/latest), and Arch users can grab it from [AUR](https://aur.archlinux.org/packages/channelz-bin) (thanks @Dominiquini!).
+Pre-built x86-64-v3 `.deb` packages for Debian and Ubuntu are attached to the [latest release](https://github.com/Blobfolio/channelz/releases/latest), and Arch Linux users can install the same through [AUR](https://aur.archlinux.org/packages/channelz-bin) (thanks @Dominiquini!).
 
 This application is written in [Rust](https://www.rust-lang.org/) and can alternatively be built/installed from source using [Cargo](https://github.com/rust-lang/cargo):
 
 ```bash
+# Make sure Rust is up-to-date.
+rustup update stable
+
 # See "cargo install --help" for more options.
 cargo install \
     --git https://github.com/Blobfolio/channelz.git \
     --bin channelz
+```
+
+### Offline/Vendored Builds
+
+If your build environment lacks networking support, pre-download the `Source code (tar.gz)` and `vendored-sources.tar.zst` assets attached to the [release](https://github.com/Blobfolio/channelz/releases/latest), then:
+
+```bash
+# Extract the source code.
+tar -xf channelz-VERSION.tar.gz
+
+# Move into the source root.
+cd channelz-VERSION
+
+# Extract the vendored sources (into the source root).
+tar -xf ../vendored-sources.tar.zst
+
+# Build! See `cargo build --help` for more options.
+cargo build \
+    --release \
+    --locked \
+    --offline
 ```
 
 
