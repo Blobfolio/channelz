@@ -24,7 +24,7 @@ data_dir    := "/tmp/bench-data"
 doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
 
-export RUSTFLAGS := "-Ctarget-cpu=x86-64-v3 -Clinker-plugin-lto"
+export RUSTFLAGS := "-Dwarnings -Ctarget-cpu=x86-64-v3 -Clinker-plugin-lto"
 
 
 

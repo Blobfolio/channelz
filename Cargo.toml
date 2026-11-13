@@ -1,6 +1,6 @@
 [package]
 name = "channelz"
-version = "0.13.0"
+version = "0.13.1"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -101,7 +101,7 @@ dowser = "0.19.*"
 write_atomic = "0.9.*"
 
 [dependencies.brotli]
-version = "=9.1.0"
+version = "=9.1.1"
 default-features = false
 features = [ "std" ]
 
